@@ -13,6 +13,7 @@ from sazon_screening.engine.record import build_record
 from sazon_screening.engine.state import ConversationState, Profile
 from sazon_screening.engine.turn import start, step_unchecked
 from tests.engine.conftest import TODAY
+from tests.engine.privacy import leaked_record, leaked_state
 from tests.engine.strategies import conversations
 
 S = Status
@@ -66,6 +67,8 @@ def test_engine_invariants(config: EngineConfig, turns: list[TurnInput]) -> None
         if state.status is Status.opted_out:
             assert state.profile == Profile()
             assert state.flags == [Flag.do_not_contact]
+            assert leaked_state(state) == {}
+            assert leaked_record(build_record(state, config), config) == {}
         assert all(count <= limit for count in state.reasks.values()), state.reasks
         record = build_record(state, config)
         json.dumps(record.model_dump(mode="json"))

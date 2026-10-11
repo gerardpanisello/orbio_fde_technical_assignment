@@ -41,7 +41,6 @@ from sazon_screening.engine.rules import (
 from sazon_screening.engine.state import (
     ConversationState,
     PostCloseCorrection,
-    Profile,
     add_flag,
     add_reason,
 )
@@ -49,20 +48,26 @@ from sazon_screening.engine.validators import Accepted
 
 
 def opt_out(s: ConversationState) -> CloseOptedOut:
-    """Purge every screening value; keep only what we need to never contact them again.
+    """Forget the candidate; keep only what we need to never contact them again (FR-11).
 
-    FR-11 (GDPR / LFPDPPP data minimisation): status, drop-off stage, language and the
-    do-not-contact flag survive. The consent answer is not screening data and is kept.
+    The state is rebuilt from an allow-list rather than by clearing known fields, so
+    anything candidate-derived (pending payloads, raw text, phone-prefix country,
+    counters, slots, corrections) is dropped, including fields added in the future.
+    Kept: where it ended, language, the consent answer, do-not-contact, config version
+    and the date of the last turn (GDPR / LFPDPPP data minimisation).
     """
-    s.drop_off_stage = s.stage
-    s.profile = Profile()
-    s.flags = [Flag.do_not_contact]
-    s.needs_review_reasons = []
-    s.disqualification_reason = None
-    s.post_close_corrections = []
-    s.offered_slot_ids = []
-    s.selected_slot_id = None
-    s.status = Status.opted_out
+    purged = ConversationState(
+        status=Status.opted_out,
+        stage=s.stage,
+        drop_off_stage=s.stage,
+        language=s.language,
+        consent=s.consent,
+        flags=[Flag.do_not_contact],
+        config_version=s.config_version,
+        last_turn_on=s.last_turn_on,
+    )
+    for name in ConversationState.model_fields:
+        setattr(s, name, getattr(purged, name))
     return CloseOptedOut()
 
 

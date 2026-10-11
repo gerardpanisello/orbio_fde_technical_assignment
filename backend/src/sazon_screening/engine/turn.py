@@ -114,12 +114,12 @@ def on_candidate_turn(
     language_changed = signals.language is not None and signals.language is not s.language
     if signals.language is not None:
         s.language = signals.language
-    if t.context.country_hint is not None:
-        s.country_hint = t.context.country_hint
 
     # (1) opt-out wins over everything, in every stage and status (FR-11).
     if s.status is Status.opted_out:
-        return ClosedAck()  # terminal (plan OQ-4)
+        return ClosedAck()  # terminal (plan OQ-4); store nothing new about them
+    if t.context.country_hint is not None:
+        s.country_hint = t.context.country_hint
     if signals.opt_out:
         return opt_out(s)
 
