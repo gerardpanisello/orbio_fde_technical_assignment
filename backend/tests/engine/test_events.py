@@ -12,7 +12,7 @@ from sazon_screening.engine.actions import (
     ReaskField,
 )
 from sazon_screening.engine.enums import FieldName, ReaskReason, Stage, Status
-from tests.engine.builders import OFFERED_SLOTS, Convo, age, sched, vehicle
+from tests.engine.builders import OFFERED_SLOTS, Convo, age, license, sched, vehicle
 
 
 def at_scheduling(config: EngineConfig) -> Convo:
@@ -24,7 +24,7 @@ class TestSlots:
         c = at_scheduling(config).select_slot("s2")
         c.expect(ConfirmInterview, slot_id="s2").expect_status(Status.interview_scheduled)
         assert c.state.selected_slot_id == "s2"
-        assert c.state.drop_off_stage is None
+        assert c.state.drop_off_stage == Stage.scheduling
 
     @pytest.mark.ac("AC-30")
     def test_slot_not_offered_is_reasked(self, config: EngineConfig) -> None:
@@ -43,6 +43,7 @@ class TestSlots:
         c = at_scheduling(config).no_slot_fits()
         c.expect(CloseQualifiedUnscheduled).expect_status(Status.qualified_unscheduled)
         assert c.state.selected_slot_id is None
+        assert c.state.drop_off_stage == Stage.scheduling
 
     def test_slot_reasks_exhausted_is_qualified_unscheduled(self, config: EngineConfig) -> None:
         c = at_scheduling(config)
@@ -80,6 +81,7 @@ class TestSilence:
         assert c.state.drop_off_stage == Stage.vehicle_license
         assert c.state.pending.field == FieldName.vehicle_type
         c.say().expect(AskField, field=FieldName.vehicle_type).expect_status(Status.in_progress)
+        assert c.state.drop_off_stage is None  # resumed: it has not dropped off any more
         assert c.reasks(FieldName.vehicle_type) == 0  # the resume turn is neutral
 
     @pytest.mark.ac("AC-29")
@@ -97,3 +99,15 @@ class TestSilence:
         c.silence().expect(NoMessage)
         assert c.state.model_dump() == before
         c.say(age(17)).silence().expect(NoMessage).expect_status(Status.disqualified)
+
+
+def test_second_silence_after_resume_records_the_new_stage(config: EngineConfig) -> None:
+    c = Convo(config).advance_to(Stage.vehicle_license).silence()
+    c.say(vehicle("car")).say(license(True)).silence()
+    assert c.state.drop_off_stage == Stage.location
+    c.expect_status(Status.abandoned)
+
+
+def test_silence_in_scheduling_records_the_stage(config: EngineConfig) -> None:
+    c = at_scheduling(config).silence().expect_status(Status.qualified_unscheduled)
+    assert c.state.drop_off_stage == Stage.scheduling

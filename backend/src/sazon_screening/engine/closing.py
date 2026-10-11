@@ -96,6 +96,7 @@ def close_disqualified(s: ConversationState, reason: DisqualificationReason) -> 
 def close_qualified_unscheduled(s: ConversationState) -> CloseQualifiedUnscheduled:
     """Qualified, but no interview booked: a recruiter books it (Spec 001 §6)."""
     s.status = Status.qualified_unscheduled
+    s.drop_off_stage = s.stage
     return CloseQualifiedUnscheduled()
 
 

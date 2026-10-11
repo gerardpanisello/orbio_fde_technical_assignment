@@ -140,6 +140,7 @@ def on_candidate_turn(
     resumed = s.status is Status.abandoned
     if resumed:
         s.status = Status.in_progress
+        s.drop_off_stage = None  # they came back: no longer a drop-off
 
     # (2) abuse: first time a redirect, repeated -> a recruiter reviews (FR-28).
     if signals.abuse:
@@ -219,6 +220,7 @@ def on_slot_event(
     if event.slot_id in s.offered_slot_ids:
         s.selected_slot_id = event.slot_id
         s.status = Status.interview_scheduled
+        s.drop_off_stage = s.stage  # every close records where the conversation ended
         return ConfirmInterview(slot_id=event.slot_id)
     offered = tuple(s.offered_slot_ids)
     reask = reask_or_exhaust(s, FieldName.slot, ReaskReason.slot_not_offered, offered, cfg)

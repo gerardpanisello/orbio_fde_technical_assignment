@@ -147,7 +147,7 @@ class TestRecap:
     def test_confirming_without_slots_is_qualified_unscheduled(self, config: EngineConfig) -> None:
         c = at_recap(config).say(yes())
         c.expect(CloseQualifiedUnscheduled).expect_status(Status.qualified_unscheduled)
-        assert c.state.drop_off_stage is None
+        assert c.state.drop_off_stage == Stage.recap  # every close records where it ended
 
     @pytest.mark.ac("AC-23")
     def test_correcting_a_field_shows_the_recap_again(self, config: EngineConfig) -> None:
