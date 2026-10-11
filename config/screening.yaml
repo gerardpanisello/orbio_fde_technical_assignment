@@ -1,0 +1,58 @@
+# Grupo Sazón: screening rules for delivery-driver candidates.
+#
+# Ops can edit this file without touching code. The engine reloads it at startup and
+# refuses to start if something is wrong, with a message naming the file and the line.
+# Bump `version` on every change: it is stamped on every candidate record, so each
+# decision can be traced to the rules in force at the time.
+#
+# What you can change:
+#   - min_age: minimum age per country. Every country in service_areas.yaml needs one.
+#   - license_required: whether each vehicle type needs a driving license. All five
+#     vehicle types (motorbike, car, bicycle, e_bike, none) must be listed.
+#   - platforms: delivery platforms we recognise as experience (id + spellings).
+#   - thresholds: how many times the agent re-asks, loop guards, place-name matching.
+#   - scoring: points per factor and the high/medium bucket thresholds. Scoring only
+#     ranks qualified candidates; it never rejects anyone.
+version: "2026-10-11.1"
+default_country: ES
+
+# Assumption, to confirm with the client (spec 002 §7 #3).
+min_age: {ES: 18, MX: 18}
+
+# The brief requires a license; per-vehicle override pending client answer (spec 002 §7 #2).
+license_required:
+  motorbike: true
+  car: true
+  bicycle: true
+  e_bike: true
+  none: true
+
+platforms:
+  - {id: glovo, aliases: [glovo]}
+  - {id: uber_eats, aliases: [uber eats, ubereats, uber]}
+  - {id: just_eat, aliases: [just eat, justeat]}
+  - {id: deliveroo, aliases: [deliveroo]}
+  - {id: rappi, aliases: [rappi]}
+  - {id: didi_food, aliases: [didi, didi food]}
+  - {id: amazon_flex, aliases: [amazon flex, amazon]}
+
+thresholds:
+  max_reasks: 2                            # re-asks per field (3 attempts in total)
+  max_recap_rounds: 3                      # recap shown more often than this -> human review
+  max_consecutive_extraction_failures: 3   # AI could not read the answer N times -> human review
+  abuse_close_count: 2                     # abusive messages before closing for review
+  fuzzy_match_min_score: 85                # 50-100; higher = stricter spelling match for places
+  min_plausible_age: 14                    # lower ages are re-asked, not rejected
+  max_plausible_age: 99
+  experience_confirm_above_years: 40       # more years than this -> ask the candidate to confirm
+
+scoring:                                   # maximum total: 100
+  experience_years: {points_per_year: 5, max_points: 20}
+  platforms: {points_per_known_platform: 10, max_points: 20}   # unknown platforms score 0
+  availability: {full_time: 15, part_time: 8, weekends: 7, max_points: 25}
+  schedule: {flexible: 15, per_slot: 5, max_points: 15}
+  start_date:                              # first band that fits wins
+    - {within_days: 3, points: 20}
+    - {within_days: 14, points: 10}
+    - {within_days: 30, points: 5}
+  buckets: {high: 60, medium: 35}          # score >= 60 high, >= 35 medium, else low

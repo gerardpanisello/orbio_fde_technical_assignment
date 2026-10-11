@@ -13,15 +13,16 @@ Rules:
 
 ## A. Foundations & config
 
-- [ ] **T1 — Skeleton & tooling.**
+- [x] **T1 — Skeleton & tooling.**
   - `uv add tzdata` and `uv add --dev hypothesis`.
   - Create the packages `src/sazon_screening/config/` and `src/sazon_screening/engine/` (empty `__init__.py`).
   - Create `tests/config/`, `tests/engine/` and `tests/fixtures/config/`.
   - In `pyproject.toml`, register the marker under `[tool.pytest.ini_options]`: `markers = ["ac(id): acceptance criterion covered by this test"]`.
   - Test: `tests/engine/test_imports.py` imports both packages.
   - *(NFR-3)*
+  - *Note (impl):* `tests/`, `tests/config/` and `tests/engine/` are packages (`__init__.py`) so helpers import as `tests.engine.builders`; shared paths live in `tests/paths.py`.
 
-- [ ] **T2 — Enums & flow tables.**
+- [x] **T2 — Enums & flow tables.**
   - `engine/enums.py`: all enums in plan §3.1.
   - `engine/flow.py`: `FIELD_ORDER`, `FIELD_STAGE`, `HARD_FIELDS`, `SOFT_FIELDS`. Do not write `next_missing_field` yet.
   - Tests `tests/engine/test_flow_tables.py`:
@@ -31,7 +32,7 @@ Rules:
     - hard and soft sets are disjoint.
   - *(FR-5, FR-6)*
 
-- [ ] **T3 — Service-area config models.**
+- [x] **T3 — Service-area config models.**
   - `config/models.py`: `Area`, `Zone`, `City`, `CountryArea`, `ServiceAreasConfig`, with validators for:
     - slug ids;
     - ids unique across the whole file;
@@ -44,8 +45,9 @@ Rules:
     - bad timezone → error;
     - the same zone name in two cities is allowed.
   - *(FR-29)*
+  - *Note (impl):* `Area` holds `names`/`aliases` only; `Zone`/`City` declare `id: Slug` and `CountryArea` declares `id: Country` (overriding a field type in a subclass is rejected by mypy strict). `names` must cover every `Language`.
 
-- [ ] **T4 — Screening config models + EngineConfig.**
+- [x] **T4 — Screening config models + EngineConfig.**
   - `Platform`, `Thresholds` (spec §7 #11 defaults), `StartDateBand`, `ScoringConfig`, `ScreeningConfig`, `EngineConfig` (frozen, `version` property, cross-file `min_age` coverage check).
   - The `license_required` validator rejects unknown vehicle types and missing ones, with a named message.
   - Tests:
@@ -57,8 +59,9 @@ Rules:
     - `min_age` missing a configured country → error;
     - threshold defaults equal spec §7 #11.
   - *(FR-29)*
+  - *Note (impl):* availability weights are explicit fields of `AvailabilityScoring` (flat YAML stays as in plan §3.11; a test checks they cover the enum). Extra fail-fast checks added: unique platform ids, `min_plausible_age < max_plausible_age`, `default_country` must be configured. Helpers: `ScreeningConfig.requires_license(vehicle)`, `EngineConfig.thresholds`, `ScoringConfig.max_score`.
 
-- [ ] **T5 — Loader + test fixture config.**
+- [x] **T5 — Loader + test fixture config.**
   - `config/loader.py`: `ConfigError` and `load_config(config_dir: Path) -> EngineConfig`, using `yaml.safe_load`. Pydantic errors are re-formatted as `"<file>: <dotted.path>: <msg>"`. A missing file and invalid YAML also produce `ConfigError`.
   - Create the small fixture YAMLs in `tests/fixtures/config/`:
     - Madrid with zones Centro, Chamberí, Salamanca;
@@ -73,8 +76,9 @@ Rules:
     - a broken copy written to `tmp_path` raises `ConfigError` whose message contains the file name and the path (**AC-35**);
     - a missing file raises `ConfigError`.
   - *(FR-29)*
+  - *Note (impl):* `make_config` / `bike_free_config` re-validate `EngineConfig` from a deep-merged `model_dump` instead of `model_copy`, so every validator (and the location index built in T11) applies to variants too. Cross-file errors are reported under `screening.yaml`.
 
-- [ ] **T6 — Shipped client config.**
+- [x] **T6 — Shipped client config.**
   - Write the full `config/service_areas.yaml`:
     - Spain: Madrid, Barcelona, Valencia, Sevilla, Málaga;
     - Mexico: Ciudad de México, Guadalajara, Monterrey, Puebla;

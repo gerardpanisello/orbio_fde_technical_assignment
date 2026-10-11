@@ -1,0 +1,37 @@
+# Screening rules for engine tests: the defaults of plan §3.11.
+version: "fixture.1"
+default_country: ES
+min_age: {ES: 18, MX: 18}
+license_required:
+  motorbike: true
+  car: true
+  bicycle: true
+  e_bike: true
+  none: true
+platforms:
+  - {id: glovo, aliases: [glovo]}
+  - {id: uber_eats, aliases: [uber eats, ubereats, uber]}
+  - {id: just_eat, aliases: [just eat, justeat]}
+  - {id: deliveroo, aliases: [deliveroo]}
+  - {id: rappi, aliases: [rappi]}
+  - {id: didi_food, aliases: [didi, didi food]}
+  - {id: amazon_flex, aliases: [amazon flex, amazon]}
+thresholds:
+  max_reasks: 2
+  max_recap_rounds: 3
+  max_consecutive_extraction_failures: 3
+  abuse_close_count: 2
+  fuzzy_match_min_score: 85
+  min_plausible_age: 14
+  max_plausible_age: 99
+  experience_confirm_above_years: 40
+scoring:
+  experience_years: {points_per_year: 5, max_points: 20}
+  platforms: {points_per_known_platform: 10, max_points: 20}
+  availability: {full_time: 15, part_time: 8, weekends: 7, max_points: 25}
+  schedule: {flexible: 15, per_slot: 5, max_points: 15}
+  start_date:
+    - {within_days: 3, points: 20}
+    - {within_days: 14, points: 10}
+    - {within_days: 30, points: 5}
+  buckets: {high: 60, medium: 35}

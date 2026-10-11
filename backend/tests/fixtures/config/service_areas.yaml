@@ -1,0 +1,43 @@
+# Small, stable service areas for engine tests. Do not edit to match the shipped config:
+# AC tests depend on exactly these places.
+version: "fixture.1"
+countries:
+  - id: ES
+    names: {es: España, en: Spain}
+    cities:
+      - id: madrid
+        names: {es: Madrid, en: Madrid}
+        aliases: [MAD]
+        timezone: Europe/Madrid
+        zones:
+          - {id: mad-centro, names: {es: Centro, en: Centro}, aliases: [Sol]}
+          - {id: mad-chamberi, names: {es: Chamberí, en: Chamberí}}
+          - {id: mad-salamanca, names: {es: Salamanca, en: Salamanca}}
+      - id: barcelona
+        names: {es: Barcelona, en: Barcelona}
+        aliases: [BCN]
+        timezone: Europe/Madrid
+      - id: valencia
+        names: {es: Valencia, en: Valencia}
+        timezone: Europe/Madrid
+        zones:
+          - {id: val-el-carmen, names: {es: El Carmen, en: El Carmen}, aliases: [El Carme]}
+          - {id: val-ruzafa, names: {es: Ruzafa, en: Ruzafa}, aliases: [Russafa]}
+  - id: MX
+    names: {es: México, en: Mexico}
+    cities:
+      - id: cdmx
+        names: {es: Ciudad de México, en: Mexico City}
+        aliases: [CDMX, DF, D.F., Ciudad de Mexico]
+        timezone: America/Mexico_City
+        zones:
+          - {id: cdmx-coyoacan, names: {es: Coyoacán, en: Coyoacán}}
+          - {id: cdmx-cuauhtemoc, names: {es: Cuauhtémoc, en: Cuauhtémoc}, aliases: [Roma]}
+          - {id: cdmx-centro, names: {es: Centro, en: Centro}}
+      - id: monterrey
+        names: {es: Monterrey, en: Monterrey}
+        aliases: [MTY]
+        timezone: America/Monterrey
+        zones:
+          - {id: mty-el-carmen, names: {es: El Carmen, en: El Carmen}}
+          - {id: mty-san-pedro, names: {es: San Pedro Garza García, en: San Pedro Garza García}, aliases: [San Pedro]}
