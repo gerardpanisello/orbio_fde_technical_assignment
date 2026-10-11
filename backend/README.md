@@ -4,6 +4,7 @@ Python package for the Grupo Sazón screening agent. See the root README.
 
 ```
 uv run pytest                                   # tests (incl. property tests, AC coverage gate)
+HYPOTHESIS_PROFILE=thorough uv run pytest       # CI: 300 property-test examples (default: 60)
 uv run ruff check . && uv run ruff format --check .
 uv run mypy                                     # strict, on src/
 ```
@@ -80,3 +81,33 @@ with a `ConfigError` that names the file and the exact key, for example:
 screening.yaml: license_required: unknown vehicle type 'scooter' in license_required; allowed: motorbike, car, bicycle, e_bike, none
 service_areas.yaml: countries.0.cities.0.timezone: unknown timezone 'Europe/Madird'
 ```
+
+## LLM layer (spec 003): try the agent
+
+Chat with Sofi in the terminal. Offline by default (`LLM_MODE=fake`): keyword rules read
+your messages and the reviewed templates in `config/messages/` answer, so no API key is
+needed.
+
+```
+uv run python -m sazon_screening.llm.demo --lang es             # Spanish, Spain register
+uv run python -m sazon_screening.llm.demo --country MX --debug  # Mexico; show extraction + engine action
+uv run python -m sazon_screening.llm.demo --lang en             # English
+```
+
+- Type a reply, or the number of a button (`[1] Sí  [2] No`).
+- Commands: `/trace` (last turn's trace), `/state`, `/silence` (the candidate goes quiet),
+  `/summary [es|en]`, `/quit`. On `/quit` it prints the candidate record and the
+  recruiter summary.
+- `--today YYYY-MM-DD` fixes the date (e.g. to replay a script).
+
+With the real model (needs `ANTHROPIC_API_KEY` in `../.env`, see `../.env.example`):
+
+```
+uv run --env-file ../.env python -m sazon_screening.llm.demo --mode anthropic
+```
+
+Configuration: `config/llm.yaml` (models, timeouts, length caps, prices) and
+`config/messages/*.yaml` (Sofi's templates and labels) live at the repo root so ops can
+edit them without a release. System prompts ship inside the package
+(`sazon_screening/llm/prompts/`). An installed package finds `config/` through
+`SAZON_CONFIG_DIR`.

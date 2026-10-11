@@ -105,7 +105,7 @@ def test_recap_shows_the_current_values(
     assert values[FieldName.location] == "Coyoacán (Ciudad de México)"
     assert values[FieldName.vehicle_type] == "Moto"
     assert values[FieldName.availability] == "Jornada completa, Fines de semana"
-    assert values[FieldName.experience] == "3 años (glovo)"
+    assert values[FieldName.experience] == "3 años (Glovo)"
     assert values[FieldName.start_date] == "12/10/2026"
 
 

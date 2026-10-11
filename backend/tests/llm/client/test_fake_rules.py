@@ -6,7 +6,7 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.llm.client.fake_rules import RuleExtractor
-from sazon_screening.llm.extraction.pending import PendingView
+from sazon_screening.llm.extraction.pending import OptionView, PendingView
 from sazon_screening.vocab import FieldName, PendingKind
 from tests.llm.builders import asking, pending
 
@@ -88,3 +88,15 @@ def test_injection_is_off_topic_and_nothing_else(rules: RuleExtractor) -> None:
     assert out.off_topic is True
     assert out.consent is None
     assert out.unclear_fields == []
+
+
+def test_a_tapped_slot_label_is_a_pick_not_a_start_date(rules: RuleExtractor) -> None:
+    slots = PendingView(
+        kind=PendingKind.slot,
+        field=FieldName.slot,
+        options=[OptionView(id="s1", label="martes 13/10, 10:00")],
+        current_values={},
+    )
+    out = rules.extract("martes 13/10, 10:00", slots)
+    assert out.chosen_option_id == "s1"
+    assert out.start_kind is None

@@ -377,7 +377,7 @@ Rules:
   - `tests/llm/test_performance.py`: the AC-21 conversation × 20 → mean < 50 ms per turn (NFR-1, fake).
   - *(FR-24, NFR-1, NFR-6, NFR-7)*
 
-- [ ] **T28 — CLI demo.**
+- [x] **T28 — CLI demo.**
   - `llm/demo.py` (`uv run python -m sazon_screening.llm.demo [--mode fake|anthropic] [--country ES|MX] [--today YYYY-MM-DD]`):
     - prints Sofi's messages with numbered quick replies; typing a number sends that label;
     - offers 3 demo slots when scheduling is reached;
@@ -387,6 +387,7 @@ Rules:
   - Test `tests/llm/test_demo_cli.py`: drive `main()` with a scripted stdin (fake mode) through the consent and name turns, then `/quit`; it exits 0 and the output contains "Sofi".
   - Document the command in `backend/README.md`.
   - *(spec §3 "Where a real API key is needed")*
+  - *Note (impl):* extra flags `--lang es|en` (greeting language) and `--debug` (prints each turn's extraction, dropped proposals, engine action and phrasing outcome). On `/quit` (or end of input) it prints the record JSON and the recruiter summary (es). Demo slots are the next three weekdays. A tapped button sends its label through extraction (OQ-9); so the rules fake now treats an option pick as only a pick (a slot label like "martes 13/10" is not a start date). Output is reconfigured with `errors="replace"` so a non-UTF-8 console never crashes on an emoji. `ScreeningAgent.engine_config` is exposed for `build_record`. Recap shows platform ids as names ("Uber Eats").
 
 ## G. Live: needs the real API key
 

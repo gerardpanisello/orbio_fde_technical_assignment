@@ -115,6 +115,8 @@ class RuleExtractor:
         if "?" in text and _has(folded, *JOB_WORDS):
             out["faq_question"] = text.strip()
         self._answer_to_pending(text, folded, pending, out)
+        if out.get("chosen_option_id") or out.get("no_option_fits"):
+            return ExtractionOutput.model_validate(out)  # a pick: "martes 10:00" is not a date
         self._fields(text, folded, pending, out)
         return ExtractionOutput.model_validate(out)
 

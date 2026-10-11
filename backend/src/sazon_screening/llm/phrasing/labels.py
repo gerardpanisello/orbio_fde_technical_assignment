@@ -93,7 +93,7 @@ def field_values(
     if (schedule := profile.schedule.value) is not None:
         values[FieldName.schedule] = ", ".join(labels.schedule[s] for s in schedule)
     if (experience := profile.experience.value) is not None:
-        platforms = ", ".join(p.removeprefix("other:") for p in experience.platforms)
+        platforms = ", ".join(_platform_name(p) for p in experience.platforms)
         years = f"{experience.years} {labels.years}"
         values[FieldName.experience] = f"{years} ({platforms})" if platforms else years
     if (start := profile.start_date.value) is not None:
@@ -111,3 +111,10 @@ def _age_text(age: AgeAnswer, labels: Labels) -> str:
     if age.birth_year is not None:
         return f"{age.birth_year} ({labels.birth_year})"
     return labels.adult[_yes_no(age.is_adult is True)]
+
+
+def _platform_name(platform_id: str) -> str:
+    """Config ids read as names ("uber_eats" -> "Uber Eats"); free text stays as written."""
+    if platform_id.startswith("other:"):
+        return platform_id.removeprefix("other:")
+    return platform_id.replace("_", " ").title()

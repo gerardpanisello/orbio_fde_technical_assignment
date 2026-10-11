@@ -87,6 +87,11 @@ class ScreeningAgent:
             sleep=sleep,
         )
 
+    @property
+    def engine_config(self) -> EngineConfig:
+        """The rules in force, e.g. for `build_record` at the caller."""
+        return self._engine_config
+
     # --- the three entry points --------------------------------------------------------
 
     async def start_conversation(
