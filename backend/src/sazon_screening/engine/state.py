@@ -93,6 +93,7 @@ class ConversationState(_State):
     consent: bool | None = None
     profile: Profile = Field(default_factory=Profile)
     reasks: dict[FieldName, int] = {}  # FR-23 counters; never reset (audit)
+    surname_requested: bool = False  # FR-16: the surname is requested at most once
     consecutive_extraction_failures: int = 0
     abuse_count: int = 0
     recap_rounds: int = 0  # number of show_recap actions emitted

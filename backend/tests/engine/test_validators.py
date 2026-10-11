@@ -53,23 +53,29 @@ class TestName:
         ],
     )
     def test_valid_names_are_accepted_with_spaces_collapsed(self, raw: str, stored: str) -> None:
-        assert validate_name(raw, reasks_used=0) == Accepted(stored)
+        assert validate_name(raw, surname_requested=False) == Accepted(stored)
 
     @pytest.mark.parametrize("raw", ["Ana2 López", "Ana López!", "@ana lopez"])
     def test_digits_and_symbols_are_rejected(self, raw: str) -> None:
-        assert validate_name(raw, reasks_used=0) == Rejected(ReaskReason.invalid_characters)
+        assert validate_name(raw, surname_requested=False) == Rejected(
+            ReaskReason.invalid_characters
+        )
 
     @pytest.mark.ac("AC-15")
     def test_first_name_only_asks_for_surname_once(self) -> None:
-        assert validate_name("Ana", reasks_used=0) == Rejected(ReaskReason.surname_missing)
+        assert validate_name("Ana", surname_requested=False) == Rejected(
+            ReaskReason.surname_missing
+        )
 
     @pytest.mark.ac("AC-15")
     def test_first_name_only_is_accepted_with_flag_after_a_reask(self) -> None:
-        assert validate_name("Ana", reasks_used=1) == Accepted("Ana", flags=(Flag.surname_missing,))
+        assert validate_name("Ana", surname_requested=True) == Accepted(
+            "Ana", flags=(Flag.surname_missing,)
+        )
 
     @pytest.mark.parametrize("raw", [UNCLEAR, "", "   ", "- '"])
     def test_empty_or_unclear_is_rejected_as_unclear(self, raw: str | Unclear) -> None:
-        assert validate_name(raw, reasks_used=0) == Rejected(ReaskReason.unclear)
+        assert validate_name(raw, surname_requested=False) == Rejected(ReaskReason.unclear)
 
 
 class TestAvailabilityAndSchedule:

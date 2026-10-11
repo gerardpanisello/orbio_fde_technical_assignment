@@ -97,6 +97,16 @@ def test_first_name_only_is_asked_once_for_the_surname(config: EngineConfig) -> 
     assert Flag.surname_missing in c.state.flags
 
 
+def test_surname_is_still_requested_after_an_invalid_name(config: EngineConfig) -> None:
+    c = Convo(config).say(consent(True))
+    c.say(name("Ana1")).expect(
+        ReaskField, field=FieldName.full_name, reason=ReaskReason.invalid_characters
+    )
+    c.say(name("Ana")).expect(
+        ReaskField, field=FieldName.full_name, reason=ReaskReason.surname_missing
+    )
+
+
 def test_unclear_name_is_flagged_and_the_flow_continues(config: EngineConfig) -> None:
     c = Convo(config).say(consent(True))
     c.say(unclear("full_name")).expect(ReaskField, field=FieldName.full_name)

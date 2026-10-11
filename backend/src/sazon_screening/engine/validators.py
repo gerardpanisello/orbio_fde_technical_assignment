@@ -71,7 +71,7 @@ def validate_consent(answer: bool | Unclear) -> Accepted[bool] | Rejected:
 _NAME_PUNCTUATION = frozenset(" -'\N{RIGHT SINGLE QUOTATION MARK}")
 
 
-def validate_name(answer: str | Unclear, *, reasks_used: int) -> Accepted[str] | Rejected:
+def validate_name(answer: str | Unclear, *, surname_requested: bool) -> Accepted[str] | Rejected:
     """Letters (accents included), spaces, hyphens and apostrophes; ideally 2+ words (FR-16).
 
     A first name alone gets one request for the surname. After that we accept it with a
@@ -85,7 +85,7 @@ def validate_name(answer: str | Unclear, *, reasks_used: int) -> Accepted[str] |
     if not all(ch.isalpha() or ch in _NAME_PUNCTUATION for ch in name):
         return Rejected(ReaskReason.invalid_characters)
     if len(name.split()) < 2:
-        if reasks_used == 0:
+        if not surname_requested:
             return Rejected(ReaskReason.surname_missing)
         return Accepted(name, flags=(Flag.surname_missing,))
     return Accepted(name)

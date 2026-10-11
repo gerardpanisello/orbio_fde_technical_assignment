@@ -228,6 +228,8 @@ def _apply_one(
         _raise_confirmation(s, name, outcome, proposal, applied)
     elif answers_pending(name, s.pending.field):
         applied.pending_outcome = outcome
+        if outcome.reason is ReaskReason.surname_missing:
+            s.surname_requested = True  # asked once, independent of other re-ask reasons
     # A rejected value for a field we did not ask about is ignored: nothing stored or counted.
 
 
@@ -259,7 +261,7 @@ def validate_proposal(
     limits = cfg.thresholds
     match proposal:
         case NameProposal(value=value):
-            return validate_name(value, reasks_used=s.reasks.get(FieldName.full_name, 0))
+            return validate_name(value, surname_requested=s.surname_requested)
         case AgeProposal(value=value):
             return validate_age(
                 value,
