@@ -10,3 +10,4 @@ Format: **Status · Context · Decision · Alternatives considered · Consequenc
 | [0002](0002-hybrid-state-machine.md) | Hybrid: deterministic state machine + LLM | Accepted |
 | [0003](0003-stack-fastapi-react-sqlite.md) | FastAPI + React/Vite + SQLite | Accepted |
 | [0004](0004-qualification-rules-and-scoring.md) | Hard disqualifiers + soft scoring | Accepted |
+| [0005](0005-engine-turn-contract.md) | Engine turn contract (proposals + signals → typed action) | Accepted |
