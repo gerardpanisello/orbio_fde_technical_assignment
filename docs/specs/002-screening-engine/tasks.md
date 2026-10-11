@@ -214,6 +214,7 @@ Rules:
     - consent + "Ana López" → both stored, `ask_field(age)` (**AC-3**);
     - the caller's state is unchanged after `step`.
   - *(FR-1, FR-7, FR-11)*
+  - *Note (impl):* the start-date factory in `builders.py` is `start_date(expr)` (avoids clashing with `engine.start`); `Convo` also offers `reasks(field)` and `primaries()`. OQ-1: consent re-asks never close, and the consent counter is capped at `max_reasks + 1` so the T29 invariant holds. Data sent without consent yields `reask(consent, consent_required)`; a FAQ-only turn at consent is neutral.
 
 - [x] **T17 — Profile collection, out of order.**
   - Wire all validators into `apply_proposals`, including license sync and `zone` via `next_missing_field`, plus `set_pending` (keeps `stage` in sync).
@@ -244,6 +245,7 @@ Rules:
     - an empty turn counts as a failed attempt;
     - name unclear ×3 → flag `name_unclear`, flow continues.
   - *(FR-16, FR-23, FR-24)*
+  - *Note (impl):* the `extraction_failed` path (repeat the pending ask without using a re-ask, close as `system_failure` at the threshold) landed here because AC-20 needs it; T23 added the threshold tests. Neutral turns: FAQ, off-topic, abuse, a language change, and the first turn after a resume (T24).
 
 - [x] **T20 — Confirmations and zone ask.**
   - The `confirm_value` and `confirm_ambiguous` handlers, the "first confirmation of the turn becomes pending" rule, and `within_city` for a pending zone.
