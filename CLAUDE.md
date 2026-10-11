@@ -32,9 +32,16 @@ Architectural decisions go to `docs/adr/NNNN-title.md` (see [docs/adr/README.md]
 - Small commits, Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 - No secrets in the repo; `.env` (gitignored) + `.env.example`.
 
-## Commands (fill in as they become real)
-- Backend: `uv run fastapi dev` · tests: `uv run pytest` · lint: `uv run ruff check . && uv run ruff format --check .` · types: `uv run mypy`
-- Frontend: `npm run dev` (in `frontend/`)
+## Commands
+Backend (run inside `backend/`):
+- Install: `uv sync`
+- Tests: `uv run pytest` · Lint: `uv run ruff check . && uv run ruff format --check .` · Types: `uv run mypy`
+- All checks: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -q`
+- API (from phase 4): `uv run fastapi dev`
+
+Frontend (from phase 5, inside `frontend/`): `npm run dev`
+
+Layout: `backend/src/sazon_screening/` (package), `backend/tests/`, `config/` (client-editable YAML at repo root), `docs/`.
 
 ## Subagents (`.claude/agents/`)
 - `spec-writer` — writes/updates spec.md, plan.md, tasks.md.
