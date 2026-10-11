@@ -17,102 +17,197 @@
 #   - `timezone` must be a valid IANA timezone (e.g. Europe/Madrid).
 #   - Inside one city, two zones cannot share a name or alias. The same name in two
 #     cities is fine (e.g. "Centro"); the agent asks the candidate which one they mean.
-version: "2026-10-11.1"
+
+version: "2026-10-11.2"
+
 countries:
   - id: ES
-    names: {es: España, en: Spain}
+    names:
+      es: España
+      en: Spain
     cities:
+
       - id: madrid
-        names: {es: Madrid, en: Madrid}
+        names:
+          es: Madrid
+          en: Madrid
         aliases: [MAD]
         timezone: Europe/Madrid
         zones:
-          - {id: mad-centro, names: {es: Centro, en: Centro}, aliases: [Sol, Malasaña, Lavapiés]}
-          - {id: mad-chamberi, names: {es: Chamberí, en: Chamberí}}
-          - {id: mad-salamanca, names: {es: Salamanca, en: Salamanca}}
-          - {id: mad-retiro, names: {es: Retiro, en: Retiro}}
-          - {id: mad-tetuan, names: {es: Tetuán, en: Tetuán}}
+          - id: mad-centro
+            names: {es: Centro, en: Centro}
+            aliases: [Sol, Malasaña, Lavapiés]
+          - id: mad-chamberi
+            names: {es: Chamberí, en: Chamberí}
+          - id: mad-salamanca
+            names: {es: Salamanca, en: Salamanca}
+          - id: mad-retiro
+            names: {es: Retiro, en: Retiro}
+          - id: mad-tetuan
+            names: {es: Tetuán, en: Tetuán}
           # Vallecas is deliberately NOT served (out-of-area demo).
+
       - id: barcelona
-        names: {es: Barcelona, en: Barcelona}
+        names:
+          es: Barcelona
+          en: Barcelona
         aliases: [BCN, Barna]
         timezone: Europe/Madrid
         zones:
-          - {id: bcn-ciutat-vella, names: {es: Ciutat Vella, en: Ciutat Vella}, aliases: [Ciudad Vieja]}
-          - {id: bcn-eixample, names: {es: Eixample, en: Eixample}, aliases: [Ensanche]}
-          - {id: bcn-gracia, names: {es: Gràcia, en: Gràcia}}
-          - {id: bcn-sants-montjuic, names: {es: Sants-Montjuïc, en: Sants-Montjuïc}, aliases: [Sants]}
-          - {id: bcn-sant-marti, names: {es: Sant Martí, en: Sant Martí}, aliases: [Poblenou]}
+          - id: bcn-ciutat-vella
+            names: {es: Ciutat Vella, en: Ciutat Vella}
+            aliases: [Ciudad Vieja]
+          - id: bcn-eixample
+            names: {es: Eixample, en: Eixample}
+            aliases: [Ensanche]
+          - id: bcn-gracia
+            names: {es: Gràcia, en: Gràcia}
+          - id: bcn-sants-montjuic
+            names: {es: Sants-Montjuïc, en: Sants-Montjuïc}
+            aliases: [Sants]
+          - id: bcn-sant-marti
+            names: {es: Sant Martí, en: Sant Martí}
+            aliases: [Poblenou]
+
       - id: valencia
-        names: {es: Valencia, en: Valencia}
+        names:
+          es: Valencia
+          en: Valencia
         aliases: [València, VLC]
         timezone: Europe/Madrid
         zones:
-          - {id: val-el-carmen, names: {es: El Carmen, en: El Carmen}, aliases: [El Carme]}
-          - {id: val-ruzafa, names: {es: Ruzafa, en: Ruzafa}, aliases: [Russafa]}
-          - {id: val-benimaclet, names: {es: Benimaclet, en: Benimaclet}}
-          - {id: val-el-cabanyal, names: {es: El Cabanyal, en: El Cabanyal}, aliases: [Cabanyal]}
-          - {id: val-campanar, names: {es: Campanar, en: Campanar}}
+          - id: val-el-carmen
+            names: {es: El Carmen, en: El Carmen}
+            aliases: [El Carme]
+          - id: val-ruzafa
+            names: {es: Ruzafa, en: Ruzafa}
+            aliases: [Russafa]
+          - id: val-benimaclet
+            names: {es: Benimaclet, en: Benimaclet}
+          - id: val-el-cabanyal
+            names: {es: El Cabanyal, en: El Cabanyal}
+            aliases: [Cabanyal]
+          - id: val-campanar
+            names: {es: Campanar, en: Campanar}
+
       - id: sevilla
-        names: {es: Sevilla, en: Seville}
+        names:
+          es: Sevilla
+          en: Seville
         aliases: [SVQ]
         timezone: Europe/Madrid
         zones:
-          - {id: sev-triana, names: {es: Triana, en: Triana}}
-          - {id: sev-nervion, names: {es: Nervión, en: Nervión}}
-          - {id: sev-macarena, names: {es: Macarena, en: Macarena}, aliases: [La Macarena]}
-          - {id: sev-los-remedios, names: {es: Los Remedios, en: Los Remedios}}
-          - {id: sev-casco-antiguo, names: {es: Casco Antiguo, en: Old Town}, aliases: [Centro]}
+          - id: sev-triana
+            names: {es: Triana, en: Triana}
+          - id: sev-nervion
+            names: {es: Nervión, en: Nervión}
+          - id: sev-macarena
+            names: {es: Macarena, en: Macarena}
+            aliases: [La Macarena]
+          - id: sev-los-remedios
+            names: {es: Los Remedios, en: Los Remedios}
+          - id: sev-casco-antiguo
+            names: {es: Casco Antiguo, en: Old Town}
+            aliases: [Centro]
+
       - id: malaga
-        names: {es: Málaga, en: Malaga}
+        names:
+          es: Málaga
+          en: Malaga
         aliases: [AGP]
         timezone: Europe/Madrid
         zones:
-          - {id: mlg-centro, names: {es: Centro, en: Centro}}
-          - {id: mlg-el-palo, names: {es: El Palo, en: El Palo}}
-          - {id: mlg-teatinos, names: {es: Teatinos, en: Teatinos}}
-          - {id: mlg-huelin, names: {es: Huelin, en: Huelin}}
-          - {id: mlg-cruz-de-humilladero, names: {es: Cruz de Humilladero, en: Cruz de Humilladero}}
+          - id: mlg-centro
+            names: {es: Centro, en: Centro}
+          - id: mlg-el-palo
+            names: {es: El Palo, en: El Palo}
+          - id: mlg-teatinos
+            names: {es: Teatinos, en: Teatinos}
+          - id: mlg-huelin
+            names: {es: Huelin, en: Huelin}
+          - id: mlg-cruz-de-humilladero
+            names: {es: Cruz de Humilladero, en: Cruz de Humilladero}
+
   - id: MX
-    names: {es: México, en: Mexico}
+    names:
+      es: México
+      en: Mexico
     cities:
+
       - id: cdmx
-        names: {es: Ciudad de México, en: Mexico City}
+        names:
+          es: Ciudad de México
+          en: Mexico City
         aliases: [CDMX, DF, D.F., Distrito Federal, Ciudad de Mexico]
         timezone: America/Mexico_City
         zones:
-          - {id: cdmx-coyoacan, names: {es: Coyoacán, en: Coyoacán}}
-          - {id: cdmx-cuauhtemoc, names: {es: Cuauhtémoc, en: Cuauhtémoc}, aliases: [Roma, Condesa, Centro Histórico]}
-          - {id: cdmx-benito-juarez, names: {es: Benito Juárez, en: Benito Juárez}, aliases: [Del Valle, Narvarte]}
-          - {id: cdmx-miguel-hidalgo, names: {es: Miguel Hidalgo, en: Miguel Hidalgo}, aliases: [Polanco]}
-          - {id: cdmx-alvaro-obregon, names: {es: Álvaro Obregón, en: Álvaro Obregón}, aliases: [San Ángel]}
+          - id: cdmx-coyoacan
+            names: {es: Coyoacán, en: Coyoacán}
+          - id: cdmx-cuauhtemoc
+            names: {es: Cuauhtémoc, en: Cuauhtémoc}
+            aliases: [Roma, Condesa, Centro Histórico]
+          - id: cdmx-benito-juarez
+            names: {es: Benito Juárez, en: Benito Juárez}
+            aliases: [Del Valle, Narvarte]
+          - id: cdmx-miguel-hidalgo
+            names: {es: Miguel Hidalgo, en: Miguel Hidalgo}
+            aliases: [Polanco, Chapultepec]
+          - id: cdmx-alvaro-obregon
+            names: {es: Álvaro Obregón, en: Álvaro Obregón}
+            aliases: [San Ángel]
           # Iztapalapa is deliberately NOT served (out-of-area demo).
+
       - id: guadalajara
-        names: {es: Guadalajara, en: Guadalajara}
+        names:
+          es: Guadalajara
+          en: Guadalajara
         aliases: [GDL, Guanatos]
         timezone: America/Mexico_City
         zones:
-          - {id: gdl-centro, names: {es: Centro, en: Centro}}
-          - {id: gdl-providencia, names: {es: Providencia, en: Providencia}}
-          - {id: gdl-chapultepec, names: {es: Chapultepec, en: Chapultepec}}
-          - {id: gdl-zapopan, names: {es: Zapopan, en: Zapopan}}
-          - {id: gdl-tlaquepaque, names: {es: Tlaquepaque, en: Tlaquepaque}, aliases: [San Pedro Tlaquepaque]}
+          - id: gdl-centro
+            names: {es: Centro, en: Centro}
+          - id: gdl-providencia
+            names: {es: Providencia, en: Providencia}
+          - id: gdl-chapultepec  # also a CDMX alias (Miguel Hidalgo): the agent asks which one
+            names: {es: Chapultepec, en: Chapultepec}
+          - id: gdl-zapopan  # metro-area municipality, served as a zone of this city
+            names: {es: Zapopan, en: Zapopan}
+          - id: gdl-tlaquepaque  # metro-area municipality, served as a zone of this city
+            names: {es: Tlaquepaque, en: Tlaquepaque}
+            aliases: [San Pedro Tlaquepaque]
+
       - id: monterrey
-        names: {es: Monterrey, en: Monterrey}
+        names:
+          es: Monterrey
+          en: Monterrey
         aliases: [MTY]
         timezone: America/Monterrey
         zones:
-          - {id: mty-centro, names: {es: Centro, en: Centro}}
-          - {id: mty-san-pedro, names: {es: San Pedro Garza García, en: San Pedro Garza García}, aliases: [San Pedro, SPGG]}
-          - {id: mty-cumbres, names: {es: Cumbres, en: Cumbres}}
-          - {id: mty-obispado, names: {es: Obispado, en: Obispado}}
-          - {id: mty-el-carmen, names: {es: El Carmen, en: El Carmen}}
+          - id: mty-centro
+            names: {es: Centro, en: Centro}
+          - id: mty-san-pedro  # metro-area municipality, served as a zone of this city
+            names: {es: San Pedro Garza García, en: San Pedro Garza García}
+            aliases: [San Pedro, SPGG]
+          - id: mty-cumbres
+            names: {es: Cumbres, en: Cumbres}
+          - id: mty-obispado
+            names: {es: Obispado, en: Obispado}
+          - id: mty-el-carmen
+            names: {es: El Carmen, en: El Carmen}
+
       - id: puebla
-        names: {es: Puebla, en: Puebla}
+        names:
+          es: Puebla
+          en: Puebla
         aliases: [Pue]
         timezone: America/Mexico_City
         zones:
-          - {id: pue-centro-historico, names: {es: Centro Histórico, en: Historic Centre}, aliases: [Centro]}
-          - {id: pue-angelopolis, names: {es: Angelópolis, en: Angelópolis}}
-          - {id: pue-la-paz, names: {es: La Paz, en: La Paz}}
-          - {id: pue-cholula, names: {es: Cholula, en: Cholula}}
+          - id: pue-centro-historico
+            names: {es: Centro Histórico, en: Historic Centre}
+            aliases: [Centro]
+          - id: pue-angelopolis
+            names: {es: Angelópolis, en: Angelópolis}
+          - id: pue-la-paz
+            names: {es: La Paz, en: La Paz}
+          - id: pue-cholula  # metro-area municipality, served as a zone of this city
+            names: {es: Cholula, en: Cholula}

@@ -69,6 +69,12 @@ def test_centro_is_in_several_cities_of_one_country(shipped: EngineConfig) -> No
     assert len(spanish) >= 2
 
 
+def test_chapultepec_is_ambiguous_between_cdmx_and_guadalajara(shipped: EngineConfig) -> None:
+    # Bosque de Chapultepec (CDMX) vs colonia Chapultepec (GDL): never resolve silently.
+    cities = {city for _, city in cities_answering_to(shipped, "Chapultepec")}
+    assert cities == {"cdmx", "guadalajara"}
+
+
 def test_all_platforms_present(shipped: EngineConfig) -> None:
     assert {p.id for p in shipped.screening.platforms} == {
         "glovo",
