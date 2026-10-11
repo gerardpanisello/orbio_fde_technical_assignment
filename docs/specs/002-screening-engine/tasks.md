@@ -364,11 +364,14 @@ Rules:
   - *(NFR-1, NFR-2, NFR-4, NFR-5)*
   - *Note (impl):* purely random turns rarely get past consent, so each generated conversation starts with a random-length prefix of the canonical valid candidate (`builders.canonical_turns()`) followed by up to 40 random turns; a sampling run reached all 11 stages and all 7 statuses. The allowed-transition set adds `abandoned → {disqualified, needs_review, qualified_unscheduled, opted_out}`: a turn after silence resumes **and** is evaluated in the same step. Hypothesis (300 examples, `derandomize=True`) found no bugs, so no regression test was needed. The purity scan also forbids `sys`, `uuid`, `secrets`, `socket`, `subprocess`, `print` and `input`. Measured: ~0.2 ms per turn (limit 10 ms). The property test adds ~7 s to the suite.
 
-- [ ] **T30 — Public API & AC coverage gate.**
+- [x] **T30 — Public API & AC coverage gate.**
   - `engine/__init__.py` re-exports the public API (`start`, `step`, `build_record`, `score_candidate`, input/action/state/record models) with `__all__`.
   - `tests/test_ac_coverage.py` parses `docs/specs/002-screening-engine/spec.md` for `AC-\d+b?` and fails if any id has no `pytest.mark.ac` in `tests/`.
   - Run `uv run pytest --cov=sazon_screening.engine` and add tests for any branch of `step.py`/`collect.py`/`closing.py` that is not covered, or justify it in the PR.
   - *(NFR-3, all ACs)*
+  - *Deviation (import order):* `engine/__init__.py` resolves its 63 exports **lazily** (PEP 562 `__getattr__`; a `TYPE_CHECKING` block gives mypy/IDEs the real names). `config/models.py` imports `engine.enums`/`engine.location`, so importing `sazon_screening.config` first runs `engine/__init__`. An eager `from .step import start` there was tried and fails with `ImportError: cannot import name 'EngineConfig' from partially initialized module 'sazon_screening.config'`. `test_public_api.py` checks four import orders in fresh interpreters. Cleaner long-term fix (not done, larger change): move the shared vocabulary (enums) and the location index out of `engine/`, so that `config` never imports `engine`.
+  - *Coverage:* `uv run pytest --cov=sazon_screening --cov-branch` → 99%. Gap tests were added (unclear consent/confirmation, empty turn while disambiguating or on a zone, FAQ at `correction_field`, `license_unclear`, a config where no vehicle needs a license, a missing display language). The unreachable `slot` case in `default_options` was removed. Two branches stay uncovered on purpose: `closing.py` `if s.disqualification_reason is None` (type narrowing; it is always set while disqualified) and the fall-through of the exhaustive `match` over `TurnInput` in `step.py`.
+  - `tests/test_ac_coverage.py` also fails if a marker names an AC that is not in spec.md.
 
 - [ ] **T31 — Verify & update docs.**
   - Walk through AC-1…AC-36 (incl. AC-26b) against the tests and tick the spec checkboxes.

@@ -24,6 +24,7 @@ from tests.engine.builders import (
     name,
     no,
     sched,
+    unclear,
     vehicle,
     yes,
 )
@@ -151,5 +152,37 @@ class TestZone:
             ReaskField,
             field=FieldName.zone,
             reason=ReaskReason.not_recognised,
+            options=["mad-centro", "mad-chamberi", "mad-salamanca"],
+        )
+
+
+class TestEdgePaths:
+    def test_unclear_consent_is_reasked(self, config: EngineConfig) -> None:
+        Convo(config).say(unclear("consent")).expect(
+            ReaskField, field=FieldName.consent, reason=ReaskReason.consent_required
+        )
+
+    def test_unclear_confirmation_reasks_the_value(self, config: EngineConfig) -> None:
+        c = at_experience(config).say(exp(45)).say(unclear("confirmation"))
+        c.expect(ReaskField, field=FieldName.experience, reason=ReaskReason.unclear)
+
+    def test_empty_turn_while_disambiguating_lists_the_options(self, config: EngineConfig) -> None:
+        c = at_location(config).say(loc("El Carmen")).say()
+        c.expect(ReaskField, field=FieldName.location, options=["mty-el-carmen", "val-el-carmen"])
+        assert c.state.pending.kind == "confirm_ambiguous"
+
+    def test_unknown_place_while_disambiguating_is_validated_normally(
+        self, config: EngineConfig
+    ) -> None:
+        c = at_location(config).say(loc("El Carmen")).say(loc("xjkq", known=False))
+        c.expect(ReaskField, field=FieldName.location, reason=ReaskReason.not_recognised)
+        c.say(unclear("location")).expect(ReaskField, field=FieldName.location)
+        c.say(loc("Coyoacán")).expect(AskField, field=FieldName.availability)
+
+    def test_empty_turn_on_the_zone_lists_the_zones(self, config: EngineConfig) -> None:
+        c = at_location(config).say(loc("Madrid")).say()
+        c.expect(
+            ReaskField,
+            field=FieldName.zone,
             options=["mad-centro", "mad-chamberi", "mad-salamanca"],
         )

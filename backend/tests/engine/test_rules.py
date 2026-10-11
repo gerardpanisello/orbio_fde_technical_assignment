@@ -189,3 +189,11 @@ class TestLicense:
     def test_under_age_is_checked_before_license(self, config: EngineConfig) -> None:
         state = state_with(age=AgeAnswer(age=16), vehicle=VehicleType.motorbike, has_license=False)
         assert hard_rule_failure(state, config) == "under_age"
+
+
+def test_no_vehicle_needs_a_license_when_config_says_so(make_config: MakeConfig) -> None:
+    config = make_config(screening={"license_required": {v.value: False for v in VehicleType}})
+    assert license_need(None, config) == "not_required"
+    state = state_with(has_license=False)
+    sync_license_requirement(state, config)
+    assert state.profile.has_license.status == FieldStatus.not_required

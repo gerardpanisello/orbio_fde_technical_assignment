@@ -208,6 +208,4 @@ def default_options(name: FieldName, s: ConversationState, cfg: EngineConfig) ->
             return index.served_city_ids()
         case FieldName.zone if location is not None and location.city is not None:
             return tuple(ref.id for ref in index.zones_by_city.get(location.city, ()))
-        case FieldName.slot:
-            return tuple(s.offered_slot_ids)
-    return ()
+    return ()  # slot re-asks pass the offered ids explicitly

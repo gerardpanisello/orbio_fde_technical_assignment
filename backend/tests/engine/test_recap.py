@@ -201,3 +201,15 @@ def test_correction_of_the_city_is_acknowledged(config: EngineConfig) -> None:
     assert value is not None
     assert (value.city, value.zone) == ("cdmx", "cdmx-coyoacan")
     c.expect_status(Status.in_progress)
+
+
+def test_faq_while_asking_what_to_correct_repeats_the_question(config: EngineConfig) -> None:
+    at_recap(config).say(no()).say(faq_question=True).expect(AskCorrectionField)
+
+
+def test_unclear_license_goes_to_review(config: EngineConfig) -> None:
+    c = Convo(config).say(consent(True)).say(name("Ana López")).say(adult()).say(vehicle("car"))
+    for _ in range(3):
+        c.say(unclear("has_license"))
+    profile_answers(c.say(loc("Coyoacán")))
+    c.expect(CloseNeedsReview, reasons=[ReviewReason.license_unclear])

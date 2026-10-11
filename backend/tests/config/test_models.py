@@ -225,3 +225,10 @@ class TestEngineConfig:
         )
         with pytest.raises(ValidationError):
             config.screening = config.screening  # type: ignore[misc]
+
+
+def test_display_names_must_cover_every_language() -> None:
+    data = minimal_areas()
+    madrid(data)["names"] = {"es": "Madrid"}
+    with pytest.raises(ValidationError, match="missing display name for language"):
+        ServiceAreasConfig.model_validate(data)
