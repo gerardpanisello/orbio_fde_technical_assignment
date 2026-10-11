@@ -51,8 +51,7 @@ def run(
     return history
 
 
-@settings(
-    max_examples=300,
+@settings(  # max_examples comes from the profile in tests/conftest.py
     derandomize=True,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large],

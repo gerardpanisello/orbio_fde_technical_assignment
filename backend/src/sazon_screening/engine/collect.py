@@ -164,9 +164,18 @@ def reask_or_exhaust(
 
 
 def exhaust(s: ConversationState, name: FieldName) -> None:
-    """Out of re-asks: store `unclear` and move on (never disqualify on ambiguity)."""
+    """Out of re-asks: store `unclear` and move on (never disqualify on ambiguity).
+
+    A field that is already valid was being corrected from the recap (AC-40): a failed
+    correction keeps the old value, so valid data is never downgraded to `unclear`. The
+    flag tells the recruiter, and `next_action` goes back to the recap.
+    """
     if name is FieldName.slot:
         return  # not a screening field; the caller closes as qualified_unscheduled
+    stored = getattr(s.profile, (FieldName.location if name is FieldName.zone else name).value)
+    if stored.status is FieldStatus.valid and stored.value is not None:
+        add_flag(s, Flag.correction_unclear)
+        return
     if name is FieldName.full_name:
         add_flag(s, Flag.name_unclear)  # required but not qualifying (FR-16)
     if name is FieldName.zone:

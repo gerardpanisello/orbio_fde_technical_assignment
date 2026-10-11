@@ -3,8 +3,15 @@
 import os
 
 import pytest
+from hypothesis import settings
 
 from tests import network_guard
+
+# Property tests: a quick, deterministic run by default; CI sets HYPOTHESIS_PROFILE=thorough.
+# Both are derandomized, so a failure always reproduces with the same examples.
+settings.register_profile("fast", max_examples=60, derandomize=True)
+settings.register_profile("thorough", max_examples=300, derandomize=True)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "fast"))
 
 
 @pytest.fixture(autouse=True)

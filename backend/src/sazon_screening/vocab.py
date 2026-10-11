@@ -164,6 +164,7 @@ class Flag(StrEnum):
     abuse = "abuse"
     do_not_contact = "do_not_contact"
     engine_error = "engine_error"
+    correction_unclear = "correction_unclear"  # a recap correction could not be read
 
 
 class Bucket(StrEnum):

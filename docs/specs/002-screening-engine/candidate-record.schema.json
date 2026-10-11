@@ -381,7 +381,8 @@
         "system_failure",
         "abuse",
         "do_not_contact",
-        "engine_error"
+        "engine_error",
+        "correction_unclear"
       ],
       "title": "Flag",
       "type": "string"

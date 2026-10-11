@@ -19,6 +19,7 @@ from sazon_screening.vocab import (
     Availability,
     FieldName,
     FieldStatus,
+    Flag,
     PendingKind,
     ReaskReason,
     ReviewReason,
@@ -261,3 +262,15 @@ class TestCorrectionField:
         c = at_location(Convo(config)).say(correct_field("age"))
         c.expect(AskField, field=FieldName.location)
         assert c.reasks(FieldName.location) == 0  # neutral, not a failed answer
+
+
+@pytest.mark.ac("AC-40")
+def test_failed_correction_keeps_the_valid_value(config: EngineConfig) -> None:
+    c = at_recap(config).say(no()).say(correct_field("location"))
+    before = c.state.profile.location.model_copy(deep=True)
+    for _ in range(config.thresholds.max_reasks):
+        c.say(unclear("location")).expect(ReaskField, field=FieldName.location)
+    c.say(unclear("location")).expect(ShowRecap)
+    assert c.state.profile.location == before  # still valid, same value
+    assert Flag.correction_unclear in c.state.flags
+    c.expect_status(Status.in_progress)
