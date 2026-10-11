@@ -185,3 +185,41 @@ class TestOutOfOrder:
         c.say(exp(3, "Glovo")).expect(AskField, field=FieldName.start_date)
         profile = c.state.profile
         assert profile.experience.value == Experience(years=3, platforms=["glovo"])
+
+
+@pytest.mark.ac("AC-1")
+def test_happy_path_follows_the_stage_order(config: EngineConfig) -> None:
+    c = Convo(config).advance_to(Stage.scheduling).select_slot("s1")
+    assert c.primaries() == [
+        "ask_field",  # consent
+        "ask_field",  # full_name
+        "ask_field",  # age
+        "ask_field",  # vehicle_type
+        "ask_field",  # has_license
+        "ask_field",  # location
+        "ask_field",  # availability
+        "ask_field",  # schedule
+        "ask_field",  # experience
+        "ask_field",  # start_date
+        "show_recap",
+        "offer_slots",
+        "confirm_interview",
+    ]
+    asked = [a.primary.field for a in c.history if isinstance(a.primary, AskField)]
+    assert asked == [
+        FieldName.consent,
+        FieldName.full_name,
+        FieldName.age,
+        FieldName.vehicle_type,
+        FieldName.has_license,
+        FieldName.location,
+        FieldName.availability,
+        FieldName.schedule,
+        FieldName.experience,
+        FieldName.start_date,
+    ]
+    c.expect_status(Status.interview_scheduled)
+    assert c.state.selected_slot_id == "s1"
+    profile = c.state.profile
+    for slot_name in Profile.model_fields:
+        assert getattr(profile, slot_name).status == FieldStatus.valid, slot_name

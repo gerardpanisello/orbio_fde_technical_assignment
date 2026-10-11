@@ -14,6 +14,7 @@ from sazon_screening.engine.enums import (
     DisqualificationReason,
     FieldName,
     FieldStatus,
+    ReviewReason,
     VehicleType,
 )
 from sazon_screening.engine.state import ConversationState, Profile
@@ -115,3 +116,25 @@ def _is_out_of_area(profile: Profile) -> bool:
         and slot.value is not None
         and not slot.value.in_service_area
     )
+
+
+def review_reasons(profile: Profile, config: EngineConfig) -> list[ReviewReason]:
+    """Hard fields we could not read: a recruiter decides at recap (FR-24, AC-19).
+
+    Ambiguity never disqualifies. Reasons are listed in stage order.
+    """
+    reasons: list[ReviewReason] = []
+    if profile.age.status is FieldStatus.unclear:
+        reasons.append(ReviewReason.age_unclear)
+    if (
+        profile.vehicle_type.status is FieldStatus.unclear
+        and license_need(None, config) == "depends"
+        and profile.has_license.value is not True
+    ):
+        reasons.append(ReviewReason.vehicle_unclear)  # it decides whether a license is needed
+    need = license_need(known_vehicle(profile), config)
+    if profile.has_license.status is FieldStatus.unclear and need != "not_required":
+        reasons.append(ReviewReason.license_unclear)
+    if profile.location.status is FieldStatus.unclear:
+        reasons.append(ReviewReason.location_unclear)
+    return reasons

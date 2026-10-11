@@ -4,8 +4,26 @@ Every close records `drop_off_stage` (where the conversation ended) so 011 can r
 funnel drop-off, and only uses ordered-unique helpers for flags and reasons.
 """
 
-from sazon_screening.engine.actions import CloseDisqualified, CloseNeedsReview, CloseOptedOut
-from sazon_screening.engine.enums import DisqualificationReason, Flag, ReviewReason, Status
+from sazon_screening.config import EngineConfig
+from sazon_screening.engine.actions import (
+    CloseDisqualified,
+    CloseNeedsReview,
+    CloseOptedOut,
+    CloseQualifiedUnscheduled,
+    OfferSlots,
+    ShowRecap,
+)
+from sazon_screening.engine.apply import set_pending
+from sazon_screening.engine.enums import (
+    DisqualificationReason,
+    FieldName,
+    Flag,
+    PendingKind,
+    ReviewReason,
+    Stage,
+    Status,
+)
+from sazon_screening.engine.inputs import CandidateTurn
 from sazon_screening.engine.state import ConversationState, Profile, add_flag, add_reason
 
 
@@ -46,3 +64,31 @@ def close_disqualified(s: ConversationState, reason: DisqualificationReason) -> 
     s.disqualification_reason = reason
     s.drop_off_stage = s.stage
     return CloseDisqualified(reason=reason)
+
+
+def close_qualified_unscheduled(s: ConversationState) -> CloseQualifiedUnscheduled:
+    """Qualified, but no interview booked: a recruiter books it (Spec 001 §6)."""
+    s.status = Status.qualified_unscheduled
+    return CloseQualifiedUnscheduled()
+
+
+def show_recap(s: ConversationState, cfg: EngineConfig) -> ShowRecap | CloseNeedsReview:
+    """Show every value for confirmation (FR-25); too many rounds go to a recruiter."""
+    s.recap_rounds += 1
+    s.stage = Stage.recap
+    if s.recap_rounds > cfg.thresholds.max_recap_rounds:
+        return close_needs_review(s, ReviewReason.recap_loop)
+    set_pending(s, PendingKind.recap)
+    return ShowRecap(profile=s.profile.model_copy(deep=True))  # the state keeps changing
+
+
+def enter_scheduling(
+    s: ConversationState, t: CandidateTurn
+) -> OfferSlots | CloseQualifiedUnscheduled:
+    """Offer the slots 010 sent with this turn (or the ones offered before) (FR-26)."""
+    slots = t.context.offered_slots or s.offered_slot_ids
+    if not slots:
+        return close_qualified_unscheduled(s)
+    s.offered_slot_ids = list(slots)
+    set_pending(s, PendingKind.slot, FieldName.slot)
+    return OfferSlots(slot_ids=list(slots))

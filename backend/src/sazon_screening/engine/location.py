@@ -31,6 +31,7 @@ __all__ = [
     "match_location",
     "needs_zone",
     "normalise",
+    "served_value",
     "similarity",
     "validate_location",
 ]
@@ -245,7 +246,7 @@ def validate_location(
         case Matched(refs=(ref,)):
             if within_city == ref.city and ref.zone is None:  # "Madrid" again: no zone given
                 return Rejected(ReaskReason.unclear, options=_zone_ids(index, ref.city))
-            return Accepted(_served(ref, raw_text))
+            return Accepted(served_value(ref, raw_text))
         case Matched(refs=refs):
             return NeedsConfirmation("ambiguous", options=refs)
         case CityWithUnknownZone(city=city) if answer.is_known_place:
@@ -258,7 +259,8 @@ def validate_location(
             return _not_recognised(index, within_city)
 
 
-def _served(ref: AreaRef, raw_text: str) -> LocationValue:
+def served_value(ref: AreaRef, raw_text: str) -> LocationValue:
+    """The stored value for a served area (zone, or a city with or without zones)."""
     return LocationValue(
         raw_text=raw_text, country=ref.country, city=ref.city, zone=ref.zone, in_service_area=True
     )

@@ -11,16 +11,26 @@ from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import (
     AskField,
     ClosedAck,
+    ConfirmInterview,
     EngineAction,
     Preface,
     PrimaryAction,
     register_for,
 )
-from sazon_screening.engine.closing import close_disqualified, close_needs_review, opt_out
+from sazon_screening.engine.apply import apply_proposals
+from sazon_screening.engine.closing import (
+    close_disqualified,
+    close_needs_review,
+    close_qualified_unscheduled,
+    opt_out,
+)
 from sazon_screening.engine.collect import (
-    apply_proposals,
     classify_attempt,
-    on_ask,
+    on_field_answer,
+    on_recap,
+    on_slot_answer,
+    pending_action,
+    reask_or_exhaust,
     repeat_pending,
 )
 from sazon_screening.engine.enums import (
@@ -28,11 +38,12 @@ from sazon_screening.engine.enums import (
     FieldName,
     Flag,
     Language,
+    PendingKind,
     ReaskReason,
     ReviewReason,
     Status,
 )
-from sazon_screening.engine.inputs import CandidateTurn, TurnInput
+from sazon_screening.engine.inputs import CandidateTurn, NoSlotFits, SlotSelected, TurnInput
 from sazon_screening.engine.rules import hard_rule_failure, sync_license_requirement
 from sazon_screening.engine.state import ConversationState
 
@@ -72,6 +83,10 @@ def step_unchecked(
     match turn:
         case CandidateTurn():
             primary = on_candidate_turn(s, turn, config, today, prefaces)
+        case SlotSelected() | NoSlotFits():
+            primary = on_slot_event(s, turn, config)
+        case _:  # pragma: no cover - silence arrives in T24
+            raise NotImplementedError
     return s, finish(s, primary, prefaces, config)
 
 
@@ -111,10 +126,37 @@ def on_candidate_turn(
     if (reason := hard_rule_failure(s, cfg)) is not None:
         return close_disqualified(s, reason)
 
+    # A value that needs confirming (45 years, "El Carmen") is the next question.
+    if applied.raised_confirmation:
+        return pending_action(s)
+
     # (6) the next ask, depending on how this turn answered the pending one.
     neutral = language_changed or signals.faq_question or signals.off_topic or signals.abuse
     attempt = classify_attempt(s, t, applied, neutral=neutral)
-    return on_ask(s, attempt, cfg)
+    if s.pending.kind in (PendingKind.recap, PendingKind.correction_field):
+        return on_recap(s, t, applied, attempt, cfg)
+    if s.pending.kind is PendingKind.slot:
+        return on_slot_answer(s, t, applied, attempt, cfg)
+    return on_field_answer(s, attempt, cfg)
+
+
+def on_slot_event(
+    s: ConversationState, event: SlotSelected | NoSlotFits, cfg: EngineConfig
+) -> PrimaryAction:
+    """010 reports the candidate's pick, or that nothing fits (FR-26, AC-30)."""
+    if s.status is not Status.in_progress:
+        return ClosedAck()
+    if s.pending.kind is not PendingKind.slot:
+        return pending_action(s)  # a stale event: nothing changes, ask what we were asking
+    if isinstance(event, NoSlotFits):
+        return close_qualified_unscheduled(s)
+    if event.slot_id in s.offered_slot_ids:
+        s.selected_slot_id = event.slot_id
+        s.status = Status.interview_scheduled
+        return ConfirmInterview(slot_id=event.slot_id)
+    offered = tuple(s.offered_slot_ids)
+    reask = reask_or_exhaust(s, FieldName.slot, ReaskReason.slot_not_offered, offered, cfg)
+    return reask or close_qualified_unscheduled(s)
 
 
 _PREFACE_ORDER = {"redirect": 0, "ack_correction": 1, "answer_faq": 2}

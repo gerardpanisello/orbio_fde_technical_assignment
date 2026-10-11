@@ -4,6 +4,7 @@ c = Convo(config)
 c.say(consent(True), name("Ana López")).expect(AskField, field="age")
 """
 
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, Self
 
@@ -17,12 +18,14 @@ from sazon_screening.engine.enums import (
     FieldName,
     Language,
     ScheduleSlot,
+    Stage,
     Status,
     VehicleType,
 )
 from sazon_screening.engine.inputs import (
     AgeAnswer,
     AgeProposal,
+    Asap,
     AvailabilityProposal,
     CandidateTurn,
     ChoiceProposal,
@@ -119,6 +122,30 @@ def unclear(field: str) -> Proposal:
 # --- conversation driver --------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class _Turn:
+    proposals: tuple[Proposal, ...]
+    offered_slots: list[str] | None = None
+
+
+OFFERED_SLOTS = ["s1", "s2"]
+
+# A valid candidate (Coyoacán, CDMX), one field per turn, in stage order (AC-1).
+_CANONICAL_TURNS = (
+    _Turn((consent(True),)),
+    _Turn((name("Ana López"),)),
+    _Turn((adult(),)),
+    _Turn((vehicle("motorbike"),)),
+    _Turn((license(True),)),
+    _Turn((loc("Coyoacán"),)),
+    _Turn((avail("full_time", "weekends"),)),
+    _Turn((sched("flexible"),)),
+    _Turn((exp(3, "Glovo"),)),
+    _Turn((start_date(Asap()),)),
+    _Turn((yes(),), offered_slots=OFFERED_SLOTS),
+)
+
+
 class Convo:
     """Drives `step_unchecked` (so bugs are not hidden by the safety net) and records actions."""
 
@@ -166,6 +193,15 @@ class Convo:
 
     def no_slot_fits(self) -> Self:
         return self.event(NoSlotFits())
+
+    def advance_to(self, stage: Stage) -> Self:
+        """Answer as the canonical valid candidate until `stage` is the pending one."""
+        for turn in _CANONICAL_TURNS:
+            if self.state.stage == stage:
+                return self
+            self.say(*turn.proposals, offered_slots=turn.offered_slots)
+        assert self.state.stage == stage, f"could not reach {stage}; at {self.state.stage}"
+        return self
 
     # --- assertions -------------------------------------------------------------------
 

@@ -245,7 +245,7 @@ Rules:
     - name unclear ×3 → flag `name_unclear`, flow continues.
   - *(FR-16, FR-23, FR-24)*
 
-- [ ] **T20 — Confirmations and zone ask.**
+- [x] **T20 — Confirmations and zone ask.**
   - The `confirm_value` and `confirm_ambiguous` handlers, the "first confirmation of the turn becomes pending" rule, and `within_city` for a pending zone.
   - Tests:
     - years 45 → `confirm_value(experience)`, yes → 45 stored; no → `reask_field(experience, value_rejected)` (**AC-16**);
@@ -254,8 +254,9 @@ Rules:
     - "Madrid" → `ask_field(zone)`, then "Centro" → `mad-centro` (**AC-14**);
     - zone answer "Vallecas" (known) → `out_of_area`.
   - *(FR-19, FR-21)*
+  - *Note (impl):* to keep modules near ~250 lines, proposal application moved from `collect.py` to a new `engine/apply.py` (`Applied`, `apply_proposals`, `set_pending`, `answers_pending`); `collect.py` keeps attempt classification, the re-ask policy and the next ask. Answers to a pending confirmation (yes/no, an option id, or naming one option's city such as "Monterrey") are resolved inside `apply_proposals`, so the hard rules see the final values of the turn. A failed ambiguity answer re-asks as `reask_field(location, options=<same option ids>)` and keeps `confirm_ambiguous` pending. A neutral turn (e.g. FAQ) while confirming repeats the confirmation. `PendingAsk.raw_text` keeps the ambiguous text for audit.
 
-- [ ] **T21 — Hard exhaustion + recap.**
+- [x] **T21 — Hard exhaustion + recap.**
   - `review_reasons` in `rules.py`. In `closing.py`: `close_needs_review`, `show_recap` (loop guard), and the `recap` and `correction_field` handlers.
   - Tests `tests/engine/test_recap.py`:
     - location unclear ×3 → profile still collected → at recap `needs_review/location_unclear` with `close_needs_review`, never disqualified (**AC-19**);
@@ -267,8 +268,9 @@ Rules:
     - the 4th recap → `needs_review/recap_loop`;
     - with vehicle unclear + license false + `bike_free_config` → `vehicle_unclear`.
   - *(FR-24, FR-25)*
+  - *Note (impl):* `recap` and `correction_field` share one handler, `collect.on_recap`. Any accepted value goes through `next_action`: a correction that leaves a field missing (e.g. license required again) asks for it; otherwise the recap is shown again. A neutral turn with no proposals (FAQ, off-topic, language switch) repeats the recap **without** counting a round, so FAQs cannot trip the `recap_loop` guard. `review_reasons` lists reasons in stage order (age, vehicle, license, location). `show_recap` sends a deep copy of the profile. `enter_scheduling` (needed for AC-22) falls back to the slots offered earlier when the turn carries none.
 
-- [ ] **T22 — Scheduling.**
+- [x] **T22 — Scheduling.**
   - `enter_scheduling`, `on_slot_event`, the slot handler and `close_qualified_unscheduled`.
   - Tests `tests/engine/test_events.py` + `test_flow.py`:
     - offered {s1, s2} → `slot_selected(s9)` → `reask_field(slot, slot_not_offered, [s1, s2])` (**AC-30**);
@@ -278,6 +280,7 @@ Rules:
     - `slot_selected` outside scheduling → ignored;
     - the full happy path, one field per turn → exact action sequence, `interview_scheduled`, `selected_slot_id = s1` (**AC-1**; the record assertions are finished in T28).
   - *(FR-26)*
+  - *Note (impl):* `on_slot_event` lives in `step.py` (events); the candidate-turn handler for a pending slot is `collect.on_slot_answer` (a correction re-opens the recap per OQ-7, a neutral turn repeats `offer_slots`, an empty turn uses a slot re-ask). A slot event while the conversation is not `in_progress` returns `closed_ack`; outside scheduling it repeats the pending ask. `Convo.advance_to(stage)` (planned for T24) was added here with a canonical valid candidate, because the scheduling tests need it.
 
 - [ ] **T23 — Signals: correction, wants_human, FAQ, off-topic, abuse, extraction failures.**
   - Complete the precedence in `on_candidate_turn`, `repeat_pending`, `handoff`, and the preface ordering in `finish`.
