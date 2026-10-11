@@ -4,8 +4,6 @@ Validation happens once, at load time, so a typo in the YAML fails fast with a m
 that names the problem (AC-35) instead of surfacing mid-conversation.
 """
 
-import re
-import unicodedata
 from itertools import pairwise
 from typing import Annotated, Self
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -14,26 +12,17 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    PrivateAttr,
     StringConstraints,
     field_validator,
     model_validator,
 )
 
 from sazon_screening.engine.enums import Availability, Country, Language, VehicleType
+from sazon_screening.engine.location import LocationIndex, normalise
 
 # Lowercase slug: stable, URL-safe IDs that the record and the dashboard can rely on.
 Slug = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]+$")]
-
-
-def normalise(text: str) -> str:
-    """Accent-, case- and punctuation-insensitive form used to compare place names.
-
-    Temporary home: moves to `engine/location.py` with the location index (T11).
-    """
-    decomposed = unicodedata.normalize("NFKD", text)
-    without_marks = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    spaced = re.sub(r"[^\w\s]|_", " ", without_marks.casefold())
-    return " ".join(spaced.split())
 
 
 class _Strict(BaseModel):
@@ -279,6 +268,17 @@ class EngineConfig(_Strict):
 
     service_areas: ServiceAreasConfig
     screening: ScreeningConfig
+    _location_index: LocationIndex = PrivateAttr()
+
+    @model_validator(mode="after")
+    def _build_location_index(self) -> Self:
+        # Built once here so the engine never re-scans the YAML tree on every turn.
+        self._location_index = LocationIndex.build(self.service_areas)
+        return self
+
+    @property
+    def location_index(self) -> LocationIndex:
+        return self._location_index
 
     @property
     def version(self) -> str:

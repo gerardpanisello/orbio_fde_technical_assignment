@@ -119,7 +119,7 @@ Rules:
 
 ## C. Validators & rules
 
-- [ ] **T9 — Consent & name.**
+- [x] **T9 — Consent & name.**
   - `engine/validators.py`: the outcome dataclasses `Accepted`, `Rejected`, `NeedsConfirmation`, plus `validate_consent` and `validate_name`.
   - Tests `tests/engine/test_validators.py`, parametrised:
     - "Ana López", "María-José O'Neill", "José  Pérez " (spaces collapsed) are accepted;
@@ -129,7 +129,7 @@ Rules:
     - consent `UNCLEAR` → `consent_required`.
   - *(FR-7, FR-16)*
 
-- [ ] **T10 — Age, vehicle, license + rules.**
+- [x] **T10 — Age, vehicle, license + rules.**
   - In `validators.py`: `validate_age`, `validate_vehicle`, `validate_license`.
   - `engine/rules.py`: `license_need`, `min_age_for`, `hard_rule_failure` (`under_age`, `no_license` only for now), `sync_license_requirement`, `DISQUALIFYING_FIELDS`.
   - Tests `tests/engine/test_rules.py`:
@@ -141,7 +141,7 @@ Rules:
     - unknown country uses the lowest minimum age.
   - *(FR-17, FR-18)*
 
-- [ ] **T11 — Location: normalise, index, exact/alias match.**
+- [x] **T11 — Location: normalise, index, exact/alias match.**
   - `engine/location.py`: `normalise`, `IndexEntry`, `LocationIndex` (built as a `PrivateAttr` in an `EngineConfig` after-validator), and `match_location` with segment splitting and exact/alias hits only.
   - Tests `tests/engine/test_location.py`, parametrised:
     - "CDMX", "DF", "Ciudad de México", "coyoacan", "COYOACÁN" → cdmx / coyoacán (**AC-12**, part);
@@ -149,8 +149,9 @@ Rules:
     - "Madrid" → city only;
     - `normalise` table (accents, case, punctuation).
   - *(FR-19)*
+  - *Note (impl):* `LocationIndex` is a frozen dataclass (`entries`, `cities`, `zones_by_city`, `served_city_ids()`, `zone_entries()`), built in an `EngineConfig` after-validator and exposed as `config.location_index`. `config/models.py` imports `normalise`/`LocationIndex` from `engine/location.py`; the reverse import is `TYPE_CHECKING`-only, so there is no cycle. The segment combination (incl. `CityWithUnknownZone`) landed here because it is one function; a city **without** zones plus an unknown extra part resolves to that city (it is served whole).
 
-- [ ] **T12 — Location: fuzzy, hint narrowing, ambiguity, city context.**
+- [x] **T12 — Location: fuzzy, hint narrowing, ambiguity, city context.**
   - Add the `similarity()` wrapper over `difflib`, fuzzy hits (≥ 4 chars, threshold, within 2 points of best), `country_hint` narrowing (only when at least one match survives), `within_city` priority, and `CityWithUnknownZone`.
   - Tests:
     - "Cuyoacán" → coyoacán (**AC-12**);
@@ -161,8 +162,9 @@ Rules:
     - "Vallecas, Madrid" → `CityWithUnknownZone`;
     - "xjkq" → `NoMatch`.
   - *(FR-19)*
+  - *Deviation:* the planned test "`Coyoacan` with threshold 95 → no match" cannot hold: "Coyoacan" is an **exact** match after `normalise`, so the threshold never applies. The test uses the typo "Cuyoacán" (87.5) at threshold 95 instead, which proves the same point.
 
-- [ ] **T13 — `validate_location` + `out_of_area` rule.**
+- [x] **T13 — `validate_location` + `out_of_area` rule.**
   - Implement `validate_location` (the plan §3.6 table) and add `out_of_area` to `hard_rule_failure`.
   - Tests, parametrised over the table rows:
     - "Madrid" → partial, zone missing (**AC-14**, unit);
@@ -170,16 +172,18 @@ Rules:
     - "Zaragoza" known → `out_of_area`; "xjkq" unknown → `Rejected(not_recognised, served city ids)` (**AC-11**, unit);
     - "El Carmen" no hint → `NeedsConfirmation(ambiguous)` with 2 options (**AC-13**, unit).
   - *(FR-19)*
+  - *Note (impl), relevant to T17/T20:* `needs_zone(value, config)` in `location.py` tells the caller a partial city must stay `not_asked` and that `zone` is next. Beyond the plan table: (a) with a zone pending, re-asks list **that city's zone ids**, not the served cities; (b) repeating the same city while the zone is pending returns `Rejected(unclear, zone ids)`, so it counts as a failed attempt instead of looping on `ask_field(zone)` without consuming re-asks; (c) a configured place is accepted even if `is_known_place=false` (config is the source of truth); (d) a zone answer stores `raw_text="<city text>, <zone text>"` for audit. `location.py` is ~280 lines (target ~250).
 
-- [ ] **T14 — Availability, schedule, experience.**
+- [x] **T14 — Availability, schedule, experience.**
   - `validate_availability`, `validate_schedule`, `validate_experience` (exact platform matching via `normalise` + aliases, `other:<text>`).
   - Tests:
     - duplicates are de-duplicated and sorted; empty → `empty_selection` with all options;
     - years 45 → `NeedsConfirmation(value)`; "none" → `Experience(0, [])`; -1 → `negative_value`; `None` → `missing_years`;
     - "Uber Eats" → `uber_eats`; "Rappi Turbo" → `other:Rappi Turbo` (**AC-16**, unit).
   - *(FR-20, FR-21)*
+  - *Note (impl):* `normalise()` moved to a tiny `engine/text.py` (re-exported by `location.py`), because `location.py` imports `validators.py` and platform matching needs it too: no import cycle. Multi-choice values are stored de-duplicated in **enum declaration order** (deterministic, reads naturally). Platforms are stored as a sorted unique list; `"none"` years ignores any platforms (FR-21). `validate_experience(..., platforms=config.screening.platforms, confirm_above=...)`.
 
-- [ ] **T15 — Start date.**
+- [x] **T15 — Start date.**
   - `resolve_start_date` and `validate_start_date`.
   - Tests, parametrised with today = 2026-10-12 (Monday):
     - `next_weekday(mon)` → 10-19;
@@ -191,6 +195,7 @@ Rules:
     - `absolute(2026-11-02)` stays as given;
     - `offset(-1 days)` → `negative_value` (**AC-17**).
   - *(FR-22)*
+  - *Note (impl):* any resolved date in the past (not only `absolute`) is moved to `today` + flag. An offset so large it overflows the calendar returns `Rejected(implausible_value)` instead of raising (NFR-5).
 
 ## D. `step()`, built up incrementally
 
