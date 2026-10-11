@@ -2,7 +2,7 @@
 
 **Implements:** [spec.md](spec.md) · **Contract:** [ADR 0005](../../adr/0005-engine-turn-contract.md) · **Rules:** [ADR 0002](../../adr/0002-hybrid-state-machine.md), [ADR 0004](../../adr/0004-qualification-rules-and-scoring.md) · **Source of truth:** [process-design.md](../001-process-design/process-design.md)
 
-**Status:** Draft, awaiting human review.
+**Status:** Approved and implemented (2026-10-11). Deviations are recorded under each task in [tasks.md](tasks.md); notably `step.py` became `turn.py` (a submodule named `step` shadowed the exported `step()` function) and proposal application lives in `apply.py`.
 
 ## 1. Approach
 

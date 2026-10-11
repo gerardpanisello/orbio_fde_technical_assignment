@@ -3,7 +3,7 @@
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine import step as step_module
+from sazon_screening.engine import turn as turn_module
 from sazon_screening.engine.actions import (
     AskField,
     ClosedAck,
@@ -25,7 +25,7 @@ from sazon_screening.engine.enums import (
 )
 from sazon_screening.engine.inputs import CandidateTurn
 from sazon_screening.engine.state import ConversationState, Experience, Profile
-from sazon_screening.engine.step import start, step
+from sazon_screening.engine.turn import start, step
 from tests.engine.builders import (
     Convo,
     adult,
@@ -98,7 +98,7 @@ class TestPurity:
         def broken(*_: object) -> None:
             raise RuntimeError("bug")
 
-        monkeypatch.setattr(step_module, "step_unchecked", broken)
+        monkeypatch.setattr(turn_module, "step_unchecked", broken)
         state, _ = start(config)
         new_state, action = step(state, CandidateTurn(), config, TODAY)
         assert action.primary == CloseNeedsReview(reasons=[ReviewReason.engine_error])
@@ -114,7 +114,7 @@ class TestPurity:
         def broken(*_: object) -> None:
             raise RuntimeError("bug")
 
-        monkeypatch.setattr(step_module, "step_unchecked", broken)
+        monkeypatch.setattr(turn_module, "step_unchecked", broken)
         new_state, action = step(state, CandidateTurn(), config, TODAY)
         assert action.primary == ClosedAck()
         assert new_state.status == Status.opted_out

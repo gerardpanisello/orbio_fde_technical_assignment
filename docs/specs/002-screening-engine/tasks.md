@@ -373,9 +373,10 @@ Rules:
   - *Coverage:* `uv run pytest --cov=sazon_screening --cov-branch` → 99%. Gap tests were added (unclear consent/confirmation, empty turn while disambiguating or on a zone, FAQ at `correction_field`, `license_unclear`, a config where no vehicle needs a license, a missing display language). The unreachable `slot` case in `default_options` was removed. Two branches stay uncovered on purpose: `closing.py` `if s.disqualification_reason is None` (type narrowing; it is always set while disqualified) and the fall-through of the exhaustive `match` over `TurnInput` in `step.py`.
   - `tests/test_ac_coverage.py` also fails if a marker names an AC that is not in spec.md.
 
-- [ ] **T31 — Verify & update docs.**
+- [x] **T31 — Verify & update docs.**
   - Walk through AC-1…AC-36 (incl. AC-26b) against the tests and tick the spec checkboxes.
   - Update `docs/ROADMAP.md` (002 ✅).
   - Add a short "Engine" section to the README: how to call `start`/`step`, and how ops edit `config/` (with the `ConfigError` example).
   - Record the OQ decisions taken (plan §8) in spec §7 once the human has answered them.
   - *(all)*
+  - *Note (impl):* all 37 AC checkboxes ticked (each has a marked test; the gate enforces it). There is no root README yet, so the "Engine" section went into `backend/README.md`; its code sample was executed to check the documented output. Plan §8 OQ decisions are recorded in spec §7, and decision row 7 now matches the updated FR-15. **Rename found during close-out:** `engine/step.py` → `engine/turn.py`. With lazy exports, importing the submodule `engine.step` rebinds the package attribute `step` to the module, so `from sazon_screening.engine import step` returned a module, not the function. `test_public_api.py` now imports every submodule first and asserts that the entry points are functions.

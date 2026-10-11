@@ -1,6 +1,6 @@
 # Spec 002 — Screening engine (deterministic core)
 
-**Status:** Reviewed (open questions decided with Gerard, 2026-10-11)
+**Status:** Implemented (2026-10-11). All 37 ACs covered by marked tests (`backend/tests/test_ac_coverage.py`); implementation notes in [tasks.md](tasks.md).
 **Related:** ADR-0005 (turn contract), ADR-0002 (hybrid state machine), ADR-0004 (hard rules + soft scoring), Spec 001 ([process-design.md](../001-process-design/process-design.md), the source of truth)
 
 ## 1. Problem / Why
@@ -93,57 +93,57 @@ LLM extraction and phrasing, language detection (003/007) · persistence and API
 Unless stated otherwise: default config (license required for all vehicles, min age 18), `today` = 2026-10-12 (Monday), and the service areas include Madrid (Spain) and Ciudad de México (Mexico) with zones such as Coyoacán.
 
 **Happy path & flow**
-- [ ] AC-1: Given a fresh conversation, when valid values are proposed one per turn in stage order and slot `s1` is selected, then the actions follow the stage order exactly, the final status is `interview_scheduled`, and the record contains every field with status `valid`, `selected_slot_id = s1` and a score.
-- [ ] AC-2: Given the consent stage, when consent = false, then status = `opted_out`, action = `close_opted_out`, and the record has no screening field values.
-- [ ] AC-3: Given the consent stage, when a turn proposes `full_name` without consent, then the name is not stored and the action is `reask_field(consent)`. When a turn proposes consent = true **and** `full_name` "Ana López", then both are stored and the action is `ask_field(age)`.
-- [ ] AC-4: Given the name stage, when one turn proposes name "Ana López", has_license = true and location "Coyoacán", then all three are stored and the action is `ask_field(age)`.
-- [ ] AC-5: Given the age stage, when availability = {weekends} is proposed alongside is_adult = true, then availability is stored and later skipped: after the knock-outs, the next profile ask is `schedule`.
+- [x] AC-1: Given a fresh conversation, when valid values are proposed one per turn in stage order and slot `s1` is selected, then the actions follow the stage order exactly, the final status is `interview_scheduled`, and the record contains every field with status `valid`, `selected_slot_id = s1` and a score.
+- [x] AC-2: Given the consent stage, when consent = false, then status = `opted_out`, action = `close_opted_out`, and the record has no screening field values.
+- [x] AC-3: Given the consent stage, when a turn proposes `full_name` without consent, then the name is not stored and the action is `reask_field(consent)`. When a turn proposes consent = true **and** `full_name` "Ana López", then both are stored and the action is `ask_field(age)`.
+- [x] AC-4: Given the name stage, when one turn proposes name "Ana López", has_license = true and location "Coyoacán", then all three are stored and the action is `ask_field(age)`.
+- [x] AC-5: Given the age stage, when availability = {weekends} is proposed alongside is_adult = true, then availability is stored and later skipped: after the knock-outs, the next profile ask is `schedule`.
 
 **Disqualifiers**
-- [ ] AC-6: Given any knock-out stage, when age = 17 is proposed (even together with other valid fields), then status = `disqualified`, reason = `under_age`, action = `close_disqualified(under_age)`, and the other fields are kept in the record.
-- [ ] AC-7: Given vehicle = motorbike, when has_license = false, then the candidate is disqualified with reason `no_license`.
-- [ ] AC-8: Given config where bicycle does not require a license, when vehicle = bicycle, then license is not asked, is stored as `not_required`, and the next action is `ask_field(location)`.
-- [ ] AC-9: Given that bicycle config and vehicle unknown, when has_license = false, then the candidate is not disqualified and the action is `ask_field(vehicle_type)`; when vehicle = motorbike follows, then the candidate is disqualified (`no_license`).
-- [ ] AC-10: Given city Madrid with configured zones, when location is a Madrid zone not in the list, then the candidate is disqualified with reason `out_of_area`.
-- [ ] AC-11: Given the location stage, when "Zaragoza" is proposed with `is_known_place = true`, then the candidate is disqualified (`out_of_area`). When "xjkq" is proposed with `is_known_place = false`, then the action is `reask_field(location, reason=not_recognised)` with the served cities as options, and after the re-asks are exhausted the outcome at recap is `needs_review` (never `disqualified`).
+- [x] AC-6: Given any knock-out stage, when age = 17 is proposed (even together with other valid fields), then status = `disqualified`, reason = `under_age`, action = `close_disqualified(under_age)`, and the other fields are kept in the record.
+- [x] AC-7: Given vehicle = motorbike, when has_license = false, then the candidate is disqualified with reason `no_license`.
+- [x] AC-8: Given config where bicycle does not require a license, when vehicle = bicycle, then license is not asked, is stored as `not_required`, and the next action is `ask_field(location)`.
+- [x] AC-9: Given that bicycle config and vehicle unknown, when has_license = false, then the candidate is not disqualified and the action is `ask_field(vehicle_type)`; when vehicle = motorbike follows, then the candidate is disqualified (`no_license`).
+- [x] AC-10: Given city Madrid with configured zones, when location is a Madrid zone not in the list, then the candidate is disqualified with reason `out_of_area`.
+- [x] AC-11: Given the location stage, when "Zaragoza" is proposed with `is_known_place = true`, then the candidate is disqualified (`out_of_area`). When "xjkq" is proposed with `is_known_place = false`, then the action is `reask_field(location, reason=not_recognised)` with the served cities as options, and after the re-asks are exhausted the outcome at recap is `needs_review` (never `disqualified`).
 
 **Location matching**
-- [ ] AC-12: Given aliases, when the location is "CDMX", "coyoacan" or "Cuyoacán", then it resolves to the Ciudad de México / Coyoacán IDs.
-- [ ] AC-13: Given a name configured in two service areas and no `country_hint`, when it is proposed, then the action is `confirm_ambiguous` listing both; given `country_hint` matches one of them, then it resolves without asking.
-- [ ] AC-14: Given a city with zones, when only the city is proposed, then the action is `ask_field(zone)`.
+- [x] AC-12: Given aliases, when the location is "CDMX", "coyoacan" or "Cuyoacán", then it resolves to the Ciudad de México / Coyoacán IDs.
+- [x] AC-13: Given a name configured in two service areas and no `country_hint`, when it is proposed, then the action is `confirm_ambiguous` listing both; given `country_hint` matches one of them, then it resolves without asking.
+- [x] AC-14: Given a city with zones, when only the city is proposed, then the action is `ask_field(zone)`.
 
 **Field validation**
-- [ ] AC-15: Given the name stage, when "Ana" is proposed, then the action is `reask_field(full_name, reason=surname_missing)`; when "Ana" is proposed again, then it is stored, flag `surname_missing` is set, and the flow continues.
-- [ ] AC-16: Given the experience stage, when years = 45, then the action is `confirm_value(experience)`; when confirmed, then 45 is stored. When years = "none", then years = 0 and platforms = []. When a platform is "Rappi Turbo" (not in config), then it is stored as `other:Rappi Turbo`.
-- [ ] AC-17: Given today = 2026-10-12, when the start date is `next_weekday(mon)` → 2026-10-19; `offset(2 weeks)` → 2026-10-26; `asap` → 2026-10-12; `absolute(2026-09-01)` → 2026-10-12 + flag `start_date_normalised`.
+- [x] AC-15: Given the name stage, when "Ana" is proposed, then the action is `reask_field(full_name, reason=surname_missing)`; when "Ana" is proposed again, then it is stored, flag `surname_missing` is set, and the flow continues.
+- [x] AC-16: Given the experience stage, when years = 45, then the action is `confirm_value(experience)`; when confirmed, then 45 is stored. When years = "none", then years = 0 and platforms = []. When a platform is "Rappi Turbo" (not in config), then it is stored as `other:Rappi Turbo`.
+- [x] AC-17: Given today = 2026-10-12, when the start date is `next_weekday(mon)` → 2026-10-19; `offset(2 weeks)` → 2026-10-26; `asap` → 2026-10-12; `absolute(2026-09-01)` → 2026-10-12 + flag `start_date_normalised`.
 
 **Re-ask policy**
-- [ ] AC-18: Given the availability stage, when three consecutive turns propose `unclear`, then the 2nd and 3rd actions are `reask_field` with options, availability is then stored as `unclear`, and the next action is `ask_field(schedule)`.
-- [ ] AC-19: Given the location stage, when three consecutive turns are unclear, then location is `unclear`, the profile is still collected, and at recap the status is `needs_review` with reason `location_unclear` and action `close_needs_review`. The status is never `disqualified`.
-- [ ] AC-20: Given a pending field with 1 re-ask used, when a turn contains only a FAQ question, only other valid fields, or `extraction_failed`, then the re-ask count stays at 1.
+- [x] AC-18: Given the availability stage, when three consecutive turns propose `unclear`, then the 2nd and 3rd actions are `reask_field` with options, availability is then stored as `unclear`, and the next action is `ask_field(schedule)`.
+- [x] AC-19: Given the location stage, when three consecutive turns are unclear, then location is `unclear`, the profile is still collected, and at recap the status is `needs_review` with reason `location_unclear` and action `close_needs_review`. The status is never `disqualified`.
+- [x] AC-20: Given a pending field with 1 re-ask used, when a turn contains only a FAQ question, only other valid fields, or `extraction_failed`, then the re-ask count stays at 1.
 
 **Corrections & recap**
-- [ ] AC-21: Given city = Madrid stored during the profile stage, when a `correction` proposes "Coyoacán", then the location is overwritten, the hard rules pass, and the action carries the `ack_correction` preface plus the pending field ask.
-- [ ] AC-22: Given the recap stage, when the candidate confirms, then the action is `offer_slots`.
-- [ ] AC-23: Given the recap stage, when a correction changes availability, then the new value is stored and `show_recap` is returned with it.
-- [ ] AC-24: Given the recap stage, when a correction changes location to an unserved zone (or license to false), then status = `disqualified` with the matching reason.
-- [ ] AC-25: Given the recap stage, when the candidate says "no" without naming a field, then the action is `ask_correction_field`.
+- [x] AC-21: Given city = Madrid stored during the profile stage, when a `correction` proposes "Coyoacán", then the location is overwritten, the hard rules pass, and the action carries the `ack_correction` preface plus the pending field ask.
+- [x] AC-22: Given the recap stage, when the candidate confirms, then the action is `offer_slots`.
+- [x] AC-23: Given the recap stage, when a correction changes availability, then the new value is stored and `show_recap` is returned with it.
+- [x] AC-24: Given the recap stage, when a correction changes location to an unserved zone (or license to false), then status = `disqualified` with the matching reason.
+- [x] AC-25: Given the recap stage, when the candidate says "no" without naming a field, then the action is `ask_correction_field`.
 
 **Signals & events**
-- [ ] AC-26: Given each stage and each non-opted-out status (parametrised, including `interview_scheduled`), when `opt_out` is received (even with proposals), then status = `opted_out`, action = `close_opted_out`, all screening field values are purged, and the record keeps `drop_off_stage` and flag `do_not_contact`.
-- [ ] AC-26b: Given a candidate disqualified for `no_license`, when a `correction` proposes has_license = true, then status = `needs_review`, flag `post_close_correction`, the original value and the proposed correction are both in the record, and the action is `close_needs_review`.
-- [ ] AC-27: Given an in-progress conversation, when `wants_human` is received, then status = `needs_review`, flag `human_requested`, action = `handoff_to_human`; a later turn returns `closed_ack`.
-- [ ] AC-28: Given pending field = schedule, when `faq_question` is received alone, then the action is `ask_field(schedule)` with preface `answer_faq`; when it comes with a valid schedule, then the preface is `answer_faq` and the ask is the next field.
-- [ ] AC-29: Given pending field = vehicle_type, when `silence_expired`, then status = `abandoned`, `drop_off_stage = vehicle_license`; when a later turn arrives, then status = `in_progress` and the action is `ask_field(vehicle_type)`. Given the scheduling stage, when `silence_expired`, then status = `qualified_unscheduled`.
-- [ ] AC-30: Given `offer_slots` with ids {s1, s2}, when `slot_selected(s9)` arrives, then the action is `reask_field(slot)`; when `no_slot_fits` arrives, then status = `qualified_unscheduled`.
-- [ ] AC-31: Given the configured threshold N of consecutive `extraction_failed` turns, when N is reached, then status = `needs_review` with flag `system_failure`. Given the abuse threshold, the first `abuse` returns a `redirect` preface and reaching the threshold closes as `needs_review` with flag `abuse`.
-- [ ] AC-32: Given `language = en`, then the next action has `language = en`; given city = Ciudad de México and language = es, then `register = es-MX`.
+- [x] AC-26: Given each stage and each non-opted-out status (parametrised, including `interview_scheduled`), when `opt_out` is received (even with proposals), then status = `opted_out`, action = `close_opted_out`, all screening field values are purged, and the record keeps `drop_off_stage` and flag `do_not_contact`.
+- [x] AC-26b: Given a candidate disqualified for `no_license`, when a `correction` proposes has_license = true, then status = `needs_review`, flag `post_close_correction`, the original value and the proposed correction are both in the record, and the action is `close_needs_review`.
+- [x] AC-27: Given an in-progress conversation, when `wants_human` is received, then status = `needs_review`, flag `human_requested`, action = `handoff_to_human`; a later turn returns `closed_ack`.
+- [x] AC-28: Given pending field = schedule, when `faq_question` is received alone, then the action is `ask_field(schedule)` with preface `answer_faq`; when it comes with a valid schedule, then the preface is `answer_faq` and the ask is the next field.
+- [x] AC-29: Given pending field = vehicle_type, when `silence_expired`, then status = `abandoned`, `drop_off_stage = vehicle_license`; when a later turn arrives, then status = `in_progress` and the action is `ask_field(vehicle_type)`. Given the scheduling stage, when `silence_expired`, then status = `qualified_unscheduled`.
+- [x] AC-30: Given `offer_slots` with ids {s1, s2}, when `slot_selected(s9)` arrives, then the action is `reask_field(slot)`; when `no_slot_fits` arrives, then status = `qualified_unscheduled`.
+- [x] AC-31: Given the configured threshold N of consecutive `extraction_failed` turns, when N is reached, then status = `needs_review` with flag `system_failure`. Given the abuse threshold, the first `abuse` returns a `redirect` preface and reaching the threshold closes as `needs_review` with flag `abuse`.
+- [x] AC-32: Given `language = en`, then the next action has `language = en`; given city = Ciudad de México and language = es, then `register = es-MX`.
 
 **Scoring, config, output**
-- [ ] AC-33: Given fixed weights and a candidate (3 years, glovo, {full_time, weekends}, flexible, asap), then the score equals the sum of the factor points, the bucket matches the configured thresholds, and each factor names its field, value and reason code. Given availability `unclear`, then that factor has 0 points and reason `unknown`.
-- [ ] AC-34: Given the same candidate, when only the YAML weights change, then the score/bucket changes with no code change; disqualified and opted-out records have `score = null`.
-- [ ] AC-35: Given an invalid config (duplicate zone ID, unknown vehicle type, or bucket thresholds out of order), when it is loaded, then it fails with an error naming the problem.
-- [ ] AC-36: Given any final record (one per status), when it is serialised with `json.dumps` and validated against the record schema, then it succeeds and contains all FR-31 keys with language-neutral values.
+- [x] AC-33: Given fixed weights and a candidate (3 years, glovo, {full_time, weekends}, flexible, asap), then the score equals the sum of the factor points, the bucket matches the configured thresholds, and each factor names its field, value and reason code. Given availability `unclear`, then that factor has 0 points and reason `unknown`.
+- [x] AC-34: Given the same candidate, when only the YAML weights change, then the score/bucket changes with no code change; disqualified and opted-out records have `score = null`.
+- [x] AC-35: Given an invalid config (duplicate zone ID, unknown vehicle type, or bucket thresholds out of order), when it is loaded, then it fails with an error naming the problem.
+- [x] AC-36: Given any final record (one per status), when it is serialised with `json.dumps` and validated against the record schema, then it succeeds and contains all FR-31 keys with language-neutral values.
 
 ## 7. Decisions (resolved open questions, 2026-10-11)
 | # | Question | Decision |
@@ -154,9 +154,20 @@ Unless stated otherwise: default config (license required for all vehicles, min 
 | 4 | Unrecognised location | Real place → `out_of_area`; unrecognisable → re-ask → `needs_review` (FR-19). Talent pool: out of scope. |
 | 5 | Data before consent | Applied only if consent is in the same turn (FR-7). |
 | 6 | Mid-flow opt-out | Purge fields, keep minimal data + do-not-contact (FR-11). |
-| 7 | Correction after disqualification | `needs_review` + flag, never auto-requalify (FR-15). |
+| 7 | Correction after disqualification | Always recorded next to the original; `needs_review` + flag only if the corrected value would pass the rule that caused it, else stays `disqualified`. Never auto-requalify (FR-15). |
 | 8 | Confirm before disqualifying | No (the extractor only proposes a clear `false`; ambiguity is already `unclear`). |
 | 9 | `wants_human` | Pause screening (FR-12). |
 | 10 | Abuse close | `needs_review` + `abuse` flag, no new status. |
 | 11 | Default thresholds (config) | Max re-asks 2 · recap rounds 3 · consecutive extraction failures 3 · abuse count 2 · fuzzy match ≥ 85/100. |
 | 12 | Turn contract ADR | Yes → [ADR 0005](../../adr/0005-engine-turn-contract.md). |
+
+### Implementation open questions (plan §8), decided 2026-10-11
+| # | Question | Decision |
+|---|---|---|
+| OQ-1 | Consent still unclear after 2 re-asks | Keep re-asking `consent_required`; never close. No data is stored; silence (008) abandons it. |
+| OQ-2 | Action for `silence_expired` | Explicit `no_message` primary action (ADR 0005 amended); also returned when silence arrives on a conversation that is not `in_progress`. |
+| OQ-3 | Single location match contradicting `country_hint` | Accept the match; the hint only narrows when there are 2+ matches. |
+| OQ-4 | Restart after opt-out | No: `closed_ack`; a new application is a new conversation (004). |
+| OQ-5 | Experience with platforms but no years | `missing_years` re-ask; platforms are re-extracted with the next answer. |
+| OQ-6 | Lower plausibility bound for age | `min_plausible_age: 14` in config; lower ages are re-asked, not disqualified. |
+| OQ-7 | Correction during scheduling | Apply, re-check hard rules, show the recap again, then re-offer slots. |

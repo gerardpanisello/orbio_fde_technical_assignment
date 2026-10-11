@@ -2,15 +2,38 @@
 
 import subprocess
 import sys
+from types import ModuleType
 
 import pytest
 
 import sazon_screening.engine as engine
 
 
-def test_every_exported_name_resolves() -> None:
+def test_every_exported_name_resolves_to_what_it_names() -> None:
+    import sazon_screening.engine.record
+    import sazon_screening.engine.scoring  # noqa: F401
+
     for name in engine.__all__:
-        assert getattr(engine, name) is not None, name
+        value = getattr(engine, name)
+        assert not isinstance(value, ModuleType), f"{name} resolves to a module"
+
+
+def test_entry_points_are_functions_even_after_internal_imports() -> None:
+    # A submodule named like an export shadows it once imported (engine/step.py did).
+    code = "; ".join(
+        [
+            "import importlib, inspect, pkgutil, sazon_screening.engine as e",
+            "[importlib.import_module(e.__name__ + '.' + m.name)"
+            " for m in pkgutil.iter_modules(e.__path__)]",
+            "from sazon_screening.engine import start, step, build_record, score_candidate",
+            "assert all(inspect.isfunction(f)"
+            " for f in (start, step, build_record, score_candidate)), step",
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_core_entry_points_are_exported() -> None:

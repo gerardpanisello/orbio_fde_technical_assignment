@@ -11,7 +11,7 @@ from sazon_screening.engine.enums import Flag, Status
 from sazon_screening.engine.inputs import TurnInput
 from sazon_screening.engine.record import build_record
 from sazon_screening.engine.state import ConversationState, Profile
-from sazon_screening.engine.step import start, step_unchecked
+from sazon_screening.engine.turn import start, step_unchecked
 from tests.engine.conftest import TODAY
 from tests.engine.strategies import conversations
 

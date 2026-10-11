@@ -67,7 +67,7 @@ def violations(path: Path) -> list[str]:
 
 
 def test_engine_files_are_found() -> None:
-    assert {"step.py", "apply.py", "collect.py", "closing.py"} <= {p.name for p in ENGINE_FILES}
+    assert {"turn.py", "apply.py", "collect.py", "closing.py"} <= {p.name for p in ENGINE_FILES}
 
 
 @pytest.mark.parametrize("path", ENGINE_FILES, ids=lambda p: p.name)
