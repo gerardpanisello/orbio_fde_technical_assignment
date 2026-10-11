@@ -314,7 +314,7 @@ Rules:
     - after `handoff_to_human`, the next turn → `closed_ack` (**AC-27**);
     - for each closed status, a FAQ turn → `answer_faq` + `closed_ack` and the profile is unchanged.
   - *(FR-12, FR-15)*
-  - *Note (impl):* `on_closed` and `post_close_corrections` live in `closing.py`; `apply._validate` became public `validate_proposal` so post-close values go through the same validators. As in the plan, the `correction` signal is not required: any valid value for a disqualifying field that differs from the stored one counts. Values are stored JSON-ready (`to_jsonable_python`). **Open question:** a post-close value that would *still* fail the same rule (e.g. 17 → 16 after `under_age`) also goes to `needs_review` today; filtering those out would cut recruiter noise, but FR-15 does not distinguish, so it is left as the spec says.
+  - *Note (impl):* `on_closed` and `post_close_corrections` live in `closing.py`; `apply._validate` became public `validate_proposal` so post-close values go through the same validators. As in the plan, the `correction` signal is not required: any valid value for a disqualifying field that differs from the stored one counts. Values are stored JSON-ready (`to_jsonable_python`). **Decided (FR-15 updated):** the correction is always recorded (de-duplicated), but the status only moves to `needs_review` if the corrected values would pass the rule that caused the disqualification (checked on a throwaway copy via `_would_pass`); otherwise the candidate stays `disqualified` and gets `closed_ack` (e.g. age 17 -> 16).
 
 - [x] **T26 — Language & register end-to-end.**
   - Tests `test_signals.py`:

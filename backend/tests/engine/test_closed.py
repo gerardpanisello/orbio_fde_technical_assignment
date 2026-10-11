@@ -53,6 +53,39 @@ class TestPostCloseCorrection:
             )
         ]
 
+    @pytest.mark.ac("AC-26b")
+    def test_correction_that_still_fails_the_rule_stays_disqualified(
+        self, config: EngineConfig
+    ) -> None:
+        # FR-15: recorded for the recruiter, but no review is opened (17 -> 16 still fails).
+        c = Convo(config).advance_to(Stage.age).say(age(17))
+        c.say(age(16), correction=True).expect(ClosedAck).expect_status(Status.disqualified)
+        assert c.state.post_close_corrections == [
+            PostCloseCorrection(
+                field=FieldName.age,
+                original={"is_adult": None, "age": 17},
+                proposed={"is_adult": None, "age": 16},
+            )
+        ]
+        assert Flag.post_close_correction not in c.state.flags
+        assert c.state.needs_review_reasons == []
+        assert c.state.profile.age.value is not None
+        assert c.state.profile.age.value.age == 17  # never applied
+
+    def test_repeated_correction_is_recorded_once(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.age).say(age(17))
+        c.say(age(16), correction=True).say(age(16), correction=True)
+        assert len(c.state.post_close_corrections) == 1
+
+    def test_license_correction_with_a_bike_free_config_still_needs_the_license(
+        self, bike_free_config: EngineConfig
+    ) -> None:
+        # Changing the vehicle to a bicycle would pass the license rule: review it.
+        c = Convo(bike_free_config).advance_to(Stage.age).say(adult()).say(vehicle("motorbike"))
+        c.say(license(False)).expect_status(Status.disqualified)
+        c.say(vehicle("bicycle"), correction=True).expect(CloseNeedsReview)
+        c.expect_status(Status.needs_review)
+
     def test_location_correction_after_out_of_area(self, config: EngineConfig) -> None:
         c = Convo(config).advance_to(Stage.location).say(loc("Zaragoza", known=True))
         c.expect_status(Status.disqualified)

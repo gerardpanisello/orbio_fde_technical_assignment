@@ -25,6 +25,7 @@ from sazon_screening.engine.apply import set_pending, validate_proposal
 from sazon_screening.engine.enums import (
     DisqualificationReason,
     FieldName,
+    FieldStatus,
     Flag,
     PendingKind,
     ReviewReason,
@@ -32,7 +33,11 @@ from sazon_screening.engine.enums import (
     Status,
 )
 from sazon_screening.engine.inputs import CandidateTurn, Proposal
-from sazon_screening.engine.rules import DISQUALIFYING_FIELDS
+from sazon_screening.engine.rules import (
+    DISQUALIFYING_FIELDS,
+    hard_rule_failure,
+    sync_license_requirement,
+)
 from sazon_screening.engine.state import (
     ConversationState,
     PostCloseCorrection,
@@ -128,17 +133,20 @@ def on_closed(
 ) -> CloseNeedsReview | ClosedAck:
     """A message on a closed conversation never changes screening data (FR-15).
 
-    One exception: after a disqualification, a different value for the field that caused
-    it is stored next to the original and a recruiter reviews it. It is never applied,
-    so nobody can talk their way past a knock-out rule (AC-26b).
+    One exception: after a disqualification, a different value for a field that caused
+    it is recorded next to the original, never applied (nobody can talk their way past a
+    knock-out rule). Only if that value would pass the rule does a recruiter review it
+    (AC-26b); "17 -> 16" is recorded but the candidate stays disqualified.
     """
-    corrections = post_close_corrections(s, t, cfg, today)
-    if s.status is Status.disqualified and corrections:
-        s.post_close_corrections = [*s.post_close_corrections, *corrections]
-        add_flag(s, Flag.post_close_correction)
-        add_reason(s, ReviewReason.post_close_correction)
-        s.status = Status.needs_review
-        return CloseNeedsReview(reasons=list(s.needs_review_reasons))
+    if s.status is Status.disqualified:
+        corrections = post_close_corrections(s, t, cfg, today)
+        new = [c for c, _ in corrections if c not in s.post_close_corrections]
+        s.post_close_corrections = [*s.post_close_corrections, *new]
+        if corrections and _would_pass(s, corrections, cfg):
+            add_flag(s, Flag.post_close_correction)
+            add_reason(s, ReviewReason.post_close_correction)
+            s.status = Status.needs_review
+            return CloseNeedsReview(reasons=list(s.needs_review_reasons))
     if t.signals.faq_question:
         prefaces.append(AnswerFaq())
     return ClosedAck()
@@ -146,12 +154,16 @@ def on_closed(
 
 def post_close_corrections(
     s: ConversationState, t: CandidateTurn, cfg: EngineConfig, today: date
-) -> list[PostCloseCorrection]:
-    """Valid, different values proposed for the fields behind the disqualification."""
+) -> list[tuple[PostCloseCorrection, object]]:
+    """Valid, different values proposed for the fields behind the disqualification.
+
+    Returns each correction as stored (JSON-ready) plus the validated value, which
+    `_would_pass` needs to re-run the rule.
+    """
     if s.disqualification_reason is None:
         return []
     fields = DISQUALIFYING_FIELDS[s.disqualification_reason]
-    corrections = []
+    corrections: list[tuple[PostCloseCorrection, object]] = []
     latest: dict[str, Proposal] = {p.field: p for p in t.proposals}
     for name in sorted(fields):
         proposal = latest.get(name.value)
@@ -160,11 +172,28 @@ def post_close_corrections(
         outcome = validate_proposal(s, proposal, cfg, today)
         original = getattr(s.profile, name.value).value
         if isinstance(outcome, Accepted) and outcome.value != original:
-            corrections.append(
-                PostCloseCorrection(
-                    field=name,
-                    original=to_jsonable_python(original),
-                    proposed=to_jsonable_python(outcome.value),
-                )
+            record = PostCloseCorrection(
+                field=name,
+                original=to_jsonable_python(original),
+                proposed=to_jsonable_python(outcome.value),
             )
+            corrections.append((record, outcome.value))
     return corrections
+
+
+def _would_pass(
+    s: ConversationState,
+    corrections: list[tuple[PostCloseCorrection, object]],
+    cfg: EngineConfig,
+) -> bool:
+    """Would the rule that disqualified the candidate pass with the corrected values?
+
+    Evaluated on a throwaway copy: the real profile keeps the original values.
+    """
+    trial = s.model_copy(deep=True)
+    for record, value in corrections:
+        slot = getattr(trial.profile, record.field.value)
+        slot.value = value
+        slot.status = FieldStatus.valid
+    sync_license_requirement(trial, cfg)
+    return hard_rule_failure(trial, cfg) is not s.disqualification_reason
