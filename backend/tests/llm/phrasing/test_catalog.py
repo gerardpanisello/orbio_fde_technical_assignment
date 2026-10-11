@@ -7,10 +7,15 @@ from typing import Any
 import pytest
 import yaml
 
-from sazon_screening.config import ConfigError
+from sazon_screening.config import ConfigError, EngineConfig, load_config
+from sazon_screening.engine import AnswerFaq, AskField, Preface, PrimaryAction, Redirect
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
-from sazon_screening.vocab import Language, Register, VehicleType
-from tests.paths import BACKEND_DIR
+from sazon_screening.llm.phrasing.guard import check
+from sazon_screening.llm.phrasing.templates import render_template
+from sazon_screening.llm.settings import LengthCaps
+from sazon_screening.vocab import FieldName, Language, Register, VehicleType
+from tests.llm.builders import action, ctx, sample_primaries
+from tests.paths import BACKEND_DIR, FIXTURE_CONFIG_DIR
 
 FIXTURE_MESSAGES = BACKEND_DIR / "tests" / "fixtures" / "messages"
 
@@ -87,3 +92,32 @@ def test_file_must_declare_its_register(tmp_path: Path) -> None:
 def test_shipped_catalog_loads(catalog: MessageCatalog) -> None:
     assert set(catalog.registers) == set(Register)
     assert catalog.label("vehicle_type", "car", Language.es) == "Coche"
+
+
+SAMPLE_ACTIONS = sample_primaries(load_config(FIXTURE_CONFIG_DIR))
+PREFACE_SETS = [(), (Redirect(reason="off_topic"),), (Redirect(reason="abuse"), AnswerFaq())]
+
+
+@pytest.mark.parametrize("register", list(Register))
+@pytest.mark.parametrize("primary", SAMPLE_ACTIONS, ids=lambda p: p.type)
+@pytest.mark.parametrize("prefaces", PREFACE_SETS, ids=["plain", "redirect", "abuse+faq"])
+def test_every_shipped_template_passes_the_guard(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    primary: PrimaryAction,
+    prefaces: tuple[Preface, ...],
+) -> None:
+    """Templates are the fallback: they must never fail the check they stand in for."""
+    act = action(primary, *prefaces, register=register)
+    text = render_template(act, ctx(), catalog, engine_config)
+    assert check(text, act, ctx(), LengthCaps()) == [], text
+
+
+@pytest.mark.parametrize("register", list(Register))
+def test_the_greeting_passes_the_guard(
+    catalog: MessageCatalog, engine_config: EngineConfig, register: Register
+) -> None:
+    act = action(AskField(field=FieldName.consent), register=register)
+    text = render_template(act, ctx(is_greeting=True), catalog, engine_config)
+    assert check(text, act, ctx(is_greeting=True), LengthCaps()) == [], text

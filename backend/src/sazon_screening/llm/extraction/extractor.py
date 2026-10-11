@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict
 from sazon_screening.engine import CandidateTurn, Signals, TurnContext
 from sazon_screening.llm.client.base import FailureKind, LLMClient, LLMRequest, LLMResult, Role
 from sazon_screening.llm.client.retry import Deadline, call_with_retry
+from sazon_screening.llm.delimit import tagged
 from sazon_screening.llm.extraction.mapping import DroppedProposal, Mapped, to_turn_input
 from sazon_screening.llm.extraction.pending import PendingView
 from sazon_screening.llm.extraction.schema import ExtractionOutput, Sentiment
@@ -159,12 +160,12 @@ class Extractor:
         size = self._config.history_messages
         window = list(history)[-size:] if size else []
         cap = self._config.max_message_chars
-        recent = "\n".join(_tagged(entry.role, entry.text[:cap]) for entry in window)
+        recent = "\n".join(tagged(entry.role, entry.text[:cap]) for entry in window)
         return (
             f"<pending_ask>{pending.model_dump_json()}</pending_ask>\n"
             f"<conversation_language>{language.value}</conversation_language>\n"
             f"<recent_messages>\n{recent}\n</recent_messages>\n"
-            f"{_tagged('candidate_message', text)}"
+            f"{tagged('candidate_message', text)}"
         )
 
     async def _call(self, request: LLMRequest, deadline: Deadline) -> LLMResult[ExtractionOutput]:
@@ -179,16 +180,6 @@ class Extractor:
             policy=self._config.retry,
             sleep=self._sleep,
         )
-
-
-def _tagged(tag: str, text: str) -> str:
-    """Wrap conversation text in a tag, neutralising `<` inside it.
-
-    A candidate typing `</candidate_message>` must not be able to close the data block
-    and write something that looks like our own instructions.
-    """
-    safe = text.replace("<", "\N{SINGLE LEFT-POINTING ANGLE QUOTATION MARK}")
-    return f"<{tag}>{safe}</{tag}>"
 
 
 def _failed(

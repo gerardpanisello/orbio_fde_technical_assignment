@@ -89,6 +89,11 @@ class LengthCaps(_Frozen):
     long: int = Field(600, gt=0)  # show_recap, offer_slots, FAQ answers (decision 5)
 
 
+class GuardConfig(_Frozen):
+    # Plan OQ-5: switch off if live runs show the language check rejecting good replies.
+    language_check: bool = True
+
+
 class LLMConfig(_Frozen):
     version: str
     roles: dict[Role, RoleConfig]
@@ -97,6 +102,7 @@ class LLMConfig(_Frozen):
     history_messages: int = Field(6, ge=0)
     max_message_chars: int = Field(2000, gt=0)
     length_caps: LengthCaps = LengthCaps()
+    guard: GuardConfig = GuardConfig()
     media_placeholders: list[str] = []
     privacy_url: HttpUrl
     summary_default_language: Language = Language.es

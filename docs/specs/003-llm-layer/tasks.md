@@ -227,7 +227,7 @@ Rules:
   - *(FR-2, FR-12, FR-13, FR-16, FR-17)*
   - *Note (impl):* the catalog gained three label entries the recap needs (`adult`, `birth_year`, `years`), and recruiter `summary` labels are required in es-ES and en only (es-MX has none). Rules shared by templates and the guard live in `phrasing/policy.py` (which actions ask, length caps) and `phrasing/language.py` (conservative stopword check), so a template can never break the rule the guard enforces. `pending_view` now takes the `MessageCatalog` (as plan §3.6 says) instead of T10's interim callable; `labels.field_values` is shared by the recap and the extractor's `current_values`. Re-ask options render as a suffix ` (Moto, Coche)` after the question; ambiguous places and slots render as numbered lists. Dates in the recap are `dd/mm/yyyy`.
 
-- [ ] **T18 — Quick replies.**
+- [x] **T18 — Quick replies.**
   - `phrasing/quick_replies.py`: `QuickReply`, `quick_replies_for(action, ctx, catalog, engine_config)` per plan §3.7.
   - Tests `tests/llm/phrasing/test_quick_replies.py`:
     - es-MX `ask_field(vehicle_type)` → ids {motorbike, car, bicycle, e_bike, none}, labels include "Carro";
@@ -238,7 +238,7 @@ Rules:
     - `reask_field(location, not_recognised, options=[...])` → those ids (**003:AC-13**, builder part).
   - *(FR-14)*
 
-- [ ] **T19 — Guard.**
+- [x] **T19 — Guard.**
   - `phrasing/guard.py`: `Violation`, `check(text, action, ctx, caps, *, language_check=True)` with empty, too_long, question_count, pay_or_currency (FAQ-token exemption), emoji and wrong_language (conservative, OQ-5; switchable from `llm.yaml`).
   - Tests `tests/llm/phrasing/test_guard.py`:
     - 301 chars → `too_long`; 600 allowed for `show_recap`;
@@ -249,7 +249,7 @@ Rules:
   - Test `test_catalog.py`: **every shipped template rendered for its action passes `check`**.
   - *(FR-15, ADR 0006)*
 
-- [ ] **T20 — Phraser service.**
+- [x] **T20 — Phraser service.**
   - `phrasing/phraser.py`: `OutboundMessage`, `PhrasingTrace`, `Phraser.phrase()`:
     - `no_message` → `None`, 0 calls;
     - build the request (system = phrasing prompt; user = `<instruction>`, `<reference_message>`, `<candidate_first_name>`, `<candidate_last_message>`, `<faq_answer>`);
@@ -266,7 +266,7 @@ Rules:
     - two calls → identical `system`; the last candidate message only in `user` (**003:AC-25**, phrasing part).
   - *(FR-11..17)*
 
-- [ ] **T21 — Phrasing prompt v1.**
+- [x] **T21 — Phrasing prompt v1.**
   - Write `prompts/phrasing.v1.md`:
     - persona Sofi (spec 001 §3);
     - the §7 rules;

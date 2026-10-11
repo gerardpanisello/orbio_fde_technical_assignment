@@ -68,3 +68,12 @@ def test_prompts_are_static(name: str) -> None:
     text = files("sazon_screening.llm.prompts").joinpath(name).read_text(encoding="utf-8")
     assert not DATE.search(text), f"{name} contains a date"
     assert not PLACEHOLDER.search(text), f"{name} contains a {{placeholder}}"
+
+
+def test_phrasing_prompt_covers_registers_and_length() -> None:
+    text = PromptRegistry().load("phrasing.v1").text
+    for register in ("es-ES", "es-MX", "en"):
+        assert register in text
+    assert "300 characters" in text
+    for tag in ("<instruction>", "<reference_message>", "<candidate_last_message>", "<faq_answer>"):
+        assert tag in text

@@ -14,6 +14,7 @@
 #   - retry / turn_budget_s: a candidate never waits more than turn_budget_s seconds;
 #     after that the agent answers with a template.
 #   - length_caps: maximum reply length (long = recap, slot list, FAQ answers).
+#   - guard: checks every AI reply must pass before it is sent (else a template is used).
 #   - media_placeholders: texts the channel sends instead of a voice note or a photo.
 #   - prices: USD per million tokens, used only to estimate cost in telemetry.
 version: "2026-10-11.1"
@@ -30,6 +31,7 @@ turn_budget_s: 15
 history_messages: 6          # recent messages the extractor sees
 max_message_chars: 2000      # longer candidate messages are cut before extraction
 length_caps: {default: 300, long: 600}
+guard: {language_check: true}   # rejects a reply clearly in the wrong language
 
 media_placeholders:
   - "<audio omitted>"

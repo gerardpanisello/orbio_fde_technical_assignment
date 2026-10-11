@@ -1,0 +1,66 @@
+"""Deterministic checks on every phrased reply before it is sent (FR-15, ADR 0006).
+
+Cheap code checks, not a second model: length, one question when asking (none when
+closing), no pay or currency the model made up, emoji limits and, conservatively, the
+language. Any violation means the template is sent instead. Deeper guardrails are 007.
+"""
+
+import re
+from enum import StrEnum
+
+from sazon_screening.engine import EngineAction
+from sazon_screening.llm.phrasing.language import dominant_language
+from sazon_screening.llm.phrasing.policy import NO_EMOJI, expects_question, length_cap
+from sazon_screening.llm.phrasing.templates import RenderContext
+from sazon_screening.llm.settings import LengthCaps
+
+
+class Violation(StrEnum):
+    empty = "empty"
+    too_long = "too_long"
+    question_count = "question_count"
+    pay_or_currency = "pay_or_currency"
+    emoji = "emoji"
+    wrong_language = "wrong_language"
+
+
+# A currency sign or name, or an amount per hour: what an invented pay promise looks like.
+_PAY = re.compile(
+    r"[€$£]|\b(?:eur|euros?|mxn|pesos?|usd|d[oó]lar(?:es)?|dollars?)\b"
+    r"|\d+\s*(?:/\s*h(?:ora|our)?\b|(?:por|la|per|an)\s+hora?\b|(?:per|an)\s+hour\b)",
+    re.IGNORECASE,
+)
+_EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿⭐⭕]")
+_MAX_EMOJI = 1
+
+
+def check(
+    text: str,
+    action: EngineAction,
+    ctx: RenderContext,
+    caps: LengthCaps,
+    *,
+    language_check: bool = True,
+) -> list[Violation]:
+    """All rules the reply breaks; an empty list means it can be sent."""
+    if not text.strip():
+        return [Violation.empty]
+    found: list[Violation] = []
+    if len(text) > length_cap(action, caps, faq_answer=ctx.faq_answer):
+        found.append(Violation.too_long)
+    if text.count("?") != (1 if expects_question(action) else 0):
+        found.append(Violation.question_count)
+    if _invented_pay(text, ctx.faq_answer):
+        found.append(Violation.pay_or_currency)
+    emoji = len(_EMOJI.findall(text))
+    if emoji > _MAX_EMOJI or (emoji and action.primary.type in NO_EMOJI):
+        found.append(Violation.emoji)
+    if language_check and dominant_language(text) not in (None, action.language):
+        found.append(Violation.wrong_language)
+    return found
+
+
+def _invented_pay(text: str, faq_answer: str | None) -> bool:
+    """Money talk is allowed only when it comes word for word from the approved FAQ answer."""
+    approved = (faq_answer or "").lower()
+    return any(match.group(0).lower() not in approved for match in _PAY.finditer(text))
