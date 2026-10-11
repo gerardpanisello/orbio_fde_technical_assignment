@@ -6,7 +6,10 @@ The engine never hard-codes "after age comes vehicle". It asks for the first fie
 
 from typing import Final
 
-from sazon_screening.engine.enums import FieldName, Stage
+from sazon_screening.config import EngineConfig
+from sazon_screening.engine.enums import FieldName, FieldStatus, Stage
+from sazon_screening.engine.location import needs_zone
+from sazon_screening.engine.state import ConversationState
 
 # Knock-outs first, then profile (Spec 001 §3). `zone` follows `location`: it is only
 # asked when the matched city has zones and none was given.
@@ -51,3 +54,35 @@ HARD_FIELDS: Final[frozenset[FieldName]] = frozenset(
 SOFT_FIELDS: Final[frozenset[FieldName]] = frozenset(
     {FieldName.availability, FieldName.schedule, FieldName.experience, FieldName.start_date}
 )
+
+
+def next_missing_field(state: ConversationState, config: EngineConfig) -> FieldName | None:
+    """The first field, in stage order, that still needs an answer.
+
+    This one query replaces a hand-written transition table: whatever arrived out of
+    order is simply skipped (FR-8). `unclear` counts as done (FR-24); a license that is
+    `not_required` is skipped (rules.sync_license_requirement keeps that status current).
+    """
+    for field in FIELD_ORDER:
+        if _is_missing(field, state, config):
+            return field
+    return None
+
+
+def _is_missing(field: FieldName, state: ConversationState, config: EngineConfig) -> bool:
+    location = state.profile.location
+    match field:
+        case FieldName.consent:
+            return state.consent is not True
+        case FieldName.location:
+            return location.status is FieldStatus.not_asked and location.value is None
+        case FieldName.zone:
+            # A served city split into zones, with no zone yet: stored partially (AC-14).
+            return (
+                location.status is FieldStatus.not_asked
+                and location.value is not None
+                and needs_zone(location.value, config)
+            )
+        case _:
+            slot = getattr(state.profile, field.value)
+            return bool(slot.status is FieldStatus.not_asked)

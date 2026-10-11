@@ -82,6 +82,7 @@ class PendingAsk(_State):
     field: FieldName | None = None  # None for recap / correction_field
     candidate_value: Experience | None = None  # confirm_value payload
     options: list[AreaRef] = []  # confirm_ambiguous payload
+    raw_text: str | None = None  # confirm_ambiguous: what the candidate said (audit)
 
 
 class PostCloseCorrection(_State):

@@ -199,7 +199,7 @@ Rules:
 
 ## D. `step()`, built up incrementally
 
-- [ ] **T16 — `start()`, `step()` skeleton, consent gate, test driver.**
+- [x] **T16 — `start()`, `step()` skeleton, consent gate, test driver.**
   - `engine/step.py`:
     - `start()`;
     - `step()`, the safety-net wrapper around `step_unchecked()`;
@@ -215,7 +215,7 @@ Rules:
     - the caller's state is unchanged after `step`.
   - *(FR-1, FR-7, FR-11)*
 
-- [ ] **T17 — Profile collection, out of order.**
+- [x] **T17 — Profile collection, out of order.**
   - Wire all validators into `apply_proposals`, including license sync and `zone` via `next_missing_field`, plus `set_pending` (keeps `stage` in sync).
   - Tests `test_flow.py`:
     - name + license true + "Coyoacán" in one turn → all stored, `ask_field(age)` (**AC-4**);
@@ -224,7 +224,7 @@ Rules:
     - a re-proposed field overwrites (latest wins).
   - *(FR-8, FR-9)*
 
-- [ ] **T18 — Hard rules in the loop.**
+- [x] **T18 — Hard rules in the loop.**
   - `hard_rule_failure` is called after `apply_proposals`, plus `close_disqualified` (status, reason, `drop_off_stage`).
   - Tests `tests/engine/test_disqualifiers.py`:
     - age 17 at the consent+name, age, vehicle and location stages, alone and with other valid fields → `disqualified/under_age`, other fields kept (**AC-6**);
@@ -235,7 +235,7 @@ Rules:
     - "Zaragoza" known → `out_of_area` (**AC-11**, first half).
   - *(FR-17, FR-18, FR-19)*
 
-- [ ] **T19 — Re-ask policy (soft fields, name).**
+- [x] **T19 — Re-ask policy (soft fields, name).**
   - `classify_attempt`, `reask_or_exhaust` for all fields, `default_options`, soft exhaustion, `name_unclear`.
   - Tests `tests/engine/test_reask.py`:
     - availability unclear ×3 → actions 2 and 3 are `reask_field` with all options, then availability `unclear` and `ask_field(schedule)` (**AC-18**);
