@@ -314,7 +314,7 @@ Rules:
   - *(FR-12, FR-15)*
   - *Note (impl):* `on_closed` and `post_close_corrections` live in `closing.py`; `apply._validate` became public `validate_proposal` so post-close values go through the same validators. As in the plan, the `correction` signal is not required: any valid value for a disqualifying field that differs from the stored one counts. Values are stored JSON-ready (`to_jsonable_python`). **Open question:** a post-close value that would *still* fail the same rule (e.g. 17 → 16 after `under_age`) also goes to `needs_review` today; filtering those out would cut recruiter noise, but FR-15 does not distinguish, so it is left as the spec says.
 
-- [ ] **T26 — Language & register end-to-end.**
+- [x] **T26 — Language & register end-to-end.**
   - Tests `test_signals.py`:
     - `language=en` signal → next action `language=en`, `register=en`;
     - CDMX location + es → `es-MX`;
@@ -322,6 +322,7 @@ Rules:
     - no location + hint MX → `es-MX`;
     - a language change alone does not consume a re-ask (**AC-32**).
   - *(FR-4, edge case "language switch")*
+  - *Note (impl):* test-only task: the behaviour (language signal, `register_for` in `finish`, language switch counted as neutral) was built in T16/T19, so these tests passed on first run. Extra cases: register follows the stored location over the phone prefix; a "language" signal equal to the current language is not neutral; closing actions carry the language too. Group D size check: `apply.py` is ~305 lines (over the ~250 target); `step.py` 242, `collect.py` 213, `closing.py` 170.
 
 ## E. Scoring & record
 

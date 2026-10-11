@@ -15,14 +15,17 @@ from sazon_screening.engine.actions import (
     Redirect,
 )
 from sazon_screening.engine.enums import (
+    Country,
     FieldName,
     Flag,
+    Language,
     ReaskReason,
+    Register,
     ReviewReason,
     Stage,
     Status,
 )
-from tests.engine.builders import Convo, age, sched
+from tests.engine.builders import Convo, age, consent, loc, sched
 
 
 def at_schedule(config: EngineConfig) -> Convo:
@@ -118,3 +121,44 @@ class TestPrecedence:
 
     def test_correction_without_a_change_is_not_acknowledged(self, config: EngineConfig) -> None:
         at_schedule(config).say(correction=True).expect_prefaces()
+
+
+class TestLanguageAndRegister:
+    @pytest.mark.ac("AC-32")
+    def test_language_switch_to_english(self, config: EngineConfig) -> None:
+        c = at_schedule(config).say(language=Language.en)
+        c.expect(AskField, field=FieldName.schedule)
+        assert (c.action.language, c.action.register) == (Language.en, Register.en)
+        assert c.state.language == Language.en
+        c.say(sched("morning"))
+        assert c.action.language == Language.en  # it sticks
+
+    @pytest.mark.ac("AC-32")
+    def test_mexican_location_gives_mexican_register(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.availability)  # canonical candidate: Coyoacán
+        assert (c.action.language, c.action.register) == (Language.es, Register.es_MX)
+
+    def test_spanish_location_gives_spanish_register(self, config: EngineConfig) -> None:
+        c = Convo(config, country_hint=Country.MX).advance_to(Stage.location)
+        assert c.action.register == Register.es_MX  # phone prefix until we know the city
+        c.say(loc("Chamberí"))
+        assert c.action.register == Register.es_ES  # where the job is wins
+
+    def test_country_hint_without_location(self, config: EngineConfig) -> None:
+        c = Convo(config).say(consent(True), country_hint=Country.MX)
+        assert c.action.register == Register.es_MX
+        assert Convo(config).action.register == Register.es_ES  # default_country
+
+    def test_language_change_alone_does_not_use_a_reask(self, config: EngineConfig) -> None:
+        c = at_schedule(config).say(language=Language.en)
+        c.expect(AskField, field=FieldName.schedule)
+        assert c.reasks(FieldName.schedule) == 0
+
+    def test_same_language_with_no_answer_still_counts(self, config: EngineConfig) -> None:
+        c = at_schedule(config).say(language=Language.es)
+        c.expect(ReaskField, field=FieldName.schedule)
+
+    def test_closed_actions_carry_the_language(self, config: EngineConfig) -> None:
+        c = Convo(config).say(consent(False), language=Language.en)
+        c.expect(CloseOptedOut)
+        assert (c.action.language, c.action.register) == (Language.en, Register.en)
