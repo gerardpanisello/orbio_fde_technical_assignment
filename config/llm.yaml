@@ -1,0 +1,52 @@
+# Grupo Sazón: LLM settings for the screening agent (spec 003).
+#
+# Ops can edit this file without touching code. The agent reads it at startup and
+# refuses to start if something is wrong, with a message naming the key.
+# Bump `version` on every change: every turn trace records it.
+#
+# What you can change:
+#   - roles: which model does each job, how hard it thinks (effort), its output limit,
+#     its timeout and its prompt file (backend/src/sazon_screening/llm/prompts/).
+#       extraction: reads the candidate's message        -> fast, cheap model
+#       phrasing:   writes Sofi's reply                   -> better writer
+#       summary:    writes the recruiter summary          -> fast, cheap model
+#       judge:      offline quality checks (evals only)   -> strongest model
+#   - retry / turn_budget_s: a candidate never waits more than turn_budget_s seconds;
+#     after that the agent answers with a template.
+#   - length_caps: maximum reply length (long = recap, slot list, FAQ answers).
+#   - media_placeholders: texts the channel sends instead of a voice note or a photo.
+#   - prices: USD per million tokens, used only to estimate cost in telemetry.
+version: "2026-10-11.1"
+
+roles:
+  extraction: {model: claude-haiku-5-5, effort: low, max_tokens: 1024, timeout_s: 6, prompt: extraction.v1}
+  phrasing: {model: claude-sonnet-5-5, effort: low, max_tokens: 400, timeout_s: 6, prompt: phrasing.v1}
+  summary: {model: claude-haiku-5-5, effort: low, max_tokens: 1024, timeout_s: 20, prompt: summary.v1}
+  judge: {model: claude-opus-5-5, effort: medium, max_tokens: 2048, timeout_s: 60, prompt: judge_phrasing.v1}
+
+retry: {max_attempts: 2, backoff_s: 0.5, min_call_s: 1.0}
+turn_budget_s: 15
+
+history_messages: 6          # recent messages the extractor sees
+max_message_chars: 2000      # longer candidate messages are cut before extraction
+length_caps: {default: 300, long: 600}
+
+media_placeholders:
+  - "<audio omitted>"
+  - "<media omitted>"
+  - "<image omitted>"
+  - "<video omitted>"
+  - "audio omitido"
+  - "<multimedia omitido>"
+
+# Placeholder until Grupo Sazón gives us the real privacy-notice URL.
+privacy_url: "https://gruposazon.example/privacidad"
+
+summary_default_language: es   # recruiters can ask for the other language on demand
+summary_max_transcript_chars: 8000
+
+prices:
+  # verify all prices against the pricing page (T29); cache_write = 5-minute cache writes
+  claude-haiku-5-5: {input: 0.10, output: 0.50, cache_read: 0.01, cache_write: 0.125}
+  claude-sonnet-5-5: {input: 2.00, output: 10.00, cache_read: 0.20, cache_write: 2.50}
+  claude-opus-5-5: {input: 4.00, output: 20.00, cache_read: 0.20, cache_write: 5.00}

@@ -12,3 +12,4 @@ Format: **Status · Context · Decision · Alternatives considered · Consequenc
 | [0004](0004-qualification-rules-and-scoring.md) | Hard disqualifiers + soft scoring | Accepted |
 | [0005](0005-engine-turn-contract.md) | Engine turn contract (proposals + signals → typed action) | Accepted |
 | [0006](0006-llm-text-guarded-by-code.md) | Candidate-facing LLM text guarded by code + template fallback | Accepted |
+| [0007](0007-async-io-sync-engine.md) | Async I/O layers around a sync, pure engine | Accepted |

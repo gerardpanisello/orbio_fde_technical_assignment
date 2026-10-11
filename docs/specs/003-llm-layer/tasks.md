@@ -48,7 +48,7 @@ Rules:
 
 ## B. Foundations
 
-- [ ] **T4 — Skeleton, tooling, network guard, ADR 0007 draft.**
+- [x] **T4 — Skeleton, tooling, network guard, ADR 0007 draft.**
   - `uv add anthropic`.
   - Create the `src/sazon_screening/llm/` packages per plan §2 (`client/`, `extraction/`, `phrasing/`, `summary/`, `prompts/`), each with an `__init__.py`. Create the `tests/llm/` package mirroring them, plus `tests/llm/live/`.
   - `pyproject.toml`: add the marker `"live: needs ANTHROPIC_API_KEY and LLM_MODE=anthropic"`.
@@ -61,8 +61,9 @@ Rules:
     - a dummy `live` test is skipped without the env vars.
   - Write `docs/adr/0007-async-io-sync-engine.md` with status **Proposed** (plan §5, OQ-6) and add it to `docs/adr/README.md`.
   - *(NFR-6)*
+  - *Note (impl):* ADR 0007 written as **Accepted** (plan "Decisions on open questions", OQ-6), not Proposed. `NetworkBlocked` lives in `tests/network_guard.py` (imported by `tests/conftest.py`) and subclasses `RuntimeError`, not `OSError`, so HTTP clients cannot swallow it as a connection error. Installed `anthropic` 1.13.0 uses **`httpx2`** (not `httpx`): T26 must build `httpx2.Request`/`httpx2.Response` for the exception tests.
 
-- [ ] **T5 — Settings + `llm.yaml`.**
+- [x] **T5 — Settings + `llm.yaml`.**
   - `llm/settings.py`: `Settings` + `load_settings(environ)` + `SettingsError`; `RoleConfig`, `ModelPrice`, `LengthCaps`, `RetryPolicy` (imported from `client/retry.py` once T6 exists, or defined here and moved later), `LLMConfig` + `load_llm_config(config_dir)`, raising `ConfigError` with `"llm.yaml: <path>: <problem>"`.
   - Write the shipped `config/llm.yaml` (ADR 0001 models, effort, timeouts, budget 15 s, history 6, caps 300/600, media placeholders, privacy URL placeholder, `summary_default_language: es`, prices with `# verify (T29)` comments) and `tests/fixtures/config/llm.yaml`.
   - Update `.env.example` (`LLM_MODE=fake` default, a comment on `uv run --env-file ../.env`).
@@ -73,8 +74,9 @@ Rules:
     - the shipped `llm.yaml` loads; a missing role, or a model without a price → `ConfigError` naming it;
     - changing a model in a `tmp_path` copy changes `config.roles[...].model` (**003:AC-24**, config part).
   - *(FR-24, FR-25)*
+  - *Note (impl):* `config/loader.py`'s private `_load_model` became the public `load_yaml_model` (exported from `sazon_screening.config`) so `llm.yaml` errors read exactly like the engine's. `Role`/`Effort` were created in `client/base.py` and `RetryPolicy` in `client/retry.py` now (T6 extends those files), so nothing moves later. Prices: Haiku/Sonnet/Opus 5.5 input/output/cache-read from the claude-api reference (2026-10-06); cache-write = 1.25 × input; all marked `# verify (T29)`.
 
-- [ ] **T6 — Client types, retry and deadline.**
+- [x] **T6 — Client types, retry and deadline.**
   - `client/base.py`: `Role`, `Effort`, `FailureKind`, `RETRYABLE`, `Usage`, `LLMRequest`, `LLMResult[T]`, `LLMClient` Protocol.
   - `client/retry.py`: `Clock`, `SystemClock`, `Deadline`, `RetryPolicy`, `call_with_retry`.
   - `tests/llm/support.py`: `FakeClock` with an async `sleep` that advances it.

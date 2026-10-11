@@ -1,0 +1,20 @@
+# LLM settings for unit tests: same shape as config/llm.yaml, stable values.
+version: "fixture.1"
+roles:
+  extraction: {model: claude-haiku-5-5, effort: low, max_tokens: 1024, timeout_s: 6, prompt: extraction.v1}
+  phrasing: {model: claude-sonnet-5-5, effort: low, max_tokens: 400, timeout_s: 6, prompt: phrasing.v1}
+  summary: {model: claude-haiku-5-5, effort: low, max_tokens: 1024, timeout_s: 20, prompt: summary.v1}
+  judge: {model: claude-opus-5-5, effort: medium, max_tokens: 2048, timeout_s: 60, prompt: judge_phrasing.v1}
+retry: {max_attempts: 2, backoff_s: 0.5, min_call_s: 1.0}
+turn_budget_s: 15
+history_messages: 6
+max_message_chars: 2000
+length_caps: {default: 300, long: 600}
+media_placeholders: ["<audio omitted>", "<media omitted>"]
+privacy_url: "https://example.com/privacy"
+summary_default_language: es
+summary_max_transcript_chars: 8000
+prices:
+  claude-haiku-5-5: {input: 1.0, output: 5.0, cache_read: 0.1, cache_write: 1.25}
+  claude-sonnet-5-5: {input: 3.0, output: 15.0, cache_read: 0.3, cache_write: 3.75}
+  claude-opus-5-5: {input: 5.0, output: 25.0, cache_read: 0.5, cache_write: 6.25}

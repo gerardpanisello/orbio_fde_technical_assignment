@@ -22,8 +22,8 @@ class ConfigError(Exception):
 
 def load_config(config_dir: Path) -> EngineConfig:
     """Read both config files from `config_dir` and validate them, failing fast."""
-    service_areas = _load_model(config_dir / SERVICE_AREAS_FILE, ServiceAreasConfig)
-    screening = _load_model(config_dir / SCREENING_FILE, ScreeningConfig)
+    service_areas = load_yaml_model(config_dir / SERVICE_AREAS_FILE, ServiceAreasConfig)
+    screening = load_yaml_model(config_dir / SCREENING_FILE, ScreeningConfig)
     try:
         return EngineConfig(service_areas=service_areas, screening=screening)
     except ValidationError as error:
@@ -31,7 +31,11 @@ def load_config(config_dir: Path) -> EngineConfig:
         raise ConfigError(_format(SCREENING_FILE, error)) from None
 
 
-def _load_model[M: BaseModel](path: Path, model: type[M]) -> M:
+def load_yaml_model[M: BaseModel](path: Path, model: type[M]) -> M:
+    """Read one YAML file into `model`; errors read `<file>: <dotted.path>: <problem>`.
+
+    Public so other config files (e.g. the LLM layer's `llm.yaml`) fail the same way.
+    """
     data = _read_yaml(path)
     try:
         return model.model_validate(data)
