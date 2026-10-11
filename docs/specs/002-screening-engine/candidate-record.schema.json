@@ -2,7 +2,7 @@
   "$defs": {
     "AgeAnswer": {
       "additionalProperties": false,
-      "description": "Either an explicit age or just \"I am over 18\". The explicit age wins if both.",
+      "description": "An explicit age, a birth year, or just \"I am over 18\".\n\nPrecedence: age > birth_year > is_adult.\nA birth year is kept as said: the engine works out the age from `today` (spec 003 §8),\nbecause subtracting years is calendar maths the extractor must not do.",
       "properties": {
         "is_adult": {
           "anyOf": [
@@ -27,6 +27,18 @@
           ],
           "default": null,
           "title": "Age"
+        },
+        "birth_year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Birth Year"
         }
       },
       "title": "AgeAnswer",

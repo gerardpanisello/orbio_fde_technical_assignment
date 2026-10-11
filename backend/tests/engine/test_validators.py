@@ -9,6 +9,7 @@ from sazon_screening.engine.inputs import (
     UNCLEAR,
     AbsoluteDate,
     Asap,
+    DayMonth,
     ExperienceAnswer,
     NextWeekday,
     Offset,
@@ -213,3 +214,31 @@ class TestStartDate:
 
     def test_unclear_is_reasked(self, today: date) -> None:
         assert validate_start_date(UNCLEAR, today) == Rejected(ReaskReason.unclear)
+
+
+class TestDayMonth:
+    """Spec 003 decision 1: "el 3 de noviembre" has no year; the engine picks it."""
+
+    @pytest.mark.ac("AC-37")
+    @pytest.mark.parametrize(
+        ("day", "month", "expected"),
+        [
+            (3, 11, date(2026, 11, 3)),  # later this year
+            (12, 10, date(2026, 10, 12)),  # today counts as "on or after today"
+            (1, 3, date(2027, 3, 1)),  # already past this year: next year
+            (29, 2, date(2028, 2, 29)),  # only exists in leap years: the next one
+        ],
+    )
+    def test_next_occurrence_on_or_after_today(
+        self, today: date, day: int, month: int, expected: date
+    ) -> None:
+        expr = DayMonth(day=day, month=month)
+        assert validate_start_date(expr, today) == Accepted(expected)
+
+    @pytest.mark.ac("AC-37")
+    @pytest.mark.parametrize(("day", "month"), [(31, 2), (31, 4), (0, 5), (5, 13), (-1, 1)])
+    def test_impossible_date_is_reasked_never_raises(
+        self, today: date, day: int, month: int
+    ) -> None:
+        expr = DayMonth(day=day, month=month)
+        assert validate_start_date(expr, today) == Rejected(ReaskReason.implausible_value)

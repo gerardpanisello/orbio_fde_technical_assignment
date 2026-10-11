@@ -55,8 +55,8 @@ class TestPostCloseCorrection:
         assert c.state.post_close_corrections == [
             PostCloseCorrection(
                 field=FieldName.age,
-                original={"is_adult": None, "age": 17},
-                proposed={"is_adult": None, "age": 19},
+                original={"is_adult": None, "age": 17, "birth_year": None},
+                proposed={"is_adult": None, "age": 19, "birth_year": None},
             )
         ]
 
@@ -70,8 +70,8 @@ class TestPostCloseCorrection:
         assert c.state.post_close_corrections == [
             PostCloseCorrection(
                 field=FieldName.age,
-                original={"is_adult": None, "age": 17},
-                proposed={"is_adult": None, "age": 16},
+                original={"is_adult": None, "age": 17, "birth_year": None},
+                proposed={"is_adult": None, "age": 16, "birth_year": None},
             )
         ]
         assert Flag.post_close_correction not in c.state.flags

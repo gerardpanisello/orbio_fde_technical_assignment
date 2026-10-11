@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sazon_screening.vocab import (
     Availability,
     Country,
+    FieldName,
     Language,
     ScheduleSlot,
     VehicleType,
@@ -66,9 +67,23 @@ class NextWeekday(_Input):
     weekday: Weekday
 
 
-StartDateExpr = Annotated[Asap | AbsoluteDate | Offset | NextWeekday, Field(discriminator="kind")]
+class DayMonth(_Input):
+    """A date without a year ("el 3 de noviembre"). The engine picks the year (spec 003 §8).
+
+    Plain ints, not a `date`: 31/02 must reach the engine and become a re-ask, not fail
+    validation and sink the whole turn.
+    """
+
+    kind: Literal["day_month"] = "day_month"
+    day: int
+    month: int
+
+
+StartDateExpr = Annotated[
+    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth, Field(discriminator="kind")
+]
 _StartDateOrUnclear = Annotated[
-    Asap | AbsoluteDate | Offset | NextWeekday | Unclear, Field(discriminator="kind")
+    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth | Unclear, Field(discriminator="kind")
 ]
 
 
@@ -76,15 +91,21 @@ _StartDateOrUnclear = Annotated[
 
 
 class AgeAnswer(_Input):
-    """Either an explicit age or just "I am over 18". The explicit age wins if both."""
+    """An explicit age, a birth year, or just "I am over 18".
+
+    Precedence: age > birth_year > is_adult.
+    A birth year is kept as said: the engine works out the age from `today` (spec 003 §8),
+    because subtracting years is calendar maths the extractor must not do.
+    """
 
     is_adult: bool | None = None
     age: int | None = None
+    birth_year: int | None = None
 
     @model_validator(mode="after")
     def _at_least_one(self) -> Self:
-        if self.is_adult is None and self.age is None:
-            raise ValueError("age answer needs is_adult or age")
+        if self.is_adult is None and self.age is None and self.birth_year is None:
+            raise ValueError("age answer needs is_adult, age or birth_year")
         return self
 
 
@@ -169,6 +190,17 @@ class ChoiceProposal(_Input):
     value: str | Unclear
 
 
+class CorrectionFieldProposal(_Input):
+    """The candidate names a field to change, without the new value ("la zona está mal").
+
+    Only used at the recap (spec 003 §8): the engine then asks that field again. A
+    field name, not a value, so nothing here can change the profile by itself.
+    """
+
+    field: Literal["correction_field"] = "correction_field"
+    value: FieldName
+
+
 Proposal = Annotated[
     ConsentProposal
     | NameProposal
@@ -181,7 +213,8 @@ Proposal = Annotated[
     | ExperienceProposal
     | StartDateProposal
     | ConfirmationProposal
-    | ChoiceProposal,
+    | ChoiceProposal
+    | CorrectionFieldProposal,
     Field(discriminator="field"),
 ]
 

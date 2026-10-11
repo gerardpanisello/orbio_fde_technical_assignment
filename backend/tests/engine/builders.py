@@ -21,6 +21,7 @@ from sazon_screening.engine.inputs import (
     ChoiceProposal,
     ConfirmationProposal,
     ConsentProposal,
+    CorrectionFieldProposal,
     ExperienceAnswer,
     ExperienceProposal,
     LicenseProposal,
@@ -68,6 +69,10 @@ def age(years: int) -> AgeProposal:
     return AgeProposal(value=AgeAnswer(age=years))
 
 
+def born(year: int, *, years: int | None = None) -> AgeProposal:
+    return AgeProposal(value=AgeAnswer(birth_year=year, age=years))
+
+
 def adult(is_adult: bool = True) -> AgeProposal:
     return AgeProposal(value=AgeAnswer(is_adult=is_adult))
 
@@ -107,6 +112,10 @@ def yes() -> ConfirmationProposal:
 
 def no() -> ConfirmationProposal:
     return ConfirmationProposal(value=False)
+
+
+def correct_field(field: str) -> CorrectionFieldProposal:
+    return CorrectionFieldProposal(value=FieldName(field))
 
 
 def choice(option_id: str) -> ChoiceProposal:

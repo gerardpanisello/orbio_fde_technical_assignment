@@ -3,7 +3,7 @@
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.inputs import UNCLEAR, AgeAnswer
+from sazon_screening.engine.inputs import UNCLEAR, AgeAnswer, Unclear
 from sazon_screening.engine.rules import (
     hard_rule_failure,
     license_need,
@@ -14,6 +14,7 @@ from sazon_screening.engine.state import ConversationState, LocationValue, Slot
 from sazon_screening.engine.validators import (
     Accepted,
     Rejected,
+    age_range,
     validate_age,
     validate_license,
     validate_vehicle,
@@ -25,7 +26,7 @@ from sazon_screening.vocab import (
     ReaskReason,
     VehicleType,
 )
-from tests.engine.conftest import MakeConfig
+from tests.engine.conftest import TODAY, MakeConfig
 
 
 def state_with(
@@ -52,6 +53,11 @@ def state_with(
     return state
 
 
+def check_age(answer: AgeAnswer | Unclear) -> Accepted[AgeAnswer] | Rejected:
+    """validate_age with the default limits: plausible 14..99, minimum 18."""
+    return validate_age(answer, min_plausible=14, max_plausible=99, min_age=18, today=TODAY)
+
+
 class TestAgeValidator:
     @pytest.mark.ac("AC-6")
     @pytest.mark.parametrize("age", [5, 13, 100, 150, -1])
@@ -60,6 +66,8 @@ class TestAgeValidator:
             AgeAnswer(age=age),
             min_plausible=config.thresholds.min_plausible_age,
             max_plausible=config.thresholds.max_plausible_age,
+            min_age=18,
+            today=TODAY,
         )
         assert outcome == Rejected(ReaskReason.implausible_value)
 
@@ -68,10 +76,10 @@ class TestAgeValidator:
     )
     def test_under_age_is_still_a_valid_answer(self, answer: AgeAnswer) -> None:
         # Validators accept it; rejecting the candidate is the hard rule's job.
-        assert validate_age(answer, min_plausible=14, max_plausible=99) == Accepted(answer)
+        assert check_age(answer) == Accepted(answer)
 
     def test_unclear_is_reasked(self) -> None:
-        outcome = validate_age(UNCLEAR, min_plausible=14, max_plausible=99)
+        outcome = check_age(UNCLEAR)
         assert outcome == Rejected(ReaskReason.unclear)
 
 
@@ -197,3 +205,27 @@ def test_no_vehicle_needs_a_license_when_config_says_so(make_config: MakeConfig)
     state = state_with(has_license=False)
     sync_license_requirement(state, config)
     assert state.profile.has_license.status == FieldStatus.not_required
+
+
+class TestBirthYearValidator:
+    @pytest.mark.ac("AC-38")
+    @pytest.mark.parametrize(
+        ("year", "expected"),
+        [
+            (2000, None),  # 25 or 26: accepted
+            (2010, None),  # 15 or 16: a valid answer; the hard rule disqualifies
+            (2008, ReaskReason.unclear),  # 17 or 18: straddles the minimum
+            (1900, ReaskReason.implausible_value),
+            (2020, ReaskReason.implausible_value),  # 5 or 6
+        ],
+    )
+    def test_birth_year_range(self, year: int, expected: ReaskReason | None) -> None:
+        answer = AgeAnswer(birth_year=year)
+        outcome = check_age(answer)
+        assert outcome == (Accepted(answer) if expected is None else Rejected(expected))
+
+    def test_age_range_needs_today_only_for_a_birth_year(self) -> None:
+        assert age_range(AgeAnswer(age=30), None) == (30, 30)
+        assert age_range(AgeAnswer(birth_year=2000), None) is None
+        assert age_range(AgeAnswer(birth_year=2000), TODAY) == (25, 26)
+        assert age_range(AgeAnswer(is_adult=True), TODAY) is None

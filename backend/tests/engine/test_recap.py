@@ -30,6 +30,7 @@ from tests.engine.builders import (
     adult,
     avail,
     consent,
+    correct_field,
     exp,
     license,
     loc,
@@ -213,3 +214,50 @@ def test_unclear_license_goes_to_review(config: EngineConfig) -> None:
         c.say(unclear("has_license"))
     profile_answers(c.say(loc("Coyoacán")))
     c.expect(CloseNeedsReview, reasons=[ReviewReason.license_unclear])
+
+
+class TestCorrectionField:
+    """Spec 003 decision 10: "la zona está mal" names a field without giving a new value."""
+
+    @pytest.mark.ac("AC-39")
+    def test_named_field_is_asked_then_the_recap_shows_the_new_value(
+        self, config: EngineConfig
+    ) -> None:
+        c = at_recap(config).say(no()).expect(AskCorrectionField)
+        c.say(correct_field("location")).expect(AskField, field=FieldName.location)
+        assert c.state.recap_rounds == 1  # asking the field is not a new recap round
+        c.say(loc("Chamberí, Madrid")).expect(ShowRecap)
+        recap = c.action.primary
+        assert isinstance(recap, ShowRecap)
+        assert recap.profile.location.value is not None
+        assert recap.profile.location.value.zone == "mad-chamberi"
+
+    @pytest.mark.ac("AC-39")
+    def test_no_plus_named_field_at_the_recap_asks_that_field(self, config: EngineConfig) -> None:
+        c = at_recap(config).say(no(), correct_field("availability"))
+        c.expect(AskField, field=FieldName.availability)
+        assert c.state.recap_rounds == 1
+
+    @pytest.mark.ac("AC-39")
+    def test_zone_means_the_location(self, config: EngineConfig) -> None:
+        at_recap(config).say(correct_field("zone")).expect(AskField, field=FieldName.location)
+
+    @pytest.mark.ac("AC-39")
+    @pytest.mark.parametrize("field", ["consent", "slot"])
+    def test_non_profile_field_changes_nothing(self, config: EngineConfig, field: str) -> None:
+        c = at_recap(config)
+        before = c.state.model_copy(deep=True)
+        c.say(correct_field(field)).expect(ShowRecap)  # same question again
+        assert c.state.profile == before.profile
+        assert c.state.pending == before.pending
+        assert c.state.recap_rounds == before.recap_rounds
+
+    def test_a_value_in_the_same_turn_wins(self, config: EngineConfig) -> None:
+        c = at_recap(config).say(correct_field("availability"), avail("weekends"))
+        c.expect(ShowRecap)
+        assert c.state.profile.availability.value == [Availability.weekends]
+
+    def test_ignored_outside_the_recap(self, config: EngineConfig) -> None:
+        c = at_location(Convo(config)).say(correct_field("age"))
+        c.expect(AskField, field=FieldName.location)
+        assert c.reasks(FieldName.location) == 0  # neutral, not a failed answer

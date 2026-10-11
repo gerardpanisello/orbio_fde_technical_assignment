@@ -17,6 +17,7 @@ from sazon_screening.engine.inputs import (
     AbsoluteDate,
     AgeAnswer,
     Asap,
+    DayMonth,
     ExperienceAnswer,
     NextWeekday,
     Offset,
@@ -94,18 +95,44 @@ def validate_name(answer: str | Unclear, *, surname_requested: bool) -> Accepted
 # --- knock-out answers (age, vehicle, license) -------------------------------------------
 
 
+def age_range(answer: AgeAnswer, today: date | None) -> tuple[int, int] | None:
+    """The youngest and oldest the candidate can be, or None if only `is_adult` is known.
+
+    An explicit age is exact. A birth year gives two possible ages, because we do not
+    know whether the birthday has passed this year (and needs `today` to say anything).
+    """
+    if answer.age is not None:
+        return answer.age, answer.age
+    if answer.birth_year is not None and today is not None:
+        oldest = today.year - answer.birth_year
+        return oldest - 1, oldest
+    return None
+
+
 def validate_age(
-    answer: AgeAnswer | Unclear, *, min_plausible: int, max_plausible: int
+    answer: AgeAnswer | Unclear,
+    *,
+    min_plausible: int,
+    max_plausible: int,
+    min_age: int,
+    today: date,
 ) -> Accepted[AgeAnswer] | Rejected:
-    """Re-ask implausible ages instead of judging them (FR-17).
+    """Re-ask implausible or borderline ages instead of judging them (FR-17).
 
     "Tengo 5" is more likely years of experience than a child applying, and "150" is a
-    typo. Under-age is NOT decided here: rules.py applies the minimum age per country.
+    typo. A birth year that could mean 17 or 18 is re-asked: ambiguity never disqualifies.
+    Under-age itself is NOT decided here: rules.py applies the minimum age per country.
     """
     if isinstance(answer, Unclear):
         return Rejected(ReaskReason.unclear)
-    if answer.age is not None and not min_plausible <= answer.age <= max_plausible:
+    ages = age_range(answer, today)
+    if ages is None:
+        return Accepted(answer)
+    youngest, oldest = ages
+    if oldest < min_plausible or youngest > max_plausible:
         return Rejected(ReaskReason.implausible_value)
+    if youngest < min_age <= oldest:
+        return Rejected(ReaskReason.unclear)
     return Accepted(answer)
 
 
@@ -210,9 +237,27 @@ def resolve_start_date(expr: StartDateExpr, today: date) -> tuple[date, bool]:
         case NextWeekday(weekday=weekday):
             days_ahead = (list(Weekday).index(weekday) - today.weekday()) % 7 or 7
             resolved = today + timedelta(days=days_ahead)
+        case DayMonth(day=day, month=month):
+            resolved = next_day_month(day, month, today)
     if resolved < today:
         return today, True
     return resolved, False
+
+
+def next_day_month(day: int, month: int, today: date) -> date:
+    """The next date on or after today with this day and month.
+
+    Looks up to 8 years ahead so 29/02 finds the next leap year. Raises ValueError for a
+    date that never exists (31/02, month 13); the validator turns that into a re-ask.
+    """
+    for year in range(today.year, today.year + 9):
+        try:
+            candidate = date(year, month, day)
+        except ValueError:
+            continue  # 29/02 in a non-leap year, or an impossible date
+        if candidate >= today:
+            return candidate
+    raise ValueError(f"no date {day}/{month}")
 
 
 def validate_start_date(answer: StartDateExpr | Unclear, today: date) -> Accepted[date] | Rejected:
@@ -222,6 +267,6 @@ def validate_start_date(answer: StartDateExpr | Unclear, today: date) -> Accepte
         return Rejected(ReaskReason.negative_value)
     try:
         resolved, normalised = resolve_start_date(answer, today)
-    except OverflowError:  # "in a billion weeks": beyond the calendar, ask again
+    except (OverflowError, ValueError):  # "in a billion weeks", 31/02: ask again
         return Rejected(ReaskReason.implausible_value)
     return Accepted(resolved, flags=(Flag.start_date_normalised,) if normalised else ())

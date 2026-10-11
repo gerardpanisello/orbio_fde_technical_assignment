@@ -6,10 +6,12 @@ and one stored value (NFR-6). Ambiguity never disqualifies: an unknown value is 
 in the candidate's favour and the rule runs again once it is known.
 """
 
+from datetime import date
 from typing import Final, Literal
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.state import ConversationState, Profile
+from sazon_screening.engine.validators import age_range
 from sazon_screening.vocab import (
     Country,
     DisqualificationReason,
@@ -68,7 +70,7 @@ def hard_rule_failure(
 ) -> DisqualificationReason | None:
     """First failing knock-out rule, in stage order, or None if the candidate can continue."""
     profile = state.profile
-    if _is_under_age(profile, config):
+    if _is_under_age(profile, config, state.last_turn_on):
         return DisqualificationReason.under_age
     if _lacks_required_license(profile, config):
         return DisqualificationReason.no_license
@@ -91,15 +93,17 @@ def sync_license_requirement(state: ConversationState, config: EngineConfig) -> 
         slot.status = FieldStatus.not_asked if slot.value is None else FieldStatus.valid
 
 
-def _is_under_age(profile: Profile, config: EngineConfig) -> bool:
+def _is_under_age(profile: Profile, config: EngineConfig, today: date | None) -> bool:
+    """Under-age only if EVERY possible age is below the minimum (a birth year gives two)."""
     slot = profile.age
     if slot.status is not FieldStatus.valid or slot.value is None:
         return False
     answer = slot.value
-    if answer.age is not None:  # an explicit age beats "I'm an adult"
+    ages = age_range(answer, today)
+    if ages is not None:  # an explicit age or birth year beats "I'm an adult"
         location = profile.location.value
         country = location.country if location is not None else None
-        return answer.age < min_age_for(country, config)
+        return ages[1] < min_age_for(country, config)
     return answer.is_adult is False
 
 

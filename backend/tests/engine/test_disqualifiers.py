@@ -5,11 +5,12 @@ from collections.abc import Callable
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.actions import AskField, CloseDisqualified
+from sazon_screening.engine.actions import AskField, CloseDisqualified, ReaskField
 from sazon_screening.vocab import (
     DisqualificationReason,
     FieldName,
     FieldStatus,
+    ReaskReason,
     Stage,
     Status,
 )
@@ -18,6 +19,7 @@ from tests.engine.builders import (
     adult,
     age,
     avail,
+    born,
     consent,
     license,
     loc,
@@ -121,3 +123,37 @@ class TestOutOfArea:
     def test_real_unserved_city(self, config: EngineConfig) -> None:
         c = at_location(config).say(loc("Zaragoza", known=True))
         c.expect(CloseDisqualified, reason="out_of_area")
+
+
+class TestBirthYear:
+    """Spec 003 decision 2: "nací en el 2000" -> the engine works out the age from today."""
+
+    @pytest.mark.ac("AC-38")
+    def test_birth_year_of_an_adult_is_accepted(self, config: EngineConfig) -> None:
+        c = at_age(config).say(born(2000))
+        c.expect(AskField, field=FieldName.vehicle_type).expect_status(Status.in_progress)
+        assert c.state.profile.age.status == FieldStatus.valid
+
+    @pytest.mark.ac("AC-38")
+    def test_birth_year_of_a_minor_disqualifies(self, config: EngineConfig) -> None:
+        c = at_age(config).say(born(2010))
+        c.expect(CloseDisqualified, reason=DisqualificationReason.under_age)
+        c.expect_status(Status.disqualified)
+
+    @pytest.mark.ac("AC-38")
+    def test_boundary_year_is_reasked_never_disqualified(self, config: EngineConfig) -> None:
+        # Born 2008: 17 or 18 on 2026-10-12, depending on the birthday.
+        c = at_age(config).say(born(2008))
+        c.expect(ReaskField, field=FieldName.age, reason=ReaskReason.unclear)
+        c.expect_status(Status.in_progress)
+        assert c.reasks(FieldName.age) == 1
+
+    @pytest.mark.ac("AC-38")
+    def test_implausible_birth_year_is_reasked(self, config: EngineConfig) -> None:
+        c = at_age(config).say(born(1900))
+        c.expect(ReaskField, field=FieldName.age, reason=ReaskReason.implausible_value)
+
+    @pytest.mark.ac("AC-38")
+    def test_explicit_age_wins_over_birth_year(self, config: EngineConfig) -> None:
+        c = at_age(config).say(born(2010, years=25))
+        c.expect(AskField, field=FieldName.vehicle_type).expect_status(Status.in_progress)

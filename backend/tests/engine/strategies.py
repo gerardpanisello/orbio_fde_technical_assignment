@@ -15,6 +15,8 @@ from sazon_screening.engine.inputs import (
     ChoiceProposal,
     ConfirmationProposal,
     ConsentProposal,
+    CorrectionFieldProposal,
+    DayMonth,
     ExperienceAnswer,
     ExperienceProposal,
     LicenseProposal,
@@ -37,6 +39,7 @@ from sazon_screening.engine.inputs import (
 from sazon_screening.vocab import (
     Availability,
     Country,
+    FieldName,
     Language,
     ScheduleSlot,
     VehicleType,
@@ -67,6 +70,8 @@ def _age() -> st.SearchStrategy[AgeAnswer]:
         st.builds(AgeAnswer, age=st.integers(-5, 200)),
         st.builds(AgeAnswer, is_adult=st.booleans()),
         st.builds(AgeAnswer, is_adult=st.booleans(), age=st.integers(0, 120)),
+        st.builds(AgeAnswer, birth_year=st.integers(1890, 2030)),  # incl. boundary years
+        st.builds(AgeAnswer, birth_year=st.integers(1990, 2015), age=st.integers(10, 40)),
     )
 
 
@@ -80,6 +85,8 @@ def _start_date() -> st.SearchStrategy[object]:
             unit=st.sampled_from(["days", "weeks"]),
         ),
         st.builds(NextWeekday, weekday=st.sampled_from(list(Weekday))),
+        # valid, impossible (31/02, month 13) and leap-day values
+        st.builds(DayMonth, day=st.integers(-1, 32), month=st.integers(0, 13)),
     )
 
 
@@ -128,6 +135,7 @@ def proposals() -> st.SearchStrategy[Proposal]:
         st.builds(StartDateProposal, value=_start_date() | unclear),
         st.builds(ConfirmationProposal, value=st.booleans() | unclear),
         st.builds(ChoiceProposal, value=st.sampled_from(OPTION_IDS) | unclear),
+        st.builds(CorrectionFieldProposal, value=st.sampled_from(list(FieldName))),
     )
 
 

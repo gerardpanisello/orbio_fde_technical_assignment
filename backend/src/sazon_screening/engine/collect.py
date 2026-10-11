@@ -27,7 +27,7 @@ from sazon_screening.engine.closing import (
     show_recap,
 )
 from sazon_screening.engine.flow import next_missing_field
-from sazon_screening.engine.inputs import CandidateTurn
+from sazon_screening.engine.inputs import CandidateTurn, CorrectionFieldProposal
 from sazon_screening.engine.rules import review_reasons
 from sazon_screening.engine.state import ConversationState, add_flag
 from sazon_screening.vocab import (
@@ -106,14 +106,22 @@ def on_recap(
     """Handler for `recap` and `correction_field` (FR-25)."""
     if applied.accepted:  # a correction: ask what became missing, or show the recap again
         return next_action(s, cfg)
+    if (target := applied.correction_target) is not None:  # "la zona está mal": ask it
+        set_pending(s, PendingKind.ask, target)
+        return AskField(field=target)
     if applied.confirmation is True:
         return enter_scheduling(s, t)
     if applied.confirmation is False and s.pending.kind is PendingKind.recap:
         set_pending(s, PendingKind.correction_field)
         return AskCorrectionField()
-    if attempt.kind == "neutral" and not t.proposals:
+    if attempt.kind == "neutral" and not _says_anything(t):
         return pending_action(s)  # e.g. a FAQ: same question again, not a new round
     return show_recap(s, cfg)
+
+
+def _says_anything(t: CandidateTurn) -> bool:
+    """Proposals other than an ignored field name (e.g. "consent is wrong") at the recap."""
+    return any(not isinstance(p, CorrectionFieldProposal) for p in t.proposals)
 
 
 def on_slot_answer(

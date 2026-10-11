@@ -1,5 +1,7 @@
 """Conversation flow through `step()`: consent, out-of-order collection, happy path."""
 
+from datetime import date
+
 import pytest
 
 from sazon_screening.config import EngineConfig
@@ -11,7 +13,7 @@ from sazon_screening.engine.actions import (
     CloseOptedOut,
     ReaskField,
 )
-from sazon_screening.engine.inputs import CandidateTurn, Signals
+from sazon_screening.engine.inputs import CandidateTurn, DayMonth, Signals
 from sazon_screening.engine.state import ConversationState, Experience, Profile
 from sazon_screening.engine.turn import start, step
 from sazon_screening.vocab import (
@@ -36,6 +38,7 @@ from tests.engine.builders import (
     loc,
     name,
     sched,
+    start_date,
     vehicle,
 )
 from tests.engine.conftest import TODAY
@@ -250,3 +253,18 @@ class TestSafetyNet:
         assert new_state.status == Status.opted_out
         assert leaked_state(new_state) == {}
         assert new_state.last_error == "KeyError"
+
+
+class TestDayMonthStartDate:
+    @pytest.mark.ac("AC-37")
+    def test_impossible_day_month_reasks_the_start_date(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.start_date)
+        c.say(start_date(DayMonth(day=31, month=2)))
+        c.expect(ReaskField, field=FieldName.start_date, reason=ReaskReason.implausible_value)
+        assert c.reasks(FieldName.start_date) == 1
+
+    @pytest.mark.ac("AC-37")
+    def test_valid_day_month_is_stored_as_a_date(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.start_date)
+        c.say(start_date(DayMonth(day=3, month=11)))
+        assert c.state.profile.start_date.value == date(2026, 11, 3)

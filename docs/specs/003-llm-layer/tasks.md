@@ -15,7 +15,7 @@ Rules:
 
 ## A. Engine amendments (spec §8), first and test-first
 
-- [ ] **T1 — `day_month` start-date expression.**
+- [x] **T1 — `day_month` start-date expression.**
   - Append **AC-37** to `docs/specs/002-screening-engine/spec.md` (plan §3.0 wording) and update FR-22 to list `day_month`.
   - `engine/inputs.py`: `DayMonth(kind="day_month", day: int, month: int)`, added to `StartDateExpr` and to the start-date-or-unclear union.
   - `engine/validators.py`: `resolve_start_date` covers it (next occurrence ≥ today; 29/02 → next leap year). An impossible date → `Rejected(implausible_value)`; it must never raise.
@@ -24,7 +24,7 @@ Rules:
   - Add `DayMonth` (valid and impossible values) to `tests/engine/strategies.py`.
   - *(spec 003 decision 1)*
 
-- [ ] **T2 — `AgeAnswer.birth_year`.**
+- [x] **T2 — `AgeAnswer.birth_year`.**
   - Append **AC-38** to spec 002; update FR-17.
   - `AgeAnswer.birth_year: int | None`. The validator requires at least one of `age`, `birth_year`, `is_adult`. Precedence: `age` > `birth_year` > `is_adult`.
   - `validate_age` + `rules.py`: age range from `today` (plan §3.0). Whole range ≥ min → adult; whole range < min → `under_age`; straddling → `Rejected(unclear)` (OQ-2); outside the plausible bounds → `implausible_value`. `validate_age` needs `today`; thread it through the same way start date gets it.
@@ -33,7 +33,7 @@ Rules:
   - Extend the strategies.
   - *(decision 2)*
 
-- [ ] **T3 — `CorrectionFieldProposal`.**
+- [x] **T3 — `CorrectionFieldProposal`.**
   - Append **AC-39** to spec 002; update FR-25.
   - `engine/inputs.py`: `CorrectionFieldProposal(field="correction_field", value: FieldName)`, added to `Proposal` and exported from `engine/__init__.py` (lazy export table + `TYPE_CHECKING` block, as in 002 T30).
   - `apply.py` / `collect.on_recap`: accepted when pending is `correction_field` **or** `recap` (OQ-3) and the field is a profile field (`zone` → `location`) → `set_pending(ask, field)` → `ask_field(field)`. A value for the same field in the same turn wins. Otherwise ignored (neutral).
@@ -44,6 +44,7 @@ Rules:
     - it does not count as a recap round (**AC-39**).
   - Extend the strategies. The property test stays green.
   - *(decision 10)*
+  - *Note (impl):* `engine/__init__.py` uses plain imports (no lazy table), so the export was added there the same way. A turn whose only proposal is an ignored `CorrectionFieldProposal` (e.g. `consent`) at the recap repeats the recap without counting a round (`collect._says_anything`), matching "no change". Open question for later: if the re-asked field then exhausts its re-asks, the previously valid value is stored as `unclear` (existing FR-24 behaviour, not changed here).
 
 ## B. Foundations
 

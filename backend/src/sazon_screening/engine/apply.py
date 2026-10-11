@@ -19,6 +19,7 @@ from sazon_screening.engine.inputs import (
     ChoiceProposal,
     ConfirmationProposal,
     ConsentProposal,
+    CorrectionFieldProposal,
     ExperienceProposal,
     LicenseProposal,
     LocationAnswer,
@@ -37,11 +38,13 @@ from sazon_screening.engine.location import (
     served_value,
     validate_location,
 )
+from sazon_screening.engine.rules import min_age_for
 from sazon_screening.engine.state import (
     ConversationState,
     Experience,
     LocationValue,
     PendingAsk,
+    Profile,
     add_flag,
 )
 from sazon_screening.engine.validators import (
@@ -73,6 +76,7 @@ class Applied:
     confirmation: bool | Unclear | None = None  # yes/no, read by the recap handlers
     raised_confirmation: bool = False  # a value now needs confirming: that is the next ask
     declined_consent: bool = False
+    correction_target: FieldName | None = None  # recap: the field the candidate wants to change
 
 
 def apply_proposals(
@@ -87,6 +91,9 @@ def apply_proposals(
     if isinstance(confirmation, ConfirmationProposal):
         applied.confirmation = confirmation.value
     choice = latest.pop("choice", None)
+    target = latest.pop("correction_field", None)
+    if isinstance(target, CorrectionFieldProposal):
+        applied.correction_target = correction_target(s, target.value)
     if s.pending.kind is PendingKind.confirm_value and "experience" not in latest:
         _answer_value_confirmation(s, applied, cfg)
     if s.pending.kind is PendingKind.confirm_ambiguous:
@@ -123,6 +130,19 @@ def set_pending(
         s.stage = Stage.recap
     elif name is not None:
         s.stage = FIELD_STAGE[name]
+
+
+def correction_target(s: ConversationState, name: FieldName) -> FieldName | None:
+    """The profile field to ask again, or None if the proposal must be ignored.
+
+    Only at the recap (or after "what should I change?"): anywhere else the engine is
+    already asking a specific question. A zone is part of the location.
+    """
+    if s.pending.kind not in (PendingKind.recap, PendingKind.correction_field):
+        return None
+    if name is FieldName.zone:
+        name = FieldName.location
+    return name if name.value in Profile.model_fields else None
 
 
 # --- consent ---------------------------------------------------------------------------
@@ -263,10 +283,13 @@ def validate_proposal(
         case NameProposal(value=value):
             return validate_name(value, surname_requested=s.surname_requested)
         case AgeProposal(value=value):
+            location = s.profile.location.value
             return validate_age(
                 value,
                 min_plausible=limits.min_plausible_age,
                 max_plausible=limits.max_plausible_age,
+                min_age=min_age_for(location.country if location else None, cfg),
+                today=today,
             )
         case VehicleProposal(value=value):
             return validate_vehicle(value)
