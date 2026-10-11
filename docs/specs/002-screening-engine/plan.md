@@ -16,16 +16,17 @@ Design goals, in order: **readable live** (an Orbio engineer should follow one t
 config/                                   # repo root, client-editable (FR-29)
   service_areas.yaml
   screening.yaml
-backend/src/sazon_screening/
+backend/src/sazon_screening/        # imports flow one way: engine -> config -> vocab
+  vocab.py             # shared enums: FieldName, Stage, Status, VehicleType, Availability, ScheduleSlot,
+                       # Weekday, Language, Register, Country, ReaskReason, DisqualificationReason,
+                       # ReviewReason, Flag, FieldStatus, PendingKind, Bucket
   config/
     __init__.py        # re-exports EngineConfig, load_config, ConfigError
+    areas.py           # normalise(), AreaRef, IndexEntry, LocationIndex (built from service_areas.yaml)
     models.py          # ServiceAreasConfig, ScreeningConfig, Thresholds, ScoringConfig, EngineConfig (+ validators)
     loader.py          # load_config(config_dir) -> EngineConfig; ConfigError  (the only I/O)
   engine/
-    __init__.py        # public API: start, step, build_record, score_candidate + model re-exports
-    enums.py           # FieldName, Stage, Status, VehicleType, Availability, ScheduleSlot, Weekday,
-                       # Language, Register, Country, ReaskReason, DisqualificationReason,
-                       # ReviewReason, Flag, FieldStatus, PendingKind, Bucket
+    __init__.py        # public API: plain explicit imports + __all__ (start, step, build_record, ...)
     flow.py            # FIELD_ORDER, FIELD_STAGE, HARD_FIELDS, SOFT_FIELDS, next_missing_field()
     inputs.py          # proposals (discriminated union), StartDateExpr, Signals, TurnContext,
                        # CandidateTurn, events, TurnInput
@@ -33,10 +34,11 @@ backend/src/sazon_screening/
     actions.py         # primary actions + prefaces (discriminated unions), EngineAction, register_for()
     validators.py      # validate_consent/name/age/vehicle/license/availability/schedule/
                        # experience/start_date, resolve_start_date(); FieldOutcome types
-    location.py        # normalise(), LocationIndex, match_location(), validate_location()
+    location.py        # match_location(), validate_location() (reads config.areas.LocationIndex)
     rules.py           # license_need(), min_age_for(), hard_rule_failure(), review_reasons()
-    step.py            # start(), step(), step_unchecked(): precedence, events, closed statuses
-    collect.py         # apply_proposals(), re-ask policy, next_action(), pending-kind handlers
+    turn.py            # start(), step(), step_unchecked(): precedence, events, closed statuses
+    apply.py           # apply_proposals(), validate_proposal(), confirmation answers
+    collect.py         # re-ask policy, next_action(), pending-kind handlers
     closing.py         # close_* helpers, opt-out purge, recap + scheduling transitions
     scoring.py         # score_candidate() -> ScoreResult
     record.py          # CandidateRecord, build_record()
@@ -47,7 +49,7 @@ backend/tests/
 backend/scripts/export_record_schema.py            # writes candidate-record.schema.json (contract for 004/006)
 ```
 
-Size target: no module over ~250 lines. `step.py` + `collect.py` + `closing.py` together are the "state machine", split so each fits on a screen.
+Size target: no module over ~250 lines. `turn.py` + `apply.py` + `collect.py` + `closing.py` together are the "state machine", split so each fits on a screen.
 
 Dependencies:
 - **`tzdata`** (runtime). It lets us validate `timezone` values with `zoneinfo.ZoneInfo`. On Windows and slim containers there is no system tz database, so without it every timezone fails to validate. This is the package the Python docs recommend for that case. It is pure data.
@@ -643,7 +645,9 @@ stateDiagram-v2
     abandoned --> in_progress: any candidate turn
     in_progress --> qualified_unscheduled: no slots / no_slot_fits / slot re-asks exhausted / silence in scheduling
     in_progress --> interview_scheduled: valid slot_selected
-    disqualified --> needs_review: post-close correction (FR-15)
+    disqualified --> needs_review: post-close correction that would pass every hard rule (FR-15)
+    interview_scheduled --> needs_review: correction that would fail a hard rule (FR-15, AC-26c)
+    qualified_unscheduled --> needs_review: correction that would fail a hard rule (FR-15, AC-26c)
     disqualified --> opted_out: opt_out
     needs_review --> opted_out: opt_out
     interview_scheduled --> opted_out: opt_out
@@ -651,6 +655,36 @@ stateDiagram-v2
     abandoned --> opted_out: opt_out
 ```
 No other transition is possible. The property test (§7.4) asserts that every observed transition is in this set.
+
+### 4.3 Confirmations and recap (what `pending.kind` the engine is waiting for)
+
+The hardest part to walk through, because one turn can both answer a confirmation and bring new values. Code: `apply._answer_*` resolves the answer **before** hard rules run, then `collect.on_field_answer` / `collect.on_recap` choose the next action.
+
+```mermaid
+stateDiagram-v2
+    ask: ask(field)
+    cv: confirm_value (experience > 40)
+    ca: confirm_ambiguous (place in 2+ areas)
+    recap: recap (show_recap)
+    corr: correction_field
+    sched: scheduling (offer_slots)
+
+    ask --> cv: value needs confirming
+    ask --> ca: location ambiguous
+    cv --> ask: yes → store, next missing field
+    cv --> ask: no → reask same field (value_rejected)
+    ca --> ask: option id / city name → store, next missing field
+    ca --> ca: unclear answer → reask with same options
+    ask --> recap: no field missing, no hard field unclear
+    recap --> sched: yes (hard rules re-checked)
+    recap --> corr: no, without naming a field
+    recap --> recap: correction applied → show recap again
+    corr --> recap: corrected value
+    recap --> ask: correction leaves a field missing
+    sched --> recap: correction during scheduling (OQ-7)
+```
+
+A FAQ-only or empty turn while a confirmation/recap is pending repeats the same question and never consumes a re-ask or a recap round.
 
 ## 5. Trade-offs & alternatives considered
 
