@@ -11,3 +11,4 @@ Format: **Status · Context · Decision · Alternatives considered · Consequenc
 | [0003](0003-stack-fastapi-react-sqlite.md) | FastAPI + React/Vite + SQLite | Accepted |
 | [0004](0004-qualification-rules-and-scoring.md) | Hard disqualifiers + soft scoring | Accepted |
 | [0005](0005-engine-turn-contract.md) | Engine turn contract (proposals + signals → typed action) | Accepted |
+| [0006](0006-llm-text-guarded-by-code.md) | Candidate-facing LLM text guarded by code + template fallback | Accepted |
