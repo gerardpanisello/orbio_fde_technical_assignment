@@ -167,3 +167,14 @@ class Bucket(StrEnum):
     high = "high"
     medium = "medium"
     low = "low"
+
+
+class FactorReason(StrEnum):
+    """Why a score factor earned its points (FR-30); `unknown` = field unclear or missing."""
+
+    years_of_experience = "years_of_experience"
+    known_platforms = "known_platforms"
+    availability_breadth = "availability_breadth"
+    schedule_flexibility = "schedule_flexibility"
+    start_date_proximity = "start_date_proximity"
+    unknown = "unknown"

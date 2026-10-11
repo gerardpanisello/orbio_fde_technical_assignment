@@ -1,0 +1,761 @@
+{
+  "$defs": {
+    "AgeAnswer": {
+      "additionalProperties": false,
+      "description": "Either an explicit age or just \"I am over 18\". The explicit age wins if both.",
+      "properties": {
+        "is_adult": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Is Adult"
+        },
+        "age": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Age"
+        }
+      },
+      "title": "AgeAnswer",
+      "type": "object"
+    },
+    "Availability": {
+      "enum": [
+        "full_time",
+        "part_time",
+        "weekends"
+      ],
+      "title": "Availability",
+      "type": "string"
+    },
+    "Bucket": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Bucket",
+      "type": "string"
+    },
+    "Country": {
+      "enum": [
+        "ES",
+        "MX"
+      ],
+      "title": "Country",
+      "type": "string"
+    },
+    "DisqualificationReason": {
+      "enum": [
+        "under_age",
+        "no_license",
+        "out_of_area"
+      ],
+      "title": "DisqualificationReason",
+      "type": "string"
+    },
+    "Experience": {
+      "additionalProperties": false,
+      "properties": {
+        "years": {
+          "title": "Years",
+          "type": "integer"
+        },
+        "platforms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Platforms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "years",
+        "platforms"
+      ],
+      "title": "Experience",
+      "type": "object"
+    },
+    "FactorReason": {
+      "description": "Why a score factor earned its points (FR-30); `unknown` = field unclear or missing.",
+      "enum": [
+        "years_of_experience",
+        "known_platforms",
+        "availability_breadth",
+        "schedule_flexibility",
+        "start_date_proximity",
+        "unknown"
+      ],
+      "title": "FactorReason",
+      "type": "string"
+    },
+    "FieldName": {
+      "description": "Things the engine can ask for. `zone` and `slot` are ask targets only, not stored fields.",
+      "enum": [
+        "consent",
+        "full_name",
+        "age",
+        "vehicle_type",
+        "has_license",
+        "location",
+        "zone",
+        "availability",
+        "schedule",
+        "experience",
+        "start_date",
+        "slot"
+      ],
+      "title": "FieldName",
+      "type": "string"
+    },
+    "FieldRecord_AgeAnswer_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AgeAnswer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[AgeAnswer]",
+      "type": "object"
+    },
+    "FieldRecord_Experience_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Experience"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[Experience]",
+      "type": "object"
+    },
+    "FieldRecord_LocationValue_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocationValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[LocationValue]",
+      "type": "object"
+    },
+    "FieldRecord_VehicleType_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VehicleType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[VehicleType]",
+      "type": "object"
+    },
+    "FieldRecord_bool_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[bool]",
+      "type": "object"
+    },
+    "FieldRecord_date_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[date]",
+      "type": "object"
+    },
+    "FieldRecord_list_Availability__": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Availability"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[list[Availability]]",
+      "type": "object"
+    },
+    "FieldRecord_list_ScheduleSlot__": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ScheduleSlot"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[list[ScheduleSlot]]",
+      "type": "object"
+    },
+    "FieldRecord_str_": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/FieldStatus"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "status",
+        "value"
+      ],
+      "title": "FieldRecord[str]",
+      "type": "object"
+    },
+    "FieldStatus": {
+      "enum": [
+        "valid",
+        "unclear",
+        "not_asked",
+        "not_required"
+      ],
+      "title": "FieldStatus",
+      "type": "string"
+    },
+    "Flag": {
+      "enum": [
+        "surname_missing",
+        "name_unclear",
+        "start_date_normalised",
+        "human_requested",
+        "post_close_correction",
+        "system_failure",
+        "abuse",
+        "do_not_contact",
+        "engine_error"
+      ],
+      "title": "Flag",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "Language": {
+      "enum": [
+        "es",
+        "en"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "LocationValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw_text": {
+          "title": "Raw Text",
+          "type": "string"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Country"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "City"
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Zone"
+        },
+        "in_service_area": {
+          "title": "In Service Area",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "raw_text",
+        "country",
+        "city",
+        "zone",
+        "in_service_area"
+      ],
+      "title": "LocationValue",
+      "type": "object"
+    },
+    "PostCloseCorrection": {
+      "additionalProperties": false,
+      "description": "A correction received after disqualification: stored, never applied (FR-15).",
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/FieldName"
+        },
+        "original": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "proposed": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      },
+      "required": [
+        "field",
+        "original",
+        "proposed"
+      ],
+      "title": "PostCloseCorrection",
+      "type": "object"
+    },
+    "RecordFields": {
+      "additionalProperties": false,
+      "properties": {
+        "full_name": {
+          "$ref": "#/$defs/FieldRecord_str_"
+        },
+        "age": {
+          "$ref": "#/$defs/FieldRecord_AgeAnswer_"
+        },
+        "vehicle_type": {
+          "$ref": "#/$defs/FieldRecord_VehicleType_"
+        },
+        "has_license": {
+          "$ref": "#/$defs/FieldRecord_bool_"
+        },
+        "location": {
+          "$ref": "#/$defs/FieldRecord_LocationValue_"
+        },
+        "availability": {
+          "$ref": "#/$defs/FieldRecord_list_Availability__"
+        },
+        "schedule": {
+          "$ref": "#/$defs/FieldRecord_list_ScheduleSlot__"
+        },
+        "experience": {
+          "$ref": "#/$defs/FieldRecord_Experience_"
+        },
+        "start_date": {
+          "$ref": "#/$defs/FieldRecord_date_"
+        }
+      },
+      "required": [
+        "full_name",
+        "age",
+        "vehicle_type",
+        "has_license",
+        "location",
+        "availability",
+        "schedule",
+        "experience",
+        "start_date"
+      ],
+      "title": "RecordFields",
+      "type": "object"
+    },
+    "ReviewReason": {
+      "enum": [
+        "age_unclear",
+        "license_unclear",
+        "vehicle_unclear",
+        "location_unclear",
+        "human_requested",
+        "system_failure",
+        "abuse",
+        "recap_loop",
+        "post_close_correction",
+        "engine_error"
+      ],
+      "title": "ReviewReason",
+      "type": "string"
+    },
+    "ScheduleSlot": {
+      "enum": [
+        "morning",
+        "afternoon",
+        "evening",
+        "flexible"
+      ],
+      "title": "ScheduleSlot",
+      "type": "string"
+    },
+    "ScoreFactor": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "$ref": "#/$defs/FieldName"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        },
+        "reason_code": {
+          "$ref": "#/$defs/FactorReason"
+        }
+      },
+      "required": [
+        "field",
+        "value",
+        "points",
+        "reason_code"
+      ],
+      "title": "ScoreFactor",
+      "type": "object"
+    },
+    "ScoreResult": {
+      "additionalProperties": false,
+      "properties": {
+        "score": {
+          "title": "Score",
+          "type": "integer"
+        },
+        "bucket": {
+          "$ref": "#/$defs/Bucket"
+        },
+        "factors": {
+          "items": {
+            "$ref": "#/$defs/ScoreFactor"
+          },
+          "title": "Factors",
+          "type": "array"
+        },
+        "max_score": {
+          "title": "Max Score",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "score",
+        "bucket",
+        "factors",
+        "max_score"
+      ],
+      "title": "ScoreResult",
+      "type": "object"
+    },
+    "Stage": {
+      "description": "Conversation stages, in FR-5 order (declaration order matters).",
+      "enum": [
+        "consent",
+        "name",
+        "age",
+        "vehicle_license",
+        "location",
+        "availability",
+        "schedule",
+        "experience",
+        "start_date",
+        "recap",
+        "scheduling"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "Status": {
+      "enum": [
+        "in_progress",
+        "interview_scheduled",
+        "qualified_unscheduled",
+        "disqualified",
+        "needs_review",
+        "abandoned",
+        "opted_out"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "VehicleType": {
+      "enum": [
+        "motorbike",
+        "car",
+        "bicycle",
+        "e_bike",
+        "none"
+      ],
+      "title": "VehicleType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Record Version",
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/Status"
+    },
+    "disqualification_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DisqualificationReason"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "needs_review_reasons": {
+      "items": {
+        "$ref": "#/$defs/ReviewReason"
+      },
+      "title": "Needs Review Reasons",
+      "type": "array"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScoreResult"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "flags": {
+      "items": {
+        "$ref": "#/$defs/Flag"
+      },
+      "title": "Flags",
+      "type": "array"
+    },
+    "language": {
+      "$ref": "#/$defs/Language"
+    },
+    "drop_off_stage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Stage"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selected_slot_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Selected Slot Id"
+    },
+    "config_version": {
+      "title": "Config Version",
+      "type": "string"
+    },
+    "consent": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Consent"
+    },
+    "fields": {
+      "$ref": "#/$defs/RecordFields"
+    },
+    "post_close_corrections": {
+      "items": {
+        "$ref": "#/$defs/PostCloseCorrection"
+      },
+      "title": "Post Close Corrections",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "disqualification_reason",
+    "needs_review_reasons",
+    "score",
+    "flags",
+    "language",
+    "drop_off_stage",
+    "selected_slot_id",
+    "config_version",
+    "consent",
+    "fields",
+    "post_close_corrections"
+  ],
+  "title": "CandidateRecord",
+  "type": "object"
+}

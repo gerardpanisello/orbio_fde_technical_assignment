@@ -49,6 +49,7 @@ from sazon_screening.engine.inputs import (
     TurnInput,
     VehicleProposal,
 )
+from sazon_screening.engine.record import CandidateRecord, build_record
 from sazon_screening.engine.step import start, step_unchecked
 from tests.engine.conftest import TODAY
 
@@ -243,6 +244,9 @@ class Convo:
         actual = [type(preface) for preface in self.action.prefaces]
         assert actual == list(kinds), f"prefaces {actual} != {list(kinds)}"
         return self
+
+    def record(self) -> CandidateRecord:
+        return build_record(self.state, self.config)
 
     def reasks(self, field: FieldName) -> int:
         return self.state.reasks.get(field, 0)

@@ -328,7 +328,7 @@ Rules:
 
 ## E. Scoring & record
 
-- [ ] **T27 — Scoring.**
+- [x] **T27 — Scoring.**
   - `engine/scoring.py`: `ScoreFactor`, `ScoreResult`, `score_candidate`.
   - Tests `tests/engine/test_scoring.py`:
     - AC-33 candidate → the 5 factors, `score == sum(points) == 82`, bucket `high`, each factor has field/value/reason (**AC-33**);
@@ -338,8 +338,9 @@ Rules:
     - `other:*` platforms score 0;
     - start-date bands at the boundaries (3, 4, 14, 15, 30, 31 days).
   - *(FR-30, NFR-6)*
+  - *Note (impl):* `FactorReason` lives in `enums.py`. Factor values: years as int, platforms and availability/schedule as ID lists, start date as an ISO string. `flexible` scores the flexible weight regardless of other slots; otherwise `per_slot × n`. A start date before the reference date counts as 0 days. The AC-34 test changes `points_per_year` and the bucket thresholds via `make_config` (82/high → 70/medium) instead of doubling every weight; same point, easier to read.
 
-- [ ] **T28 — Candidate record + schema export.**
+- [x] **T28 — Candidate record + schema export.**
   - `engine/record.py`: `FieldRecord`, `RecordFields`, `CandidateRecord`, `build_record` (score only for scheduled / unscheduled / needs_review).
   - `scripts/export_record_schema.py` writes `docs/specs/002-screening-engine/candidate-record.schema.json`. Commit the generated file.
   - Finish `Convo.record()`.
@@ -350,6 +351,7 @@ Rules:
     - the AC-1 record has every field `valid`, `selected_slot_id="s1"` and a score (**AC-1**);
     - the committed schema equals `CandidateRecord.model_json_schema()`.
   - *(FR-31)*
+  - *Note (impl):* the score is computed in `build_record` (reference date `state.last_turn_on`, never the clock); a state that never stepped has no score. A declined consent is now stored as `consent=False` (it was left `None`) so the record shows the explicit refusal. The AC-36 test checks every string in the record except candidate text (`full_name`, `raw_text`) against an ID/enum/ISO pattern, and covers all seven statuses via `Convo.advance_to_status`. Regenerate the schema with `uv run python scripts/export_record_schema.py` (run from `backend/`).
 
 ## F. Robustness & close-out
 

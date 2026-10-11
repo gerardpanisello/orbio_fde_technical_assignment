@@ -145,6 +145,7 @@ def _passes_consent_gate(
         applied.pending_outcome = outcome
         return False
     if outcome.value is False:
+        s.consent = False  # kept for audit: the candidate explicitly declined
         applied.declined_consent = True
         return False
     s.consent = True
