@@ -7,11 +7,12 @@ from sazon_screening.engine.actions import (
     AskField,
     CloseQualifiedUnscheduled,
     ConfirmInterview,
+    NoMessage,
     OfferSlots,
     ReaskField,
 )
 from sazon_screening.engine.enums import FieldName, ReaskReason, Stage, Status
-from tests.engine.builders import OFFERED_SLOTS, Convo, sched
+from tests.engine.builders import OFFERED_SLOTS, Convo, age, sched, vehicle
 
 
 def at_scheduling(config: EngineConfig) -> Convo:
@@ -68,3 +69,31 @@ class TestSlots:
         c.expect_status(Status.in_progress)
         assert c.action.primary.type == "show_recap"
         assert c.state.stage == Stage.recap
+
+
+class TestSilence:
+    @pytest.mark.ac("AC-29")
+    def test_silence_abandons_and_a_later_turn_resumes(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.vehicle_license)
+        c.expect(AskField, field=FieldName.vehicle_type)
+        c.silence().expect(NoMessage).expect_status(Status.abandoned)
+        assert c.state.drop_off_stage == Stage.vehicle_license
+        assert c.state.pending.field == FieldName.vehicle_type
+        c.say().expect(AskField, field=FieldName.vehicle_type).expect_status(Status.in_progress)
+        assert c.reasks(FieldName.vehicle_type) == 0  # the resume turn is neutral
+
+    @pytest.mark.ac("AC-29")
+    def test_silence_in_scheduling_is_qualified_unscheduled(self, config: EngineConfig) -> None:
+        c = at_scheduling(config).silence()
+        c.expect(CloseQualifiedUnscheduled).expect_status(Status.qualified_unscheduled)
+
+    def test_resume_turn_with_an_answer_moves_on(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.vehicle_license).silence()
+        c.say(vehicle("car")).expect(AskField, field=FieldName.has_license)
+
+    def test_silence_when_not_in_progress_changes_nothing(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.age).silence()
+        before = c.state.model_dump()
+        c.silence().expect(NoMessage)
+        assert c.state.model_dump() == before
+        c.say(age(17)).silence().expect(NoMessage).expect_status(Status.disqualified)

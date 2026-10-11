@@ -218,7 +218,7 @@ def _apply_one(
     today: date,
     applied: Applied,
 ) -> None:
-    outcome = _validate(s, proposal, cfg, today)
+    outcome = validate_proposal(s, proposal, cfg, today)
     if isinstance(outcome, Accepted):
         _store(s, name, outcome.value, cfg, applied)
         for flag in outcome.flags:
@@ -251,7 +251,10 @@ def _raise_confirmation(
     )
 
 
-def _validate(s: ConversationState, proposal: Proposal, cfg: EngineConfig, today: date) -> Outcome:
+def validate_proposal(
+    s: ConversationState, proposal: Proposal, cfg: EngineConfig, today: date
+) -> Outcome:
+    """Run the validator for one field proposal (also used for post-close corrections)."""
     limits = cfg.thresholds
     match proposal:
         case NameProposal(value=value):

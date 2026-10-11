@@ -4,6 +4,7 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import (
+    AckCorrection,
     AskCorrectionField,
     AskField,
     CloseDisqualified,
@@ -187,3 +188,16 @@ class TestRecap:
         c.say(avail("part_time")).expect(ShowRecap)
         c.say(avail("full_time")).expect(CloseNeedsReview, reasons=[ReviewReason.recap_loop])
         c.expect_status(Status.needs_review)
+
+
+@pytest.mark.ac("AC-21")
+def test_correction_of_the_city_is_acknowledged(config: EngineConfig) -> None:
+    c = at_location(Convo(config)).say(loc("Chamberí, Madrid"))
+    c.say(avail("full_time")).expect(AskField, field=FieldName.schedule)
+    c.say(loc("Coyoacán"), correction=True)
+    c.expect(AskField, field=FieldName.schedule).expect_prefaces(AckCorrection)
+    assert c.action.prefaces == [AckCorrection(fields=[FieldName.location])]
+    value = c.state.profile.location.value
+    assert value is not None
+    assert (value.city, value.zone) == ("cdmx", "cdmx-coyoacan")
+    c.expect_status(Status.in_progress)

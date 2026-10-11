@@ -203,6 +203,28 @@ class Convo:
         assert self.state.stage == stage, f"could not reach {stage}; at {self.state.stage}"
         return self
 
+    def advance_to_status(self, status: Status, *, at: Stage | None = None) -> Self:
+        """Reach `status`, optionally with the conversation pending at stage `at`."""
+        match status:
+            case Status.in_progress:
+                self.advance_to(at or Stage.name)
+            case Status.abandoned:
+                self.advance_to(at or Stage.vehicle_license).silence()
+            case Status.disqualified:
+                self.advance_to(at or Stage.age)
+                extra = (consent(True),) if self.state.stage is Stage.consent else ()
+                self.say(*extra, age(17))
+            case Status.needs_review:
+                self.advance_to(at or Stage.location).say(wants_human=True)
+            case Status.qualified_unscheduled:
+                self.advance_to(Stage.scheduling).no_slot_fits()
+            case Status.interview_scheduled:
+                self.advance_to(Stage.scheduling).select_slot("s1")
+            case Status.opted_out:
+                self.advance_to(at or Stage.name).say(opt_out=True)
+        assert self.state.status == status, f"wanted {status}, got {self.state.status}"
+        return self
+
     # --- assertions -------------------------------------------------------------------
 
     def expect(self, kind: type, **attrs: Any) -> Self:

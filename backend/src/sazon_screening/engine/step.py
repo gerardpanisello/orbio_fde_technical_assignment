@@ -9,12 +9,16 @@ from datetime import date
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import (
+    AckCorrection,
+    AnswerFaq,
     AskField,
     ClosedAck,
     ConfirmInterview,
     EngineAction,
+    NoMessage,
     Preface,
     PrimaryAction,
+    Redirect,
     register_for,
 )
 from sazon_screening.engine.apply import apply_proposals
@@ -22,6 +26,8 @@ from sazon_screening.engine.closing import (
     close_disqualified,
     close_needs_review,
     close_qualified_unscheduled,
+    handoff,
+    on_closed,
     opt_out,
 )
 from sazon_screening.engine.collect import (
@@ -41,9 +47,16 @@ from sazon_screening.engine.enums import (
     PendingKind,
     ReaskReason,
     ReviewReason,
+    Stage,
     Status,
 )
-from sazon_screening.engine.inputs import CandidateTurn, NoSlotFits, SlotSelected, TurnInput
+from sazon_screening.engine.inputs import (
+    CandidateTurn,
+    NoSlotFits,
+    SilenceExpired,
+    SlotSelected,
+    TurnInput,
+)
 from sazon_screening.engine.rules import hard_rule_failure, sync_license_requirement
 from sazon_screening.engine.state import ConversationState
 
@@ -83,10 +96,10 @@ def step_unchecked(
     match turn:
         case CandidateTurn():
             primary = on_candidate_turn(s, turn, config, today, prefaces)
+        case SilenceExpired():
+            primary = on_silence(s)
         case SlotSelected() | NoSlotFits():
             primary = on_slot_event(s, turn, config)
-        case _:  # pragma: no cover - silence arrives in T24
-            raise NotImplementedError
     return s, finish(s, primary, prefaces, config)
 
 
@@ -110,6 +123,22 @@ def on_candidate_turn(
     if signals.opt_out:
         return opt_out(s)
 
+    # Closed conversations: answer FAQs, keep the data as it is (FR-15).
+    if s.status in _CLOSED:
+        return on_closed(s, t, cfg, today, prefaces)
+
+    # Any message after a silence resumes the conversation where it stopped (FR-14).
+    resumed = s.status is Status.abandoned
+    if resumed:
+        s.status = Status.in_progress
+
+    # (2) abuse: first time a redirect, repeated -> a recruiter reviews (FR-28).
+    if signals.abuse:
+        s.abuse_count += 1
+        if s.abuse_count >= cfg.thresholds.abuse_close_count:
+            return close_needs_review(s, ReviewReason.abuse, flag=Flag.abuse)
+        prefaces.append(Redirect(reason="abuse"))
+
     # The extractor could not read the message: ask again, without using a re-ask (FR-27).
     if signals.extraction_failed and not t.proposals:
         s.consecutive_extraction_failures += 1
@@ -123,21 +152,49 @@ def on_candidate_turn(
     if applied.declined_consent:
         return opt_out(s)
     sync_license_requirement(s, cfg)
+    if signals.correction and applied.changed:
+        prefaces.append(AckCorrection(fields=applied.changed))
     if (reason := hard_rule_failure(s, cfg)) is not None:
         return close_disqualified(s, reason)
+
+    # (4) the candidate asked for a person: pause screening (FR-12).
+    if signals.wants_human:
+        return handoff(s)
+    # (5) FAQ / off-topic: say something first, then resume (FR-13, FR-28).
+    if signals.faq_question:
+        prefaces.append(AnswerFaq())
+    if signals.off_topic:
+        prefaces.append(Redirect(reason="off_topic"))
 
     # A value that needs confirming (45 years, "El Carmen") is the next question.
     if applied.raised_confirmation:
         return pending_action(s)
 
     # (6) the next ask, depending on how this turn answered the pending one.
-    neutral = language_changed or signals.faq_question or signals.off_topic or signals.abuse
+    neutral = (
+        resumed  # "hola, sigo aquí" after a silence: ask again, it is not a failed answer
+        or language_changed
+        or signals.faq_question
+        or signals.off_topic
+        or signals.abuse
+    )
     attempt = classify_attempt(s, t, applied, neutral=neutral)
     if s.pending.kind in (PendingKind.recap, PendingKind.correction_field):
         return on_recap(s, t, applied, attempt, cfg)
     if s.pending.kind is PendingKind.slot:
         return on_slot_answer(s, t, applied, attempt, cfg)
     return on_field_answer(s, attempt, cfg)
+
+
+def on_silence(s: ConversationState) -> PrimaryAction:
+    """008's timer fired (FR-14). The channel must not send anything (OQ-2: no_message)."""
+    if s.status is not Status.in_progress:
+        return NoMessage()
+    if s.stage is Stage.scheduling:  # qualified: never "abandoned" (Spec 001 §6)
+        return close_qualified_unscheduled(s)
+    s.status = Status.abandoned
+    s.drop_off_stage = s.stage
+    return NoMessage()
 
 
 def on_slot_event(
@@ -159,6 +216,14 @@ def on_slot_event(
     return reask or close_qualified_unscheduled(s)
 
 
+_CLOSED = frozenset(
+    {
+        Status.disqualified,
+        Status.needs_review,
+        Status.qualified_unscheduled,
+        Status.interview_scheduled,
+    }
+)
 _PREFACE_ORDER = {"redirect": 0, "ack_correction": 1, "answer_faq": 2}
 
 

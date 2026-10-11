@@ -4,16 +4,24 @@ Every close records `drop_off_stage` (where the conversation ended) so 011 can r
 funnel drop-off, and only uses ordered-unique helpers for flags and reasons.
 """
 
+from datetime import date
+
+from pydantic_core import to_jsonable_python
+
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import (
+    AnswerFaq,
+    ClosedAck,
     CloseDisqualified,
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
+    HandoffToHuman,
     OfferSlots,
+    Preface,
     ShowRecap,
 )
-from sazon_screening.engine.apply import set_pending
+from sazon_screening.engine.apply import set_pending, validate_proposal
 from sazon_screening.engine.enums import (
     DisqualificationReason,
     FieldName,
@@ -23,8 +31,16 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import CandidateTurn
-from sazon_screening.engine.state import ConversationState, Profile, add_flag, add_reason
+from sazon_screening.engine.inputs import CandidateTurn, Proposal
+from sazon_screening.engine.rules import DISQUALIFYING_FIELDS
+from sazon_screening.engine.state import (
+    ConversationState,
+    PostCloseCorrection,
+    Profile,
+    add_flag,
+    add_reason,
+)
+from sazon_screening.engine.validators import Accepted
 
 
 def opt_out(s: ConversationState) -> CloseOptedOut:
@@ -92,3 +108,63 @@ def enter_scheduling(
     s.offered_slot_ids = list(slots)
     set_pending(s, PendingKind.slot, FieldName.slot)
     return OfferSlots(slot_ids=list(slots))
+
+
+def handoff(s: ConversationState) -> HandoffToHuman:
+    """The candidate asked for a person: pause screening until a recruiter acts (FR-12)."""
+    add_flag(s, Flag.human_requested)
+    add_reason(s, ReviewReason.human_requested)
+    s.status = Status.needs_review
+    s.drop_off_stage = s.stage
+    return HandoffToHuman()
+
+
+def on_closed(
+    s: ConversationState,
+    t: CandidateTurn,
+    cfg: EngineConfig,
+    today: date,
+    prefaces: list[Preface],
+) -> CloseNeedsReview | ClosedAck:
+    """A message on a closed conversation never changes screening data (FR-15).
+
+    One exception: after a disqualification, a different value for the field that caused
+    it is stored next to the original and a recruiter reviews it. It is never applied,
+    so nobody can talk their way past a knock-out rule (AC-26b).
+    """
+    corrections = post_close_corrections(s, t, cfg, today)
+    if s.status is Status.disqualified and corrections:
+        s.post_close_corrections = [*s.post_close_corrections, *corrections]
+        add_flag(s, Flag.post_close_correction)
+        add_reason(s, ReviewReason.post_close_correction)
+        s.status = Status.needs_review
+        return CloseNeedsReview(reasons=list(s.needs_review_reasons))
+    if t.signals.faq_question:
+        prefaces.append(AnswerFaq())
+    return ClosedAck()
+
+
+def post_close_corrections(
+    s: ConversationState, t: CandidateTurn, cfg: EngineConfig, today: date
+) -> list[PostCloseCorrection]:
+    """Valid, different values proposed for the fields behind the disqualification."""
+    if s.disqualification_reason is None:
+        return []
+    fields = DISQUALIFYING_FIELDS[s.disqualification_reason]
+    corrections = []
+    latest: dict[str, Proposal] = {p.field: p for p in t.proposals}
+    for name in sorted(fields):
+        proposal = latest.get(name.value)
+        if proposal is None:
+            continue
+        outcome = validate_proposal(s, proposal, cfg, today)
+        original = getattr(s.profile, name.value).value
+        if isinstance(outcome, Accepted) and outcome.value != original:
+            corrections.append(
+                PostCloseCorrection(
+                    field=name,
+                    original=to_jsonable_python(original),
+                    proposed=to_jsonable_python(outcome.value),
+                )
+            )
+    return corrections

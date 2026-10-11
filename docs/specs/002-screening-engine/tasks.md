@@ -282,7 +282,7 @@ Rules:
   - *(FR-26)*
   - *Note (impl):* `on_slot_event` lives in `step.py` (events); the candidate-turn handler for a pending slot is `collect.on_slot_answer` (a correction re-opens the recap per OQ-7, a neutral turn repeats `offer_slots`, an empty turn uses a slot re-ask). A slot event while the conversation is not `in_progress` returns `closed_ack`; outside scheduling it repeats the pending ask. `Convo.advance_to(stage)` (planned for T24) was added here with a canonical valid candidate, because the scheduling tests need it.
 
-- [ ] **T23 — Signals: correction, wants_human, FAQ, off-topic, abuse, extraction failures.**
+- [x] **T23 — Signals: correction, wants_human, FAQ, off-topic, abuse, extraction failures.**
   - Complete the precedence in `on_candidate_turn`, `repeat_pending`, `handoff`, and the preface ordering in `finish`.
   - Tests `tests/engine/test_signals.py`:
     - city stored (Chamberí, Madrid) + `correction` "Coyoacán" → overwritten, `ack_correction` preface + pending ask (**AC-21**, in `test_recap.py`);
@@ -294,7 +294,7 @@ Rules:
     - FR-10 precedence matrix (plan §7.3).
   - *(FR-9, FR-10, FR-12, FR-13, FR-27, FR-28)*
 
-- [ ] **T24 — Opt-out everywhere + silence.**
+- [x] **T24 — Opt-out everywhere + silence.**
   - Finish `opt_out` (purge per FR-11) and `on_silence` (abandoned / qualified_unscheduled), plus the resume rule (the first turn after resume is neutral). Add `Convo.advance_to(stage)` and `advance_to_status(status)`.
   - Tests `tests/engine/test_opt_out.py`:
     - parametrised over every pending stage × statuses {in_progress, abandoned, disqualified, needs_review, qualified_unscheduled, interview_scheduled}, opt-out with proposals → `opted_out`, `close_opted_out`, no field values, `drop_off_stage` kept, flags = [`do_not_contact`] (**AC-26**);
@@ -302,8 +302,9 @@ Rules:
   - Tests `test_events.py`:
     - pending `vehicle_type` + silence → `abandoned`, `drop_off_stage=vehicle_license`; the next turn → `in_progress` + `ask_field(vehicle_type)`; silence in scheduling → `qualified_unscheduled` (**AC-29**).
   - *(FR-11, FR-14)*
+  - *Note (impl):* `silence_expired` on a conversation that is not `in_progress` (already abandoned, closed, opted out) returns `no_message` with no state change; the plan's pseudo-code said `closed_ack`, but a timer must never make the channel send text (OQ-2 decision). The AC-26 matrix covers only reachable combinations: {in_progress, disqualified, needs_review} × all 11 stages, abandoned × all stages except scheduling (silence there yields qualified_unscheduled), and qualified_unscheduled / interview_scheduled at scheduling (45 cases). `Convo.advance_to_status(status, at=stage)` reaches each one.
 
-- [ ] **T25 — Closed statuses + post-close correction.**
+- [x] **T25 — Closed statuses + post-close correction.**
   - `on_closed` and `post_close_corrections`.
   - Tests `tests/engine/test_closed.py`:
     - disqualified `no_license` + `correction` with license true → `needs_review`, flag `post_close_correction`, record keeps the original `false` and the proposed `true`, `close_needs_review` (**AC-26b**);
@@ -311,6 +312,7 @@ Rules:
     - after `handoff_to_human`, the next turn → `closed_ack` (**AC-27**);
     - for each closed status, a FAQ turn → `answer_faq` + `closed_ack` and the profile is unchanged.
   - *(FR-12, FR-15)*
+  - *Note (impl):* `on_closed` and `post_close_corrections` live in `closing.py`; `apply._validate` became public `validate_proposal` so post-close values go through the same validators. As in the plan, the `correction` signal is not required: any valid value for a disqualifying field that differs from the stored one counts. Values are stored JSON-ready (`to_jsonable_python`). **Open question:** a post-close value that would *still* fail the same rule (e.g. 17 → 16 after `under_age`) also goes to `needs_review` today; filtering those out would cut recruiter noise, but FR-15 does not distinguish, so it is left as the spec says.
 
 - [ ] **T26 — Language & register end-to-end.**
   - Tests `test_signals.py`:
