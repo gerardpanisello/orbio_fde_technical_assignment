@@ -16,4 +16,7 @@ def make_client(settings: Settings, *, engine_config: EngineConfig) -> LLMClient
         return FakeLLMClient(mode="rules", engine_config=engine_config)
     if settings.anthropic_api_key is None:  # load_settings already refuses this
         raise SettingsError("LLM_MODE=anthropic requires ANTHROPIC_API_KEY")
-    raise SettingsError("the Anthropic client arrives in T26")
+    # Imported here so fake mode never loads the SDK (NFR-7).
+    from sazon_screening.llm.client.anthropic_client import AnthropicClient
+
+    return AnthropicClient(settings.anthropic_api_key)

@@ -346,7 +346,7 @@ Rules:
   - *(FR-24)*
   - *Note (impl):* rules mode works on a structured `payload` that every stage now attaches to its request (`ExtractionPayload`, `PhrasingPayload` = the template text, `SummaryPayload`); it is excluded from dumps and never sent. So the fake never re-parses prompts, and in rules mode phrasing is exactly the reviewed template. `FakeLLMClient(mode="rules", engine_config=...)` needs the engine config for place and platform names. Rules-mode calls report zero tokens and zero cost. Until T26, `make_client` refused anthropic mode with a `SettingsError`.
 
-- [ ] **T26 — Anthropic client (offline-tested).**
+- [x] **T26 — Anthropic client (offline-tested).**
   - `client/anthropic_client.py`: `AnthropicClient` (`AsyncAnthropic(api_key, max_retries=0)`), plus the pure `build_kwargs`, `interpret`, `classify` (plan §3.3).
   - **Verify the installed SDK signatures first:**
     - `messages.parse(..., output_format=...)` + `.parsed_output`;
@@ -361,6 +361,13 @@ Rules:
     - `interpret` on stub responses (`SimpleNamespace`): `stop_reason="refusal"` / `"max_tokens"` → failure, content not read; `parsed_output=None` → `malformed`; usage mapped incl. cache tokens;
     - `classify` on real SDK exception instances (built with `httpx.Request`/`httpx.Response`): timeout, connection, 429, 500, 408, 400, 401, pydantic `ValidationError` (**003:AC-4**, real-path part).
   - *(FR-23, NFR-7)*
+  - *Note (impl), verified against the installed `anthropic` 1.13.0:*
+    - `AsyncAnthropic.messages.parse` takes `output_format=<PydanticModel>` together with `output_config={"effort": ...}` and returns `.parsed_output`; `messages.create` has `output_config` too (`output_format` is deprecated there, not used).
+    - Both take a per-request `timeout=` (float seconds).
+    - Usage fields: `cache_read_input_tokens`, `cache_creation_input_tokens` (may be `None`: counted as 0).
+    - `APITimeoutError` subclasses `APIConnectionError`, so `classify` checks it first. Status errors are built from **`httpx2`** `Request`/`Response` (the SDK moved from `httpx` to `httpx2` in 1.x); the tests build them that way.
+    - A JSON decode error while parsing maps to `malformed`, a pydantic `ValidationError` to `schema_invalid`.
+    - The pure functions are `build_kwargs`, `interpret_parsed`, `interpret_text` and `classify` (the plan's single `interpret(..., parsed=)` was split in two for typing). `AnthropicClient(sdk=...)` accepts a stand-in so the call paths are tested offline. `error_class` is the class name only: SDK messages can echo the request.
 
 - [ ] **T27 — End-to-end demo conversations, boundaries, performance.**
   - Tests `tests/llm/test_demo_conversations.py` (rules fake, network guard on):
