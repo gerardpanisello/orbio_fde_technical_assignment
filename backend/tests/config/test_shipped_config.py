@@ -3,8 +3,8 @@
 import pytest
 
 from sazon_screening.config import EngineConfig, load_config
-from sazon_screening.engine.enums import Country, VehicleType
-from sazon_screening.engine.location import normalise
+from sazon_screening.config.areas import normalise
+from sazon_screening.vocab import Country, VehicleType
 from tests.paths import SHIPPED_CONFIG_DIR
 
 

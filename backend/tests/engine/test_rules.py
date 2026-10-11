@@ -3,13 +3,6 @@
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import (
-    Country,
-    DisqualificationReason,
-    FieldStatus,
-    ReaskReason,
-    VehicleType,
-)
 from sazon_screening.engine.inputs import UNCLEAR, AgeAnswer
 from sazon_screening.engine.rules import (
     hard_rule_failure,
@@ -24,6 +17,13 @@ from sazon_screening.engine.validators import (
     validate_age,
     validate_license,
     validate_vehicle,
+)
+from sazon_screening.vocab import (
+    Country,
+    DisqualificationReason,
+    FieldStatus,
+    ReaskReason,
+    VehicleType,
 )
 from tests.engine.conftest import MakeConfig
 

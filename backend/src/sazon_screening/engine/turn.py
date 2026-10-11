@@ -39,7 +39,16 @@ from sazon_screening.engine.collect import (
     reask_or_exhaust,
     repeat_pending,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import (
+    CandidateTurn,
+    NoSlotFits,
+    SilenceExpired,
+    SlotSelected,
+    TurnInput,
+)
+from sazon_screening.engine.rules import hard_rule_failure, sync_license_requirement
+from sazon_screening.engine.state import ConversationState
+from sazon_screening.vocab import (
     Country,
     FieldName,
     Flag,
@@ -50,15 +59,6 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import (
-    CandidateTurn,
-    NoSlotFits,
-    SilenceExpired,
-    SlotSelected,
-    TurnInput,
-)
-from sazon_screening.engine.rules import hard_rule_failure, sync_license_requirement
-from sazon_screening.engine.state import ConversationState
 
 
 def start(

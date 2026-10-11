@@ -7,11 +7,11 @@ from hypothesis import HealthCheck, given, settings
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import EngineAction, register_for
-from sazon_screening.engine.enums import Flag, Status
 from sazon_screening.engine.inputs import TurnInput
 from sazon_screening.engine.record import build_record
 from sazon_screening.engine.state import ConversationState, Profile
 from sazon_screening.engine.turn import start, step_unchecked
+from sazon_screening.vocab import Flag, Status
 from tests.engine.conftest import TODAY
 from tests.engine.privacy import leaked_record, leaked_state
 from tests.engine.strategies import conversations

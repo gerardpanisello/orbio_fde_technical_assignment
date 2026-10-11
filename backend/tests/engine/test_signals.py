@@ -14,7 +14,7 @@ from sazon_screening.engine.actions import (
     ReaskField,
     Redirect,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.vocab import (
     Country,
     FieldName,
     Flag,

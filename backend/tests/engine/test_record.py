@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import FieldStatus, Stage, Status
 from sazon_screening.engine.record import CandidateRecord, RecordFields
+from sazon_screening.vocab import FieldStatus, Stage, Status
 from tests.engine.builders import Convo, consent
 from tests.paths import BACKEND_DIR
 

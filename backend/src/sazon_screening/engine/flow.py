@@ -7,9 +7,9 @@ The engine never hard-codes "after age comes vehicle". It asks for the first fie
 from typing import Final
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import FieldName, FieldStatus, Stage
 from sazon_screening.engine.location import needs_zone
 from sazon_screening.engine.state import ConversationState
+from sazon_screening.vocab import FieldName, FieldStatus, Stage
 
 # Knock-outs first, then profile (Spec 001 §3). `zone` follows `location`: it is only
 # asked when the matched city has zones and none was given.

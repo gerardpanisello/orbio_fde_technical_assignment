@@ -1,7 +1,7 @@
 """T5: the config variants used by AC tests are what they claim to be."""
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import VehicleType
+from sazon_screening.vocab import VehicleType
 from tests.engine.conftest import MakeConfig
 
 

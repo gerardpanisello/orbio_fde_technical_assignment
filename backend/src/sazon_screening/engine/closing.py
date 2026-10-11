@@ -22,16 +22,6 @@ from sazon_screening.engine.actions import (
     ShowRecap,
 )
 from sazon_screening.engine.apply import set_pending, validate_proposal
-from sazon_screening.engine.enums import (
-    DisqualificationReason,
-    FieldName,
-    FieldStatus,
-    Flag,
-    PendingKind,
-    ReviewReason,
-    Stage,
-    Status,
-)
 from sazon_screening.engine.inputs import CandidateTurn, Proposal
 from sazon_screening.engine.rules import (
     DISQUALIFYING_FIELDS,
@@ -46,6 +36,16 @@ from sazon_screening.engine.state import (
     add_reason,
 )
 from sazon_screening.engine.validators import Accepted
+from sazon_screening.vocab import (
+    DisqualificationReason,
+    FieldName,
+    FieldStatus,
+    Flag,
+    PendingKind,
+    ReviewReason,
+    Stage,
+    Status,
+)
 
 
 def opt_out(s: ConversationState) -> CloseOptedOut:

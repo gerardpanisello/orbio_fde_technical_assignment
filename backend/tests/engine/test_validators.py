@@ -5,7 +5,6 @@ from datetime import date
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import Availability, Flag, ReaskReason, ScheduleSlot, Weekday
 from sazon_screening.engine.inputs import (
     UNCLEAR,
     AbsoluteDate,
@@ -29,6 +28,7 @@ from sazon_screening.engine.validators import (
     validate_schedule,
     validate_start_date,
 )
+from sazon_screening.vocab import Availability, Flag, ReaskReason, ScheduleSlot, Weekday
 
 TYPO_APOSTROPHE = "\N{RIGHT SINGLE QUOTATION MARK}"  # what phone keyboards type
 

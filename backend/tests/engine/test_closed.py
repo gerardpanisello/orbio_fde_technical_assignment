@@ -10,15 +10,15 @@ from sazon_screening.engine.actions import (
     CloseNeedsReview,
     HandoffToHuman,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import Proposal
+from sazon_screening.engine.state import PostCloseCorrection
+from sazon_screening.vocab import (
     FieldName,
     Flag,
     ReviewReason,
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import Proposal
-from sazon_screening.engine.state import PostCloseCorrection
 from tests.engine.builders import Convo, adult, age, avail, license, loc, vehicle
 
 CLOSED = [

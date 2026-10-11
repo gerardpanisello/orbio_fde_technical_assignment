@@ -10,7 +10,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from sazon_screening.engine.enums import (
+from sazon_screening.config.areas import AreaRef
+from sazon_screening.engine.inputs import AgeAnswer
+from sazon_screening.vocab import (
     Availability,
     Country,
     DisqualificationReason,
@@ -25,7 +27,6 @@ from sazon_screening.engine.enums import (
     Status,
     VehicleType,
 )
-from sazon_screening.engine.inputs import AgeAnswer
 
 
 class _State(BaseModel):
@@ -62,17 +63,6 @@ class Profile(_State):
     schedule: Slot[list[ScheduleSlot]] = Field(default_factory=Slot[list[ScheduleSlot]])
     experience: Slot[Experience] = Field(default_factory=Slot[Experience])
     start_date: Slot[date] = Field(default_factory=Slot[date])
-
-
-class AreaRef(BaseModel):
-    """A resolved service area: a zone, or a city served as a whole."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    id: str  # zone id, or city id when there is no zone
-    country: Country
-    city: str
-    zone: str | None
 
 
 class PendingAsk(_State):

@@ -11,7 +11,7 @@ from sazon_screening.engine.actions import (
     OfferSlots,
     ReaskField,
 )
-from sazon_screening.engine.enums import FieldName, ReaskReason, Stage, Status
+from sazon_screening.vocab import FieldName, ReaskReason, Stage, Status
 from tests.engine.builders import OFFERED_SLOTS, Convo, age, license, sched, vehicle
 
 

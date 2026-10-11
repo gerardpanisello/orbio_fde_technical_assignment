@@ -6,7 +6,6 @@ from typing import Any
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from sazon_screening.engine.enums import Availability, Country, Language, VehicleType, Weekday
 from sazon_screening.engine.inputs import (
     UNCLEAR,
     AbsoluteDate,
@@ -32,6 +31,7 @@ from sazon_screening.engine.inputs import (
     TurnInput,
     Unclear,
 )
+from sazon_screening.vocab import Availability, Country, Language, VehicleType, Weekday
 
 proposals: TypeAdapter[Proposal] = TypeAdapter(Proposal)
 turn_inputs: TypeAdapter[TurnInput] = TypeAdapter(TurnInput)

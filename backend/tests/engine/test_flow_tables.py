@@ -1,7 +1,7 @@
 """T2: the static flow tables match the stage order of FR-5."""
 
-from sazon_screening.engine.enums import FieldName, Stage
 from sazon_screening.engine.flow import FIELD_ORDER, FIELD_STAGE, HARD_FIELDS, SOFT_FIELDS
+from sazon_screening.vocab import FieldName, Stage
 
 
 def test_stage_enum_follows_fr5_order() -> None:

@@ -5,22 +5,14 @@ qualification: under-age, missing license and out-of-area are hard rules in rule
 applied to stored values. A rejected value becomes a re-ask with a reason code.
 """
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
-from sazon_screening.engine.enums import (
-    Availability,
-    Flag,
-    ReaskReason,
-    ScheduleSlot,
-    VehicleType,
-    Weekday,
-)
+from sazon_screening.config.areas import AreaRef, normalise
+from sazon_screening.config.models import Platform
 from sazon_screening.engine.inputs import (
     AbsoluteDate,
     AgeAnswer,
@@ -31,11 +23,15 @@ from sazon_screening.engine.inputs import (
     StartDateExpr,
     Unclear,
 )
-from sazon_screening.engine.state import AreaRef, Experience
-from sazon_screening.engine.text import normalise
-
-if TYPE_CHECKING:  # config imports the engine (location index); avoid a runtime cycle
-    from sazon_screening.config.models import Platform
+from sazon_screening.engine.state import Experience
+from sazon_screening.vocab import (
+    Availability,
+    Flag,
+    ReaskReason,
+    ScheduleSlot,
+    VehicleType,
+    Weekday,
+)
 
 # --- outcomes (internal: frozen dataclasses, never cross the engine boundary) -----------
 

@@ -12,7 +12,7 @@ from sazon_screening.config.models import (
     ScreeningConfig,
     ServiceAreasConfig,
 )
-from sazon_screening.engine.enums import Availability, VehicleType
+from sazon_screening.vocab import Availability, VehicleType
 
 
 def minimal_areas() -> dict[str, Any]:

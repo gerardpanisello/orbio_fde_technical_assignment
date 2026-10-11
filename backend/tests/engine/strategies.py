@@ -4,14 +4,6 @@ from datetime import date
 
 from hypothesis import strategies as st
 
-from sazon_screening.engine.enums import (
-    Availability,
-    Country,
-    Language,
-    ScheduleSlot,
-    VehicleType,
-    Weekday,
-)
 from sazon_screening.engine.inputs import (
     UNCLEAR,
     AbsoluteDate,
@@ -41,6 +33,14 @@ from sazon_screening.engine.inputs import (
     TurnContext,
     TurnInput,
     VehicleProposal,
+)
+from sazon_screening.vocab import (
+    Availability,
+    Country,
+    Language,
+    ScheduleSlot,
+    VehicleType,
+    Weekday,
 )
 from tests.engine.builders import canonical_turns
 

@@ -3,7 +3,6 @@
 import pytest
 
 from sazon_screening.config import EngineConfig, load_config
-from sazon_screening.engine.enums import Country, FieldStatus, ReaskReason
 from sazon_screening.engine.inputs import UNCLEAR, LocationAnswer
 from sazon_screening.engine.location import (
     CityWithUnknownZone,
@@ -19,6 +18,7 @@ from sazon_screening.engine.location import (
 from sazon_screening.engine.rules import hard_rule_failure
 from sazon_screening.engine.state import ConversationState, LocationValue, Slot
 from sazon_screening.engine.validators import Accepted, NeedsConfirmation, Rejected
+from sazon_screening.vocab import Country, FieldStatus, ReaskReason
 from tests.engine.conftest import MakeConfig
 from tests.paths import SHIPPED_CONFIG_DIR
 

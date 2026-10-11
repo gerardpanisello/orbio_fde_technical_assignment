@@ -11,14 +11,14 @@ from pydantic import BaseModel, ConfigDict
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.config.models import ScoringConfig
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.state import Profile
+from sazon_screening.vocab import (
     Bucket,
     FactorReason,
     FieldName,
     FieldStatus,
     ScheduleSlot,
 )
-from sazon_screening.engine.state import Profile
 
 
 class ScoreFactor(BaseModel):

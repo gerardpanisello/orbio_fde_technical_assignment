@@ -12,16 +12,6 @@ from pydantic import TypeAdapter
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import EngineAction
-from sazon_screening.engine.enums import (
-    Availability,
-    Country,
-    FieldName,
-    Language,
-    ScheduleSlot,
-    Stage,
-    Status,
-    VehicleType,
-)
 from sazon_screening.engine.inputs import (
     AgeAnswer,
     AgeProposal,
@@ -51,6 +41,16 @@ from sazon_screening.engine.inputs import (
 )
 from sazon_screening.engine.record import CandidateRecord, build_record
 from sazon_screening.engine.turn import start, step_unchecked
+from sazon_screening.vocab import (
+    Availability,
+    Country,
+    FieldName,
+    Language,
+    ScheduleSlot,
+    Stage,
+    Status,
+    VehicleType,
+)
 from tests.engine.conftest import TODAY
 
 # --- proposal factories ---------------------------------------------------------------

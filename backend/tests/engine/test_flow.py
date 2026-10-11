@@ -11,7 +11,10 @@ from sazon_screening.engine.actions import (
     CloseOptedOut,
     ReaskField,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import CandidateTurn, Signals
+from sazon_screening.engine.state import ConversationState, Experience, Profile
+from sazon_screening.engine.turn import start, step
+from sazon_screening.vocab import (
     Availability,
     FieldName,
     FieldStatus,
@@ -23,9 +26,6 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import CandidateTurn, Signals
-from sazon_screening.engine.state import ConversationState, Experience, Profile
-from sazon_screening.engine.turn import start, step
 from tests.engine.builders import (
     Convo,
     adult,

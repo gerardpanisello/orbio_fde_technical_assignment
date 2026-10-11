@@ -14,7 +14,8 @@ from sazon_screening.engine.actions import (
     ReaskField,
     ShowRecap,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import Asap, Proposal
+from sazon_screening.vocab import (
     Availability,
     FieldName,
     FieldStatus,
@@ -24,7 +25,6 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import Asap, Proposal
 from tests.engine.builders import (
     Convo,
     adult,

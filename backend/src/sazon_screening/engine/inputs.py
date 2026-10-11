@@ -14,7 +14,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from sazon_screening.engine.enums import (
+from sazon_screening.vocab import (
     Availability,
     Country,
     Language,

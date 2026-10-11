@@ -26,7 +26,11 @@ from sazon_screening.engine.closing import (
     enter_scheduling,
     show_recap,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.flow import next_missing_field
+from sazon_screening.engine.inputs import CandidateTurn
+from sazon_screening.engine.rules import review_reasons
+from sazon_screening.engine.state import ConversationState, add_flag
+from sazon_screening.vocab import (
     Availability,
     FieldName,
     FieldStatus,
@@ -37,10 +41,6 @@ from sazon_screening.engine.enums import (
     Stage,
     VehicleType,
 )
-from sazon_screening.engine.flow import next_missing_field
-from sazon_screening.engine.inputs import CandidateTurn
-from sazon_screening.engine.rules import review_reasons
-from sazon_screening.engine.state import ConversationState, add_flag
 
 
 @dataclass(frozen=True)

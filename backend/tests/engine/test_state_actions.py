@@ -6,6 +6,7 @@ from typing import Any, get_args
 import pytest
 from pydantic import TypeAdapter
 
+from sazon_screening.config.areas import AreaRef
 from sazon_screening.engine.actions import (
     AckCorrection,
     AnswerFaq,
@@ -30,7 +31,16 @@ from sazon_screening.engine.actions import (
     ShowRecap,
     register_for,
 )
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import AgeAnswer
+from sazon_screening.engine.state import (
+    ConversationState,
+    Experience,
+    LocationValue,
+    Slot,
+    add_flag,
+    add_reason,
+)
+from sazon_screening.vocab import (
     Country,
     DisqualificationReason,
     FieldName,
@@ -43,16 +53,6 @@ from sazon_screening.engine.enums import (
     ReviewReason,
     Stage,
     Status,
-)
-from sazon_screening.engine.inputs import AgeAnswer
-from sazon_screening.engine.state import (
-    AreaRef,
-    ConversationState,
-    Experience,
-    LocationValue,
-    Slot,
-    add_flag,
-    add_reason,
 )
 
 COYOACAN = AreaRef(id="cdmx-coyoacan", country=Country.MX, city="cdmx", zone="cdmx-coyoacan")

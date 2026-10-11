@@ -6,7 +6,7 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import AskField, CloseDisqualified
-from sazon_screening.engine.enums import (
+from sazon_screening.vocab import (
     DisqualificationReason,
     FieldName,
     FieldStatus,

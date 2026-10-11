@@ -5,80 +5,16 @@ the deterministic part: normalise, look up names and aliases, and combine the pi
 "Coyoacán, CDMX". It never decides qualification (rules.py does).
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import TYPE_CHECKING, Literal
 
-from sazon_screening.engine.enums import Country, ReaskReason
+from sazon_screening.config import EngineConfig
+from sazon_screening.config.areas import AreaRef, IndexEntry, LocationIndex, normalise
 from sazon_screening.engine.inputs import LocationAnswer, Unclear
-from sazon_screening.engine.state import AreaRef, LocationValue
-from sazon_screening.engine.text import normalise
+from sazon_screening.engine.state import LocationValue
 from sazon_screening.engine.validators import Accepted, NeedsConfirmation, Rejected
-
-if TYPE_CHECKING:  # config.models imports this module to build the index
-    from sazon_screening.config.models import EngineConfig, ServiceAreasConfig
-
-__all__ = [
-    "CityWithUnknownZone",
-    "IndexEntry",
-    "LocationIndex",
-    "LocationMatch",
-    "Matched",
-    "NoMatch",
-    "match_location",
-    "needs_zone",
-    "normalise",
-    "served_value",
-    "similarity",
-    "validate_location",
-]
-
-
-# --- index -------------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class IndexEntry:
-    key: str  # normalised name or alias
-    ref: AreaRef
-    level: Literal["city", "zone"]
-
-
-@dataclass(frozen=True)
-class LocationIndex:
-    """Every name/alias of every city and zone, built once per config."""
-
-    entries: tuple[IndexEntry, ...]
-    cities: dict[str, AreaRef]  # city id -> ref, in config order
-    zones_by_city: dict[str, tuple[AreaRef, ...]]  # city id -> its zones, in config order
-
-    @classmethod
-    def build(cls, areas: ServiceAreasConfig) -> LocationIndex:
-        entries: list[IndexEntry] = []
-        cities: dict[str, AreaRef] = {}
-        zones_by_city: dict[str, tuple[AreaRef, ...]] = {}
-        for country in areas.countries:
-            for city in country.cities:
-                city_ref = AreaRef(id=city.id, country=country.id, city=city.id, zone=None)
-                cities[city.id] = city_ref
-                entries += [IndexEntry(key, city_ref, "city") for key in sorted(city.match_keys())]
-                zone_refs = []
-                for zone in city.zones:
-                    ref = AreaRef(id=zone.id, country=country.id, city=city.id, zone=zone.id)
-                    zone_refs.append(ref)
-                    entries += [IndexEntry(key, ref, "zone") for key in sorted(zone.match_keys())]
-                zones_by_city[city.id] = tuple(zone_refs)
-        return cls(tuple(entries), cities, zones_by_city)
-
-    def served_city_ids(self) -> tuple[str, ...]:
-        return tuple(self.cities)
-
-    def zone_entries(self, city_id: str) -> tuple[IndexEntry, ...]:
-        return tuple(e for e in self.entries if e.level == "zone" and e.ref.city == city_id)
-
+from sazon_screening.vocab import Country, ReaskReason
 
 # --- match results -------------------------------------------------------------------------
 

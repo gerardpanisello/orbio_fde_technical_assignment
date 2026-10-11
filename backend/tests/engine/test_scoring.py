@@ -5,7 +5,9 @@ from datetime import date, timedelta
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.scoring import ScoreFactor, score_candidate
+from sazon_screening.engine.state import Experience, Profile, Slot
+from sazon_screening.vocab import (
     Availability,
     Bucket,
     FactorReason,
@@ -13,8 +15,6 @@ from sazon_screening.engine.enums import (
     FieldStatus,
     ScheduleSlot,
 )
-from sazon_screening.engine.scoring import ScoreFactor, score_candidate
-from sazon_screening.engine.state import Experience, Profile, Slot
 from tests.engine.conftest import TODAY, MakeConfig
 
 

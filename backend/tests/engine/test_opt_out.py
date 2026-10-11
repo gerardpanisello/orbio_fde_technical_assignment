@@ -4,8 +4,8 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import ClosedAck, CloseOptedOut
-from sazon_screening.engine.enums import Country, Flag, Stage, Status
 from sazon_screening.engine.state import Profile
+from sazon_screening.vocab import Country, Flag, Stage, Status
 from tests.engine.builders import Convo, age, consent, exp, loc, name
 from tests.engine.privacy import leaked_record, leaked_state
 

@@ -12,7 +12,16 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.inputs import AgeAnswer
+from sazon_screening.engine.scoring import ScoreResult, score_candidate
+from sazon_screening.engine.state import (
+    ConversationState,
+    Experience,
+    LocationValue,
+    PostCloseCorrection,
+    Slot,
+)
+from sazon_screening.vocab import (
     Availability,
     DisqualificationReason,
     FieldStatus,
@@ -23,15 +32,6 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
     VehicleType,
-)
-from sazon_screening.engine.inputs import AgeAnswer
-from sazon_screening.engine.scoring import ScoreResult, score_candidate
-from sazon_screening.engine.state import (
-    ConversationState,
-    Experience,
-    LocationValue,
-    PostCloseCorrection,
-    Slot,
 )
 
 

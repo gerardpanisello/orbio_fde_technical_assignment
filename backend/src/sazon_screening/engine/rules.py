@@ -9,7 +9,8 @@ in the candidate's favour and the rule runs again once it is known.
 from typing import Final, Literal
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import (
+from sazon_screening.engine.state import ConversationState, Profile
+from sazon_screening.vocab import (
     Country,
     DisqualificationReason,
     FieldName,
@@ -17,7 +18,6 @@ from sazon_screening.engine.enums import (
     ReviewReason,
     VehicleType,
 )
-from sazon_screening.engine.state import ConversationState, Profile
 
 LicenseNeed = Literal["required", "not_required", "depends"]
 

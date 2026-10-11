@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.enums import FieldName, FieldStatus, PendingKind, ReaskReason, Stage
+from sazon_screening.config.areas import AreaRef
 from sazon_screening.engine.flow import FIELD_ORDER, FIELD_STAGE
 from sazon_screening.engine.inputs import (
     AgeProposal,
@@ -38,7 +38,6 @@ from sazon_screening.engine.location import (
     validate_location,
 )
 from sazon_screening.engine.state import (
-    AreaRef,
     ConversationState,
     Experience,
     LocationValue,
@@ -59,6 +58,7 @@ from sazon_screening.engine.validators import (
     validate_start_date,
     validate_vehicle,
 )
+from sazon_screening.vocab import FieldName, FieldStatus, PendingKind, ReaskReason, Stage
 
 Outcome = Accepted[object] | Rejected | NeedsConfirmation
 

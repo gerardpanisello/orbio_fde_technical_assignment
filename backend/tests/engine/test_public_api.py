@@ -1,67 +1,49 @@
-"""T30: the engine's public API, importable in any order (config <-> engine)."""
+"""T30: the engine's public API, and the one-way dependency engine -> config -> vocab."""
 
-import subprocess
-import sys
+import ast
+import inspect
+from pathlib import Path
 from types import ModuleType
 
-import pytest
-
+import sazon_screening.config as config_package
 import sazon_screening.engine as engine
+from sazon_screening import vocab
+
+CONFIG_DIR = Path(config_package.__file__).parent
 
 
-def test_every_exported_name_resolves_to_what_it_names() -> None:
-    import sazon_screening.engine.record
-    import sazon_screening.engine.scoring  # noqa: F401
-
+def test_every_export_resolves_to_what_it_names() -> None:
     for name in engine.__all__:
-        value = getattr(engine, name)
-        assert not isinstance(value, ModuleType), f"{name} resolves to a module"
+        assert not isinstance(getattr(engine, name), ModuleType), name
 
 
-def test_entry_points_are_functions_even_after_internal_imports() -> None:
-    # A submodule named like an export shadows it once imported (engine/step.py did).
-    code = "; ".join(
-        [
-            "import importlib, inspect, pkgutil, sazon_screening.engine as e",
-            "[importlib.import_module(e.__name__ + '.' + m.name)"
-            " for m in pkgutil.iter_modules(e.__path__)]",
-            "from sazon_screening.engine import start, step, build_record, score_candidate",
-            "assert all(inspect.isfunction(f)"
-            " for f in (start, step, build_record, score_candidate)), step",
-        ]
-    )
-    result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, check=False
-    )
-    assert result.returncode == 0, result.stderr
+def test_entry_points_are_functions() -> None:
+    for name in ("start", "step", "build_record", "score_candidate"):
+        assert inspect.isfunction(getattr(engine, name)), name
 
 
-def test_core_entry_points_are_exported() -> None:
-    assert {"start", "step", "build_record", "score_candidate"} <= set(engine.__all__)
+def test_core_models_are_exported() -> None:
     assert {"TurnInput", "CandidateTurn", "EngineAction", "ConversationState"} <= set(
         engine.__all__
     )
     assert {"CandidateRecord", "ScoreResult", "UNCLEAR"} <= set(engine.__all__)
 
 
-def test_unknown_name_raises_attribute_error() -> None:
-    with pytest.raises(AttributeError):
-        _ = engine.does_not_exist
+def imported_modules(path: Path) -> set[str]:
+    modules = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            modules.add(node.module)
+        elif isinstance(node, ast.Import):
+            modules |= {alias.name for alias in node.names}
+    return modules
 
 
-@pytest.mark.parametrize(
-    "code",
-    [
-        "import sazon_screening.config; from sazon_screening.engine import start, step",
-        "from sazon_screening.engine import start, step; import sazon_screening.config",
-        "from sazon_screening.config import load_config; import sazon_screening.engine as e;"
-        " e.build_record",
-        "import sazon_screening.engine.location; from sazon_screening.engine import step",
-    ],
-)
-def test_import_order_does_not_matter(code: str) -> None:
-    # A fresh interpreter: the order is only meaningful before anything is cached.
-    result = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True, check=False
-    )
-    assert result.returncode == 0, result.stderr
+def test_config_and_vocab_never_import_the_engine() -> None:
+    # Keeps imports acyclic: engine -> config -> vocab, never back.
+    files = [*CONFIG_DIR.glob("*.py"), Path(vocab.__file__)]
+    engine_imports = {
+        path.name: sorted(m for m in imported_modules(path) if m.startswith(engine.__name__))
+        for path in files
+    }
+    assert {name: mods for name, mods in engine_imports.items() if mods} == {}

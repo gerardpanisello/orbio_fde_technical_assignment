@@ -18,8 +18,8 @@ from pydantic import (
     model_validator,
 )
 
-from sazon_screening.engine.enums import Availability, Country, Language, VehicleType
-from sazon_screening.engine.location import LocationIndex, normalise
+from sazon_screening.config.areas import AreaRef, IndexEntry, LocationIndex, normalise
+from sazon_screening.vocab import Availability, Country, Language, VehicleType
 
 # Lowercase slug: stable, URL-safe IDs that the record and the dashboard can rely on.
 Slug = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]+$")]
@@ -273,7 +273,7 @@ class EngineConfig(_Strict):
     @model_validator(mode="after")
     def _build_location_index(self) -> Self:
         # Built once here so the engine never re-scans the YAML tree on every turn.
-        self._location_index = LocationIndex.build(self.service_areas)
+        self._location_index = build_location_index(self.service_areas)
         return self
 
     @property
@@ -300,3 +300,22 @@ class EngineConfig(_Strict):
                 f"default_country '{self.screening.default_country}' is not a configured country"
             )
         return self
+
+
+def build_location_index(areas: ServiceAreasConfig) -> LocationIndex:
+    """Every name and alias of every city and zone, as normalised lookup keys."""
+    entries: list[IndexEntry] = []
+    cities: dict[str, AreaRef] = {}
+    zones_by_city: dict[str, tuple[AreaRef, ...]] = {}
+    for country in areas.countries:
+        for city in country.cities:
+            city_ref = AreaRef(id=city.id, country=country.id, city=city.id, zone=None)
+            cities[city.id] = city_ref
+            entries += [IndexEntry(key, city_ref, "city") for key in sorted(city.match_keys())]
+            zone_refs = []
+            for zone in city.zones:
+                ref = AreaRef(id=zone.id, country=country.id, city=city.id, zone=zone.id)
+                zone_refs.append(ref)
+                entries += [IndexEntry(key, ref, "zone") for key in sorted(zone.match_keys())]
+            zones_by_city[city.id] = tuple(zone_refs)
+    return LocationIndex(tuple(entries), cities, zones_by_city)

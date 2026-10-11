@@ -10,7 +10,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from sazon_screening.engine.enums import (
+from sazon_screening.config.areas import AreaRef
+from sazon_screening.engine.state import Experience, Profile
+from sazon_screening.vocab import (
     Country,
     DisqualificationReason,
     FieldName,
@@ -19,7 +21,6 @@ from sazon_screening.engine.enums import (
     Register,
     ReviewReason,
 )
-from sazon_screening.engine.state import AreaRef, Experience, Profile
 
 
 class _Action(BaseModel):

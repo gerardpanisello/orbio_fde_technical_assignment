@@ -1,4 +1,7 @@
-"""Language-neutral vocabulary of the engine (plan §3.1).
+"""Language-neutral vocabulary shared by config and engine (plan §3.1).
+
+It lives outside both packages so that `config` never imports `engine`: the
+dependency only goes one way (engine -> config -> vocab).
 
 Every value that crosses the engine boundary (state, actions, record) is one of these
 enums, never free text. The phrasing layer (003) turns them into words.

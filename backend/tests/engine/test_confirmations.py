@@ -10,8 +10,8 @@ from sazon_screening.engine.actions import (
     ConfirmValue,
     ReaskField,
 )
-from sazon_screening.engine.enums import Country, FieldName, FieldStatus, ReaskReason, Stage
 from sazon_screening.engine.state import Experience
+from sazon_screening.vocab import Country, FieldName, FieldStatus, ReaskReason, Stage
 from tests.engine.builders import (
     Convo,
     adult,

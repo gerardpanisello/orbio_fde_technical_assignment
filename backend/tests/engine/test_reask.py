@@ -6,7 +6,7 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.actions import AskField, ReaskField
-from sazon_screening.engine.enums import FieldName, FieldStatus, Flag, ReaskReason, Status
+from sazon_screening.vocab import FieldName, FieldStatus, Flag, ReaskReason, Status
 from tests.engine.builders import (
     Convo,
     adult,
