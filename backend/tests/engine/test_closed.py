@@ -3,7 +3,13 @@
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine.actions import AnswerFaq, ClosedAck, CloseNeedsReview, HandoffToHuman
+from sazon_screening.engine.actions import (
+    AnswerFaq,
+    ClosedAck,
+    CloseDisqualified,
+    CloseNeedsReview,
+    HandoffToHuman,
+)
 from sazon_screening.engine.enums import (
     FieldName,
     Flag,
@@ -71,6 +77,16 @@ class TestPostCloseCorrection:
         assert c.state.needs_review_reasons == []
         assert c.state.profile.age.value is not None
         assert c.state.profile.age.value.age == 17  # never applied
+
+    @pytest.mark.ac("AC-26b")
+    def test_correction_that_leaves_another_rule_failing_stays_disqualified(
+        self, config: EngineConfig
+    ) -> None:
+        # Under-age AND no license: fixing the age alone must not open a review.
+        c = Convo(config).advance_to(Stage.age).say(age(17), license(False))
+        c.expect(CloseDisqualified, reason="under_age")
+        c.say(age(25), correction=True).expect(ClosedAck).expect_status(Status.disqualified)
+        assert len(c.state.post_close_corrections) == 1  # still recorded for the recruiter
 
     def test_repeated_correction_is_recorded_once(self, config: EngineConfig) -> None:
         c = Convo(config).advance_to(Stage.age).say(age(17))

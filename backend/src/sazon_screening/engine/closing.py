@@ -192,9 +192,11 @@ def _would_pass(
     corrections: list[tuple[PostCloseCorrection, object]],
     cfg: EngineConfig,
 ) -> bool:
-    """Would the rule that disqualified the candidate pass with the corrected values?
+    """Would the candidate pass every hard rule with the corrected values?
 
-    Evaluated on a throwaway copy: the real profile keeps the original values.
+    Not just the rule that disqualified them: under-age AND no license, corrected only
+    on age, still fails. Evaluated on a throwaway copy: the real profile keeps the
+    original values.
     """
     trial = s.model_copy(deep=True)
     for record, value in corrections:
@@ -202,4 +204,4 @@ def _would_pass(
         slot.value = value
         slot.status = FieldStatus.valid
     sync_license_requirement(trial, cfg)
-    return hard_rule_failure(trial, cfg) is not s.disqualification_reason
+    return hard_rule_failure(trial, cfg) is None
