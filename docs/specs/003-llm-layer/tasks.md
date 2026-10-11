@@ -89,7 +89,7 @@ Rules:
     - backoff is applied through the injected sleep.
   - *(FR-23, NFR-1)*
 
-- [ ] **T7 — Fake client, scripted mode.**
+- [x] **T7 — Fake client, scripted mode.**
   - `client/fake.py`: `Scripted`, `FakeLLMClient(mode="scripted")`, `push()`, `calls`.
     - `raw_json` → `schema.model_validate_json` → `schema_invalid` on error.
     - A `timeout` failure advances the clock by `request.timeout_s`; `latency_s` advances it otherwise.
@@ -102,7 +102,7 @@ Rules:
     - usage and latency are reported.
   - *(FR-24)*
 
-- [ ] **T8 — Telemetry.**
+- [x] **T8 — Telemetry.**
   - `llm/telemetry.py`: `CallTelemetry`, `telemetry_from(request, result, prices)`, `estimate_cost(usage, price)` (input, output, cache read and cache write priced separately), and `log_call()`, which emits a structured `logging` record with **no** request text.
   - Tests `tests/llm/test_telemetry.py`:
     - the cost arithmetic on a hand-computed example;
@@ -110,7 +110,7 @@ Rules:
     - a log record captured with `caplog` contains neither `request.user` nor `request.system` (**003:AC-24**, telemetry part).
   - *(FR-27, NFR-5)*
 
-- [ ] **T9 — Prompt registry.**
+- [x] **T9 — Prompt registry.**
   - `llm/prompts/__init__.py`: `PromptRegistry.load(prompt_id) -> Prompt(id, sha, text)` via `importlib.resources`; an unknown id → `ConfigError`.
   - Create placeholder `extraction.v1.md`, `phrasing.v1.md`, `summary.v1.md`, `judge_phrasing.v1.md`, `judge_summary.v1.md` (one paragraph each; real content in T14/T21/T23/T31).
   - Tests `tests/llm/test_prompts.py`:
