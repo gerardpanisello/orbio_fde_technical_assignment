@@ -117,7 +117,7 @@ def test_greeting(catalog: MessageCatalog, engine_config: EngineConfig, register
     act = action(AskField(field=FieldName.consent), register=register)
     text = render_template(act, ctx(is_greeting=True), catalog, engine_config)
     assert "Sofi" in text
-    assert any(word in text for word in ("automático", "automated"))
+    assert any(word in text for word in ("automático", "automática", "automated"))
     assert PRIVACY_URL in text
     assert text.count("?") == 1
     assert len(text) <= CAPS.default

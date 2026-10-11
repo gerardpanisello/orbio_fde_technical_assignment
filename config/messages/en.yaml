@@ -28,7 +28,7 @@ labels:
   years: years
 
 templates:
-  greeting: "Hi! I'm Sofi, the virtual assistant of Grupo Sazón 👋 I'm an automated assistant and I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: {privacy_url} Do you agree that we use your data for this process?"
+  greeting: "Hi! I'm Sofi, Grupo Sazón's automated virtual assistant 👋 I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: {privacy_url} Do you agree that we use your data for this process?"
   ask_field:
     consent: "Before we go on, do you agree that we use your data for this process?"
     full_name: "What's your name? First name and surname, please."

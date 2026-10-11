@@ -28,7 +28,7 @@ labels:
   years: años
 
 templates:
-  greeting: "¡Hola! Soy Sofi, la asistente virtual de Grupo Sazón 👋 Soy un asistente automático y te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Aviso de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"
+  greeting: "¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón 👋 Te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Aviso de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"
   ask_field:
     consent: "Antes de seguir, ¿aceptas que usemos tus datos para este proceso?"
     full_name: "¿Cómo te llamas? Nombre y apellido, por favor."
