@@ -1,0 +1,78 @@
+# Sofi's messages for candidates in Mexico (Spanish, es-MX register).
+#
+# Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
+# carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
+version: "2026-10-11.1"
+register: es-MX
+
+labels:
+  yes_no: {"yes": "Sí", "no": "No"}
+  vehicle_type: {motorbike: Moto, car: Carro, bicycle: Bici, e_bike: Bici eléctrica, none: Sin vehículo}
+  availability: {full_time: Tiempo completo, part_time: Medio tiempo, weekends: Fines de semana}
+  schedule: {morning: Mañanas, afternoon: Tardes, evening: Noches, flexible: Flexible}
+  fields:
+    consent: consentimiento
+    full_name: nombre completo
+    age: edad
+    vehicle_type: vehículo
+    has_license: licencia de manejo
+    location: ciudad y colonia
+    zone: colonia
+    availability: disponibilidad
+    schedule: horario
+    experience: experiencia
+    start_date: fecha de inicio
+    slot: hora de entrevista
+  adult: {"yes": Mayor de edad, "no": Menor de edad}
+  birth_year: año de nacimiento
+  years: años
+
+templates:
+  greeting: "¡Hola! Soy Sofi, la asistente virtual de Grupo Sazón 👋 Soy un asistente automático y te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Aviso de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"
+  ask_field:
+    consent: "Antes de seguir, ¿aceptas que usemos tus datos para este proceso?"
+    full_name: "¿Cómo te llamas? Nombre y apellido, por favor."
+    age: "¿Cuántos años tienes?"
+    vehicle_type: "¿Con qué vehículo repartirías?"
+    has_license: "¿Tienes licencia de manejo vigente?"
+    location: "¿En qué ciudad y colonia te gustaría repartir?"
+    zone: "¿Y en qué colonia o zona de la ciudad?"
+    availability: "¿Qué disponibilidad tienes: tiempo completo, medio tiempo o fines de semana?"
+    schedule: "¿En qué horario prefieres repartir: mañanas, tardes, noches o flexible?"
+    experience: "¿Cuántos años de experiencia tienes como repartidor/a y con qué apps?"
+    start_date: "¿Cuándo podrías empezar?"
+    slot: "¿Qué hora te queda mejor para la entrevista?"
+  reask_field:
+    unclear: "Perdón, no te entendí bien. ¿Me dices tu {field}?{options}"
+    not_recognised: "No reconozco ese lugar. ¿Me dices tu {field} otra vez?{options}"
+    surname_missing: "¡Gracias! ¿Me dices también tu apellido?"
+    invalid_characters: "Necesito solo letras. ¿Me escribes tu nombre y apellido?"
+    implausible_value: "Creo que se coló un error. ¿Me confirmas tu {field}?{options}"
+    negative_value: "Ese número no me cuadra. ¿Me dices tu {field} otra vez?"
+    missing_years: "¿Cuántos años de experiencia tienes como repartidor/a?"
+    empty_selection: "Elige al menos una opción, porfa. ¿Cuál es tu {field}?{options}"
+    consent_required: "Para seguir necesito un sí o un no. ¿Aceptas que usemos tus datos para este proceso?"
+    slot_not_offered: "Esa hora no está entre las opciones. ¿Cuál te queda bien?{options}"
+    extraction_failed: "Perdón, no te entendí. ¿Me repites tu {field}?{options}"
+    value_rejected: "Va, lo corrijo. ¿Cuál es tu {field} entonces?"
+  confirm_ambiguous: "Hay varios lugares con ese nombre. ¿Cuál es el tuyo?\n{options}"
+  confirm_value: "Solo para confirmar: ¿tienes {years} años de experiencia?"
+  ask_correction_field: "Sin problema. ¿Qué dato quieres cambiar?"
+  show_recap: "Repasemos tus datos:\n{recap}\n¿Está todo bien?"
+  offer_slots: "¡Todo listo! Estos son los horarios disponibles para tu entrevista:\n{slots}\n¿Cuál te queda mejor?"
+  confirm_interview: "¡Perfecto! Tu entrevista quedó agendada: {slot}. ¡Nos vemos!"
+  close_disqualified:
+    under_age: "Gracias por tu interés. Para este puesto hay que ser mayor de edad, así que por ahora no podemos seguir con tu solicitud. Te deseamos mucha suerte."
+    no_license: "Gracias por tu interés. Para este puesto se necesita licencia de manejo vigente, así que por ahora no podemos seguir. Si la sacas, escríbenos y retomamos tu solicitud."
+    out_of_area: "Gracias por tu interés. Por ahora no repartimos en tu zona, así que no podemos seguir con tu solicitud. Te deseamos mucha suerte."
+  close_needs_review: "Gracias. Una persona del equipo revisará tu solicitud y te escribirá por aquí."
+  close_opted_out: "Entendido, ya no te escribiremos. ¡Mucha suerte!"
+  close_qualified_unscheduled: "¡Gracias! Completaste la solicitud. El equipo te escribirá para agendar la entrevista."
+  handoff_to_human: "Claro, una persona del equipo te escribirá por aquí."
+  closed_ack: "Gracias por tu mensaje. El equipo ya tiene tu solicitud."
+  prefaces:
+    redirect_off_topic: "Solo puedo ayudarte con tu solicitud de repartidor/a."
+    redirect_abuse: "Mantengamos el respeto, por favor."
+    ack_correction: "Listo, actualicé: {fields}."
+    faq_holding: "Buena pregunta: lo consulto con el equipo."
+  media_not_supported: "Todavía no puedo escuchar audios ni ver archivos. ¿Me lo escribes?"

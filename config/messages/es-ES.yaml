@@ -1,0 +1,156 @@
+# Sofi's messages for candidates in Spain (Spanish, es-ES register).
+#
+# These templates are what candidates read when the AI is down or slow, and in the
+# offline demo. The AI phrasing uses them as the reference for content and tone.
+# Ops can edit the wording here without touching code; the agent checks this file at
+# startup and refuses to start if a message is missing.
+#
+# Rules every message must keep (checked by tests):
+#   - tú, warm and short: at most 300 characters (600 for the recap and the slot list);
+#   - exactly one question when we ask something, none when we close;
+#   - at most one emoji, and none when we tell someone they cannot continue;
+#   - never mention pay, conditions or promises;
+#   - only the {placeholders} already used in each message.
+# Spain vocabulary: carné de conducir, coche, barrio.
+version: "2026-10-11.1"
+register: es-ES
+
+labels:
+  yes_no: {"yes": "Sí", "no": "No"}
+  vehicle_type: {motorbike: Moto, car: Coche, bicycle: Bici, e_bike: Bici eléctrica, none: Sin vehículo}
+  availability: {full_time: Jornada completa, part_time: Media jornada, weekends: Fines de semana}
+  schedule: {morning: Mañanas, afternoon: Tardes, evening: Noches, flexible: Flexible}
+  fields:
+    consent: consentimiento
+    full_name: nombre completo
+    age: edad
+    vehicle_type: vehículo
+    has_license: carné de conducir
+    location: ciudad y barrio
+    zone: barrio
+    availability: disponibilidad
+    schedule: horario
+    experience: experiencia
+    start_date: fecha de inicio
+    slot: hora de entrevista
+  adult: {"yes": Mayor de edad, "no": Menor de edad}
+  birth_year: año de nacimiento
+  years: años
+
+templates:
+  greeting: "¡Hola! Soy Sofi, la asistente virtual de Grupo Sazón 👋 Soy un asistente automático y te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Política de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"
+  ask_field:
+    consent: "Antes de seguir, ¿aceptas que usemos tus datos para este proceso?"
+    full_name: "¿Cómo te llamas? Nombre y apellido, por favor."
+    age: "¿Cuántos años tienes?"
+    vehicle_type: "¿Con qué vehículo repartirías?"
+    has_license: "¿Tienes carné de conducir en vigor?"
+    location: "¿En qué ciudad y barrio te gustaría repartir?"
+    zone: "¿Y en qué barrio o zona de la ciudad?"
+    availability: "¿Qué disponibilidad tienes: jornada completa, media jornada o fines de semana?"
+    schedule: "¿En qué horario prefieres repartir: mañanas, tardes, noches o flexible?"
+    experience: "¿Cuántos años de experiencia tienes como repartidor/a y con qué apps?"
+    start_date: "¿Cuándo podrías empezar?"
+    slot: "¿Qué hora te viene mejor para la entrevista?"
+  reask_field:
+    unclear: "Perdona, no te he entendido bien. ¿Me dices tu {field}?{options}"
+    not_recognised: "No reconozco ese lugar. ¿Me dices tu {field} de nuevo?{options}"
+    surname_missing: "¡Gracias! ¿Me dices también tu apellido?"
+    invalid_characters: "Necesito solo letras. ¿Me escribes tu nombre y apellido?"
+    implausible_value: "Creo que se ha colado un error. ¿Me confirmas tu {field}?{options}"
+    negative_value: "Ese número no me cuadra. ¿Me dices tu {field} de nuevo?"
+    missing_years: "¿Cuántos años de experiencia tienes como repartidor/a?"
+    empty_selection: "Elige al menos una opción, porfa. ¿Cuál es tu {field}?{options}"
+    consent_required: "Para seguir necesito un sí o un no. ¿Aceptas que usemos tus datos para este proceso?"
+    slot_not_offered: "Esa hora no está entre las opciones. ¿Cuál te viene bien?{options}"
+    extraction_failed: "Perdona, no lo he pillado. ¿Me repites tu {field}?{options}"
+    value_rejected: "Vale, lo corrijo. ¿Cuál es tu {field} entonces?"
+  confirm_ambiguous: "Hay varios sitios con ese nombre. ¿Cuál es el tuyo?\n{options}"
+  confirm_value: "Solo para confirmar: ¿tienes {years} años de experiencia?"
+  ask_correction_field: "Sin problema. ¿Qué dato quieres cambiar?"
+  show_recap: "Repasemos tus datos:\n{recap}\n¿Está todo bien?"
+  offer_slots: "¡Todo listo! Estas son las horas disponibles para tu entrevista:\n{slots}\n¿Cuál te viene mejor?"
+  confirm_interview: "¡Perfecto! Tu entrevista queda agendada: {slot}. ¡Nos vemos!"
+  close_disqualified:
+    under_age: "Gracias por tu interés. Para este puesto hay que ser mayor de edad, así que por ahora no podemos seguir con tu solicitud. Te deseamos mucha suerte."
+    no_license: "Gracias por tu interés. Para este puesto hace falta carné de conducir en vigor, así que por ahora no podemos seguir. Si lo sacas, escríbenos y retomamos tu solicitud."
+    out_of_area: "Gracias por tu interés. De momento no repartimos en tu zona, así que no podemos seguir con tu solicitud. Te deseamos mucha suerte."
+  close_needs_review: "Gracias. Una persona del equipo revisará tu solicitud y te escribirá por aquí."
+  close_opted_out: "Entendido, no te escribiremos más. ¡Mucha suerte!"
+  close_qualified_unscheduled: "¡Gracias! Has completado la solicitud. El equipo te escribirá para agendar la entrevista."
+  handoff_to_human: "Claro, una persona del equipo te escribirá por aquí."
+  closed_ack: "Gracias por tu mensaje. El equipo ya tiene tu solicitud."
+  prefaces:
+    redirect_off_topic: "Solo puedo ayudarte con tu solicitud de repartidor/a."
+    redirect_abuse: "Mantengamos el respeto, por favor."
+    ack_correction: "Hecho, he actualizado: {fields}."
+    faq_holding: "Buena pregunta: lo consulto con el equipo."
+  media_not_supported: "Todavía no puedo escuchar audios ni ver archivos. ¿Me lo escribes?"
+
+# Recruiter-facing labels for the summary (Spanish recruiters).
+summary:
+  facts:
+    status: Estado
+    disqualification_reason: Motivo de descarte
+    review_reasons: Motivos de revisión
+    score: Puntuación
+    bucket: Prioridad
+    top_factors: Factores principales
+    flags: Avisos
+    candidate_language: Idioma del candidato
+    drop_off_stage: Última etapa
+    selected_slot: Entrevista
+    do_not_contact: No contactar
+    none: "—"
+  status:
+    in_progress: En curso
+    interview_scheduled: Entrevista agendada
+    qualified_unscheduled: Apto, sin entrevista
+    disqualified: Descartado
+    needs_review: Requiere revisión
+    abandoned: Abandonado
+    opted_out: Se dio de baja
+  disqualification: {under_age: Menor de edad, no_license: Sin carné de conducir, out_of_area: Fuera de zona}
+  review:
+    age_unclear: Edad no clara
+    license_unclear: Carné no claro
+    vehicle_unclear: Vehículo no claro
+    location_unclear: Ubicación no clara
+    human_requested: Pidió hablar con una persona
+    system_failure: Fallo técnico
+    abuse: Lenguaje abusivo
+    recap_loop: No confirmó el resumen
+    post_close_correction: Corrección tras el cierre
+    engine_error: Error interno
+  flags:
+    surname_missing: Falta el apellido
+    name_unclear: Nombre no claro
+    start_date_normalised: Fecha de inicio ajustada a hoy
+    human_requested: Pidió una persona
+    post_close_correction: Corrección tras el cierre
+    system_failure: Fallo técnico
+    abuse: Lenguaje abusivo
+    do_not_contact: No contactar
+    engine_error: Error interno
+    correction_unclear: Corrección no entendida
+  stages:
+    consent: Consentimiento
+    name: Nombre
+    age: Edad
+    vehicle_license: Vehículo y carné
+    location: Ubicación
+    availability: Disponibilidad
+    schedule: Horario
+    experience: Experiencia
+    start_date: Fecha de inicio
+    recap: Resumen
+    scheduling: Agenda
+  buckets: {high: Alta, medium: Media, low: Baja}
+  factor_reasons:
+    years_of_experience: Años de experiencia
+    known_platforms: Plataformas conocidas
+    availability_breadth: Disponibilidad
+    schedule_flexibility: Flexibilidad horaria
+    start_date_proximity: Incorporación próxima
+    unknown: Desconocido
+  languages: {es: Español, en: Inglés}

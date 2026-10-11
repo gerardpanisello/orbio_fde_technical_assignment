@@ -1,0 +1,97 @@
+# Small, complete catalog for catalog tests (T15). Not product text.
+version: fixture.1
+register: es-MX
+labels:
+  yes_no:
+    'yes': 'Yes'
+    'no': 'No'
+  vehicle_type:
+    motorbike: es-MX motorbike
+    car: es-MX car
+    bicycle: es-MX bicycle
+    e_bike: es-MX e_bike
+    none: es-MX none
+  availability:
+    full_time: full_time
+    part_time: part_time
+    weekends: weekends
+  schedule:
+    morning: morning
+    afternoon: afternoon
+    evening: evening
+    flexible: flexible
+  fields:
+    consent: consent
+    full_name: full_name
+    age: age
+    vehicle_type: vehicle_type
+    has_license: has_license
+    location: location
+    zone: zone
+    availability: availability
+    schedule: schedule
+    experience: experience
+    start_date: start_date
+    slot: slot
+  adult:
+    'yes': adult
+    'no': minor
+  birth_year: birth year
+  years: years
+templates:
+  greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
+  ask_field:
+    consent: What is your consent?
+    full_name: What is your full_name?
+    age: What is your age?
+    vehicle_type: What is your vehicle_type?
+    has_license: What is your has_license?
+    location: What is your location?
+    zone: What is your zone?
+    availability: What is your availability?
+    schedule: What is your schedule?
+    experience: What is your experience?
+    start_date: What is your start_date?
+    slot: What is your slot?
+  reask_field:
+    unclear: 'Again: {field}? {options}'
+    not_recognised: 'Again: {field}? {options}'
+    surname_missing: 'Again: {field}? {options}'
+    invalid_characters: 'Again: {field}? {options}'
+    implausible_value: 'Again: {field}? {options}'
+    negative_value: 'Again: {field}? {options}'
+    missing_years: 'Again: {field}? {options}'
+    empty_selection: 'Again: {field}? {options}'
+    consent_required: 'Again: {field}? {options}'
+    slot_not_offered: 'Again: {field}? {options}'
+    extraction_failed: 'Again: {field}? {options}'
+    value_rejected: 'Again: {field}? {options}'
+  confirm_ambiguous: 'Which one: {options}?'
+  confirm_value: '{years} years?'
+  ask_correction_field: What should I change?
+  show_recap: 'Recap:
+
+    {recap}
+
+    All good?'
+  offer_slots: 'Pick a slot:
+
+    {slots}
+
+    Which one?'
+  confirm_interview: 'Booked: {slot}.'
+  close_disqualified:
+    under_age: Sorry, under_age.
+    no_license: Sorry, no_license.
+    out_of_area: Sorry, out_of_area.
+  close_needs_review: A recruiter will review it.
+  close_opted_out: Done, no more messages.
+  close_qualified_unscheduled: We will contact you.
+  handoff_to_human: A person will write to you.
+  closed_ack: Thanks.
+  prefaces:
+    redirect_off_topic: I can only help with the application.
+    redirect_abuse: Let us keep it respectful.
+    ack_correction: Updated {fields}.
+    faq_holding: I will check with the team.
+  media_not_supported: Please write it.

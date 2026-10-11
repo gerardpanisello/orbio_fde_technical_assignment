@@ -1,0 +1,171 @@
+# Small, complete catalog for catalog tests (T15). Not product text.
+version: fixture.1
+register: en
+labels:
+  yes_no:
+    'yes': 'Yes'
+    'no': 'No'
+  vehicle_type:
+    motorbike: en motorbike
+    car: en car
+    bicycle: en bicycle
+    e_bike: en e_bike
+    none: en none
+  availability:
+    full_time: full_time
+    part_time: part_time
+    weekends: weekends
+  schedule:
+    morning: morning
+    afternoon: afternoon
+    evening: evening
+    flexible: flexible
+  fields:
+    consent: consent
+    full_name: full_name
+    age: age
+    vehicle_type: vehicle_type
+    has_license: has_license
+    location: location
+    zone: zone
+    availability: availability
+    schedule: schedule
+    experience: experience
+    start_date: start_date
+    slot: slot
+  adult:
+    'yes': adult
+    'no': minor
+  birth_year: birth year
+  years: years
+templates:
+  greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
+  ask_field:
+    consent: What is your consent?
+    full_name: What is your full_name?
+    age: What is your age?
+    vehicle_type: What is your vehicle_type?
+    has_license: What is your has_license?
+    location: What is your location?
+    zone: What is your zone?
+    availability: What is your availability?
+    schedule: What is your schedule?
+    experience: What is your experience?
+    start_date: What is your start_date?
+    slot: What is your slot?
+  reask_field:
+    unclear: 'Again: {field}? {options}'
+    not_recognised: 'Again: {field}? {options}'
+    surname_missing: 'Again: {field}? {options}'
+    invalid_characters: 'Again: {field}? {options}'
+    implausible_value: 'Again: {field}? {options}'
+    negative_value: 'Again: {field}? {options}'
+    missing_years: 'Again: {field}? {options}'
+    empty_selection: 'Again: {field}? {options}'
+    consent_required: 'Again: {field}? {options}'
+    slot_not_offered: 'Again: {field}? {options}'
+    extraction_failed: 'Again: {field}? {options}'
+    value_rejected: 'Again: {field}? {options}'
+  confirm_ambiguous: 'Which one: {options}?'
+  confirm_value: '{years} years?'
+  ask_correction_field: What should I change?
+  show_recap: 'Recap:
+
+    {recap}
+
+    All good?'
+  offer_slots: 'Pick a slot:
+
+    {slots}
+
+    Which one?'
+  confirm_interview: 'Booked: {slot}.'
+  close_disqualified:
+    under_age: Sorry, under_age.
+    no_license: Sorry, no_license.
+    out_of_area: Sorry, out_of_area.
+  close_needs_review: A recruiter will review it.
+  close_opted_out: Done, no more messages.
+  close_qualified_unscheduled: We will contact you.
+  handoff_to_human: A person will write to you.
+  closed_ack: Thanks.
+  prefaces:
+    redirect_off_topic: I can only help with the application.
+    redirect_abuse: Let us keep it respectful.
+    ack_correction: Updated {fields}.
+    faq_holding: I will check with the team.
+  media_not_supported: Please write it.
+summary:
+  facts:
+    status: status
+    disqualification_reason: disqualification_reason
+    review_reasons: review_reasons
+    score: score
+    bucket: bucket
+    top_factors: top_factors
+    flags: flags
+    candidate_language: candidate_language
+    drop_off_stage: drop_off_stage
+    selected_slot: selected_slot
+    do_not_contact: do_not_contact
+    none: none
+  status:
+    in_progress: Status in_progress
+    interview_scheduled: Status interview_scheduled
+    qualified_unscheduled: Status qualified_unscheduled
+    disqualified: Status disqualified
+    needs_review: Status needs_review
+    abandoned: Status abandoned
+    opted_out: Status opted_out
+  disqualification:
+    under_age: DisqualificationReason under_age
+    no_license: DisqualificationReason no_license
+    out_of_area: DisqualificationReason out_of_area
+  review:
+    age_unclear: ReviewReason age_unclear
+    license_unclear: ReviewReason license_unclear
+    vehicle_unclear: ReviewReason vehicle_unclear
+    location_unclear: ReviewReason location_unclear
+    human_requested: ReviewReason human_requested
+    system_failure: ReviewReason system_failure
+    abuse: ReviewReason abuse
+    recap_loop: ReviewReason recap_loop
+    post_close_correction: ReviewReason post_close_correction
+    engine_error: ReviewReason engine_error
+  flags:
+    surname_missing: Flag surname_missing
+    name_unclear: Flag name_unclear
+    start_date_normalised: Flag start_date_normalised
+    human_requested: Flag human_requested
+    post_close_correction: Flag post_close_correction
+    system_failure: Flag system_failure
+    abuse: Flag abuse
+    do_not_contact: Flag do_not_contact
+    engine_error: Flag engine_error
+    correction_unclear: Flag correction_unclear
+  stages:
+    consent: Stage consent
+    name: Stage name
+    age: Stage age
+    vehicle_license: Stage vehicle_license
+    location: Stage location
+    availability: Stage availability
+    schedule: Stage schedule
+    experience: Stage experience
+    start_date: Stage start_date
+    recap: Stage recap
+    scheduling: Stage scheduling
+  buckets:
+    high: Bucket high
+    medium: Bucket medium
+    low: Bucket low
+  factor_reasons:
+    years_of_experience: FactorReason years_of_experience
+    known_platforms: FactorReason known_platforms
+    availability_breadth: FactorReason availability_breadth
+    schedule_flexibility: FactorReason schedule_flexibility
+    start_date_proximity: FactorReason start_date_proximity
+    unknown: FactorReason unknown
+  languages:
+    es: Language es
+    en: Language en

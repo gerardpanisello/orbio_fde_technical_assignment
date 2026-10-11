@@ -1,0 +1,146 @@
+# Sofi's messages for candidates who write in English.
+#
+# Same rules as es-ES.yaml (read its header). Also holds the English recruiter
+# summary labels.
+version: "2026-10-11.1"
+register: en
+
+labels:
+  yes_no: {"yes": "Yes", "no": "No"}
+  vehicle_type: {motorbike: Motorbike, car: Car, bicycle: Bicycle, e_bike: E-bike, none: No vehicle}
+  availability: {full_time: Full-time, part_time: Part-time, weekends: Weekends}
+  schedule: {morning: Mornings, afternoon: Afternoons, evening: Evenings, flexible: Flexible}
+  fields:
+    consent: consent
+    full_name: full name
+    age: age
+    vehicle_type: vehicle
+    has_license: driving licence
+    location: city and area
+    zone: area
+    availability: availability
+    schedule: schedule
+    experience: experience
+    start_date: start date
+    slot: interview time
+  adult: {"yes": Of legal age, "no": Under age}
+  birth_year: year of birth
+  years: years
+
+templates:
+  greeting: "Hi! I'm Sofi, the virtual assistant of Grupo Sazón 👋 I'm an automated assistant and I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: {privacy_url} Do you agree that we use your data for this process?"
+  ask_field:
+    consent: "Before we go on, do you agree that we use your data for this process?"
+    full_name: "What's your name? First name and surname, please."
+    age: "How old are you?"
+    vehicle_type: "Which vehicle would you deliver with?"
+    has_license: "Do you have a valid driving licence?"
+    location: "Which city and area would you like to deliver in?"
+    zone: "And which area or neighbourhood of the city?"
+    availability: "What availability works for you: full-time, part-time or weekends?"
+    schedule: "When do you prefer to deliver: mornings, afternoons, evenings or flexible?"
+    experience: "How many years of delivery experience do you have, and with which apps?"
+    start_date: "When could you start?"
+    slot: "Which time works best for your interview?"
+  reask_field:
+    unclear: "Sorry, I didn't quite get that. What's your {field}?{options}"
+    not_recognised: "I don't recognise that place. Could you tell me your {field} again?{options}"
+    surname_missing: "Thanks! Could you also tell me your surname?"
+    invalid_characters: "I need letters only. Could you write your first name and surname?"
+    implausible_value: "I think there's a typo. Could you confirm your {field}?{options}"
+    negative_value: "That number doesn't look right. What's your {field}?"
+    missing_years: "How many years of delivery experience do you have?"
+    empty_selection: "Please pick at least one option. What's your {field}?{options}"
+    consent_required: "To continue I need a yes or a no. Do you agree that we use your data for this process?"
+    slot_not_offered: "That time isn't one of the options. Which one works for you?{options}"
+    extraction_failed: "Sorry, I didn't catch that. Could you repeat your {field}?{options}"
+    value_rejected: "OK, I'll fix it. What's your {field} then?"
+  confirm_ambiguous: "There are a few places with that name. Which one is yours?\n{options}"
+  confirm_value: "Just to confirm: do you have {years} years of experience?"
+  ask_correction_field: "No problem. Which detail would you like to change?"
+  show_recap: "Let's go over your details:\n{recap}\nIs everything correct?"
+  offer_slots: "All done! These are the available times for your interview:\n{slots}\nWhich one works best for you?"
+  confirm_interview: "Perfect! Your interview is booked: {slot}. See you then!"
+  close_disqualified:
+    under_age: "Thanks for your interest. This job requires being of legal age, so we can't continue with your application for now. We wish you the best of luck."
+    no_license: "Thanks for your interest. This job requires a valid driving licence, so we can't continue for now. If you get one, write to us and we'll pick up your application again."
+    out_of_area: "Thanks for your interest. We don't deliver in your area yet, so we can't continue with your application. We wish you the best of luck."
+  close_needs_review: "Thank you. Someone from the team will review your application and write to you here."
+  close_opted_out: "Understood, we won't write to you again. Best of luck!"
+  close_qualified_unscheduled: "Thank you! Your application is complete. The team will write to you to book the interview."
+  handoff_to_human: "Of course, someone from the team will write to you here."
+  closed_ack: "Thanks for your message. The team already has your application."
+  prefaces:
+    redirect_off_topic: "I can only help you with your delivery driver application."
+    redirect_abuse: "Let's keep it respectful, please."
+    ack_correction: "Done, I've updated your {fields}."
+    faq_holding: "Good question: I'll check with the team."
+  media_not_supported: "I can't listen to audio or open files yet. Could you write it down?"
+
+# Recruiter-facing labels for the summary (English).
+summary:
+  facts:
+    status: Status
+    disqualification_reason: Disqualification reason
+    review_reasons: Review reasons
+    score: Score
+    bucket: Priority
+    top_factors: Top factors
+    flags: Flags
+    candidate_language: Candidate language
+    drop_off_stage: Last stage
+    selected_slot: Interview
+    do_not_contact: Do not contact
+    none: "—"
+  status:
+    in_progress: In progress
+    interview_scheduled: Interview scheduled
+    qualified_unscheduled: Qualified, not scheduled
+    disqualified: Disqualified
+    needs_review: Needs review
+    abandoned: Abandoned
+    opted_out: Opted out
+  disqualification: {under_age: Under age, no_license: No driving licence, out_of_area: Out of area}
+  review:
+    age_unclear: Age unclear
+    license_unclear: Licence unclear
+    vehicle_unclear: Vehicle unclear
+    location_unclear: Location unclear
+    human_requested: Asked for a person
+    system_failure: Technical failure
+    abuse: Abusive language
+    recap_loop: Did not confirm the recap
+    post_close_correction: Correction after closing
+    engine_error: Internal error
+  flags:
+    surname_missing: Surname missing
+    name_unclear: Name unclear
+    start_date_normalised: Start date moved to today
+    human_requested: Asked for a person
+    post_close_correction: Correction after closing
+    system_failure: Technical failure
+    abuse: Abusive language
+    do_not_contact: Do not contact
+    engine_error: Internal error
+    correction_unclear: Correction not understood
+  stages:
+    consent: Consent
+    name: Name
+    age: Age
+    vehicle_license: Vehicle and licence
+    location: Location
+    availability: Availability
+    schedule: Schedule
+    experience: Experience
+    start_date: Start date
+    recap: Recap
+    scheduling: Scheduling
+  buckets: {high: High, medium: Medium, low: Low}
+  factor_reasons:
+    years_of_experience: Years of experience
+    known_platforms: Known platforms
+    availability_breadth: Availability
+    schedule_flexibility: Schedule flexibility
+    start_date_proximity: Early start
+    unknown: Unknown
+  languages: {es: Spanish, en: English}

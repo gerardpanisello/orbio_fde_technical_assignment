@@ -193,7 +193,7 @@ Rules:
 
 ## D. Phrasing
 
-- [ ] **T15 — Message catalog: models, loader, completeness.**
+- [x] **T15 — Message catalog: models, loader, completeness.**
   - `phrasing/catalog.py`: `RegisterCatalog`, `MessageCatalog`, `load_catalog(dir)`. Validation per plan §3.7: registers, all `PrimaryAction`/`Preface` types introspected from the engine unions, every `FieldName` ask, `ReaskReason`, `DisqualificationReason`, every enum label, and the placeholder whitelist.
   - Use small fixture catalogs in `tests/fixtures/messages/` for these tests.
   - Tests `tests/llm/phrasing/test_catalog.py`:
@@ -203,7 +203,7 @@ Rules:
     - a missing register → error.
   - *(FR-16)*
 
-- [ ] **T16 — Shipped templates (es-ES, es-MX, en).**
+- [x] **T16 — Shipped templates (es-ES, es-MX, en).**
   - Write `config/messages/es-ES.yaml`, `es-MX.yaml` and `en.yaml` following spec 001 §3/§7:
     - Sofi persona; greeting with the automated disclosure and `{privacy_url}`;
     - *tú*; one question; ≤ 300 chars (600 for the long kinds);
@@ -216,7 +216,7 @@ Rules:
     - the greeting contains "Sofi" and `{privacy_url}` in all registers.
   - *(FR-2, FR-12, FR-13, FR-16)*
 
-- [ ] **T17 — Labels + `render_template`.**
+- [x] **T17 — Labels + `render_template`.**
   - `phrasing/labels.py`: enum labels from the catalog, area labels from `service_areas` names ("Coyoacán (Ciudad de México)"), slot labels from `SlotDisplay`.
   - `phrasing/templates.py`: `RenderContext`, `render_template(action, ctx, catalog, engine_config)`: prefaces in engine order + primary; recap lines; numbered slots; greeting when `ctx.is_greeting`; FAQ answer or holding phrase.
   - Tests `tests/llm/phrasing/test_templates.py`:
@@ -225,6 +225,7 @@ Rules:
     - `redirect` + `ask_field(schedule)` → the redirect text comes first, one `?`; `answer_faq` without an answer → holding phrase; with an answer → included (**003:AC-15**, template part);
     - greeting → "Sofi", automated disclosure, the configured URL, one `?` (**003:AC-16**, template part).
   - *(FR-2, FR-12, FR-13, FR-16, FR-17)*
+  - *Note (impl):* the catalog gained three label entries the recap needs (`adult`, `birth_year`, `years`), and recruiter `summary` labels are required in es-ES and en only (es-MX has none). Rules shared by templates and the guard live in `phrasing/policy.py` (which actions ask, length caps) and `phrasing/language.py` (conservative stopword check), so a template can never break the rule the guard enforces. `pending_view` now takes the `MessageCatalog` (as plan §3.6 says) instead of T10's interim callable; `labels.field_values` is shared by the recap and the extractor's `current_values`. Re-ask options render as a suffix ` (Moto, Coche)` after the question; ambiguous places and slots render as numbered lists. Dates in the recap are `dd/mm/yyyy`.
 
 - [ ] **T18 — Quick replies.**
   - `phrasing/quick_replies.py`: `QuickReply`, `quick_replies_for(action, ctx, catalog, engine_config)` per plan §3.7.

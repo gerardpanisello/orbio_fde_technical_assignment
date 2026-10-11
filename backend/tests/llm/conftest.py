@@ -6,10 +6,11 @@ import pytest
 
 from sazon_screening.config import EngineConfig, load_config
 from sazon_screening.llm.client.fake import FakeLLMClient
+from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import LLMConfig, load_llm_config
 from tests.llm.support import FakeClock
-from tests.paths import FIXTURE_CONFIG_DIR
+from tests.paths import FIXTURE_CONFIG_DIR, SHIPPED_CONFIG_DIR
 
 # Monday, as in the engine tests: "el lunes" resolves to 2026-10-19.
 TODAY = date(2026, 10, 12)
@@ -52,3 +53,9 @@ def fake_clock() -> FakeClock:
 def scripted(fake_clock: FakeClock) -> FakeLLMClient:
     """A scripted fake on the fake clock: timeouts and latency move `fake_clock.now`."""
     return FakeLLMClient(mode="scripted", clock=fake_clock)
+
+
+@pytest.fixture(scope="session")
+def catalog() -> MessageCatalog:
+    """The SHIPPED templates: they are product text, and the ACs are about what ships."""
+    return load_catalog(SHIPPED_CONFIG_DIR / "messages")
