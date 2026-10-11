@@ -28,3 +28,7 @@ Captured 2026-10-11 during planning. These feed `process-design.md` (the Phase 1
 - Exact service zones per location; keep out-of-zone candidates for future openings?
 - Pay/conditions info the agent may share (FAQ scope).
 - Who owns the interview calendar (per location manager vs central recruiters)?
+- Follow-up cadence (number, delays, quiet hours): we propose 2h / 23h / 72h as a starting point.
+
+## Review notes (reviewer subagent, v1 → v2)
+Applied: exits for scheduling (`qualified_unscheduled`), override and corrections; abandoned/opt-out in diagram; do-not-contact list instead of "store nothing"; name regex allows accents/hyphens/apostrophes; experience sanity bound (≤ 40) instead of untestable `age − 16`; Spanish gender agreement ("la asistente"); one question in greeting; 24h-window slip rule; trimmed to ~2 pages.
