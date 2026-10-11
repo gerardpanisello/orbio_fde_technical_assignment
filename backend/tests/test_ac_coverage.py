@@ -7,8 +7,8 @@ from tests.paths import BACKEND_DIR
 SPEC = BACKEND_DIR.parent / "docs" / "specs" / "002-screening-engine" / "spec.md"
 TESTS_DIR = BACKEND_DIR / "tests"
 
-AC_IN_SPEC = re.compile(r"^- \[[ x]\] (AC-\d+b?):", re.MULTILINE)
-AC_MARKER = re.compile(r"""mark\.ac\(\s*["'](AC-\d+b?)["']\s*\)""")
+AC_IN_SPEC = re.compile(r"^- \[[ x]\] (AC-\d+[a-z]?):", re.MULTILINE)
+AC_MARKER = re.compile(r"""mark\.ac\(\s*["'](AC-\d+[a-z]?)["']\s*\)""")
 
 
 def spec_acs() -> set[str]:
@@ -24,9 +24,10 @@ def marked_acs() -> set[str]:
 
 
 def test_spec_lists_the_acceptance_criteria() -> None:
-    acs = spec_acs()
-    assert {"AC-1", "AC-26b", "AC-36"} <= acs
-    assert len(acs) == 37  # AC-1 ... AC-36 plus AC-26b
+    # Numbers must run 1..N without gaps; letter suffixes (AC-26b, AC-26c) are extras.
+    numbers = {int(re.sub(r"\D", "", ac.removeprefix("AC-"))) for ac in spec_acs()}
+    assert numbers == set(range(1, max(numbers) + 1))
+    assert {"AC-1", "AC-26b"} <= spec_acs()
 
 
 def test_every_acceptance_criterion_has_a_test() -> None:

@@ -35,6 +35,7 @@ from sazon_screening.engine.enums import (
 from sazon_screening.engine.inputs import CandidateTurn, Proposal
 from sazon_screening.engine.rules import (
     DISQUALIFYING_FIELDS,
+    HARD_RULE_FIELDS,
     hard_rule_failure,
     sync_license_requirement,
 )
@@ -140,37 +141,41 @@ def on_closed(
 ) -> CloseNeedsReview | ClosedAck:
     """A message on a closed conversation never changes screening data (FR-15).
 
-    One exception: after a disqualification, a different value for a field that caused
-    it is recorded next to the original, never applied (nobody can talk their way past a
-    knock-out rule). Only if that value would pass the rule does a recruiter review it
-    (AC-26b); "17 -> 16" is recorded but the candidate stays disqualified.
+    Corrections to hard-rule fields are recorded next to the original, never applied, and
+    a recruiter reviews them when they would change the outcome:
+    - disqualified: only if every hard rule would now pass (AC-26b); "17 -> 16" stays
+      disqualified, so nobody can talk their way past a knock-out rule;
+    - booked / qualified: if a hard rule would now fail (AC-26c); "actually I'm 16" is
+      never ignored, and never auto-disqualifies either.
     """
-    if s.status is Status.disqualified:
-        corrections = post_close_corrections(s, t, cfg, today)
-        new = [c for c, _ in corrections if c not in s.post_close_corrections]
-        s.post_close_corrections = [*s.post_close_corrections, *new]
-        if corrections and _would_pass(s, corrections, cfg):
-            add_flag(s, Flag.post_close_correction)
-            add_reason(s, ReviewReason.post_close_correction)
-            s.status = Status.needs_review
-            return CloseNeedsReview(reasons=list(s.needs_review_reasons))
+    if s.status is Status.disqualified and s.disqualification_reason is not None:
+        fields = DISQUALIFYING_FIELDS[s.disqualification_reason]
+        corrections = post_close_corrections(s, t, fields, cfg, today)
+        _record(s, corrections)
+        if corrections and _passes_hard_rules(s, corrections, cfg):
+            return _review_correction(s)
+    elif s.status in (Status.interview_scheduled, Status.qualified_unscheduled):
+        corrections = post_close_corrections(s, t, HARD_RULE_FIELDS, cfg, today)
+        if corrections and not _passes_hard_rules(s, corrections, cfg):
+            _record(s, corrections)
+            return _review_correction(s)
     if t.signals.faq_question:
         prefaces.append(AnswerFaq())
     return ClosedAck()
 
 
-def post_close_corrections(
-    s: ConversationState, t: CandidateTurn, cfg: EngineConfig, today: date
-) -> list[tuple[PostCloseCorrection, object]]:
-    """Valid, different values proposed for the fields behind the disqualification.
+Correction = tuple[PostCloseCorrection, object]  # as stored (JSON-ready), validated value
 
-    Returns each correction as stored (JSON-ready) plus the validated value, which
-    `_would_pass` needs to re-run the rule.
-    """
-    if s.disqualification_reason is None:
-        return []
-    fields = DISQUALIFYING_FIELDS[s.disqualification_reason]
-    corrections: list[tuple[PostCloseCorrection, object]] = []
+
+def post_close_corrections(
+    s: ConversationState,
+    t: CandidateTurn,
+    fields: frozenset[FieldName],
+    cfg: EngineConfig,
+    today: date,
+) -> list[Correction]:
+    """Valid values, different from the stored ones, proposed for `fields`."""
+    corrections: list[Correction] = []
     latest: dict[str, Proposal] = {p.field: p for p in t.proposals}
     for name in sorted(fields):
         proposal = latest.get(name.value)
@@ -188,16 +193,26 @@ def post_close_corrections(
     return corrections
 
 
-def _would_pass(
-    s: ConversationState,
-    corrections: list[tuple[PostCloseCorrection, object]],
-    cfg: EngineConfig,
+def _record(s: ConversationState, corrections: list[Correction]) -> None:
+    new = [record for record, _ in corrections if record not in s.post_close_corrections]
+    s.post_close_corrections = [*s.post_close_corrections, *new]
+
+
+def _review_correction(s: ConversationState) -> CloseNeedsReview:
+    add_flag(s, Flag.post_close_correction)
+    add_reason(s, ReviewReason.post_close_correction)
+    s.status = Status.needs_review
+    return CloseNeedsReview(reasons=list(s.needs_review_reasons))
+
+
+def _passes_hard_rules(
+    s: ConversationState, corrections: list[Correction], cfg: EngineConfig
 ) -> bool:
     """Would the candidate pass every hard rule with the corrected values?
 
-    Not just the rule that disqualified them: under-age AND no license, corrected only
-    on age, still fails. Evaluated on a throwaway copy: the real profile keeps the
-    original values.
+    Every rule, not only the one that disqualified them: under-age AND no license,
+    corrected only on age, still fails. Evaluated on a throwaway copy: the real profile
+    keeps the original values.
     """
     trial = s.model_copy(deep=True)
     for record, value in corrections:

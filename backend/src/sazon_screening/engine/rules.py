@@ -28,6 +28,8 @@ DISQUALIFYING_FIELDS: Final[dict[DisqualificationReason, frozenset[FieldName]]] 
     DisqualificationReason.no_license: frozenset({FieldName.has_license, FieldName.vehicle_type}),
     DisqualificationReason.out_of_area: frozenset({FieldName.location}),
 }
+# Every field a hard rule reads: a later change to one of these can change the outcome.
+HARD_RULE_FIELDS: Final[frozenset[FieldName]] = frozenset().union(*DISQUALIFYING_FIELDS.values())
 
 
 def known_vehicle(profile: Profile) -> VehicleType | None:

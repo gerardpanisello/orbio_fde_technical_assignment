@@ -17,6 +17,7 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
+from sazon_screening.engine.inputs import Proposal
 from sazon_screening.engine.state import PostCloseCorrection
 from tests.engine.builders import Convo, adult, age, avail, license, loc, vehicle
 
@@ -140,3 +141,46 @@ class TestClosedStatuses:
     def test_events_on_a_closed_conversation(self, config: EngineConfig, status: Status) -> None:
         c = Convo(config).advance_to_status(status)
         c.select_slot("s1").expect(ClosedAck).expect_status(status)
+
+
+BOOKED = [Status.interview_scheduled, Status.qualified_unscheduled]
+
+
+class TestCorrectionAfterBooking:
+    """FR-15: a qualified candidate who now fails a hard rule goes to a recruiter."""
+
+    @pytest.mark.ac("AC-26c")
+    @pytest.mark.parametrize("status", BOOKED)
+    @pytest.mark.parametrize(
+        ("proposal", "field"),
+        [
+            (age(16), FieldName.age),
+            (license(False), FieldName.has_license),
+            (loc("Zaragoza", known=True), FieldName.location),
+        ],
+        ids=["under_age", "no_license", "out_of_area"],
+    )
+    def test_failing_correction_goes_to_review(
+        self, config: EngineConfig, status: Status, proposal: Proposal, field: FieldName
+    ) -> None:
+        c = Convo(config).advance_to_status(status)
+        profile = c.state.profile.model_copy(deep=True)
+        slot = c.state.selected_slot_id
+        c.say(proposal, correction=True)
+        c.expect(CloseNeedsReview, reasons=[ReviewReason.post_close_correction])
+        c.expect_status(Status.needs_review)
+        assert Flag.post_close_correction in c.state.flags
+        assert c.state.profile == profile  # never applied
+        assert c.state.selected_slot_id == slot  # the recruiter decides about the booking
+        assert [pc.field for pc in c.state.post_close_corrections] == [field]
+        assert c.state.disqualification_reason is None
+
+    @pytest.mark.ac("AC-26c")
+    @pytest.mark.parametrize("status", BOOKED)
+    def test_correction_that_still_passes_changes_nothing(
+        self, config: EngineConfig, status: Status
+    ) -> None:
+        c = Convo(config).advance_to_status(status)
+        before = c.state.model_dump()
+        c.say(age(30), loc("Roma"), correction=True).expect(ClosedAck).expect_status(status)
+        assert c.state.model_dump() == before

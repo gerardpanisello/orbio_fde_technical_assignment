@@ -32,7 +32,8 @@ ALLOWED = (
     {(S.in_progress, target) for target in _FROM_IN_PROGRESS}
     | {(S.abandoned, target) for target in _FROM_IN_PROGRESS - {S.interview_scheduled}}
     | {(S.abandoned, S.in_progress)}
-    | {(S.disqualified, S.needs_review)}
+    | {(S.disqualified, S.needs_review)}  # post-close correction (AC-26b)
+    | {(S.interview_scheduled, S.needs_review), (S.qualified_unscheduled, S.needs_review)}  # AC-26c
     | {(closed, S.opted_out) for closed in Status if closed is not S.opted_out}
 )
 
