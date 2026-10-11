@@ -74,14 +74,23 @@ def start(
 def step(
     state: ConversationState, turn: TurnInput, config: EngineConfig, today: date
 ) -> tuple[ConversationState, EngineAction]:
-    """Evaluate one turn. Never raises (NFR-5): a bug sends the candidate to a recruiter."""
+    """Evaluate one turn. Never raises (NFR-5): a bug sends the candidate to a recruiter.
+
+    Two things survive even a bug: an opt-out is still honoured (with the purge), and an
+    opted-out conversation is never re-opened. `last_error` names the exception type so
+    the caller (004) can log it; the engine itself does no I/O.
+    """
     try:
         return step_unchecked(state, turn, config, today)
-    except Exception:
-        if state.status is Status.opted_out:  # never re-open an opted-out conversation
-            return state, finish(state, ClosedAck(), [], config)
+    except Exception as error:
         s = state.model_copy(deep=True)
-        primary = close_needs_review(s, ReviewReason.engine_error, flag=Flag.engine_error)
+        if s.status is Status.opted_out:
+            primary: PrimaryAction = ClosedAck()
+        elif isinstance(turn, CandidateTurn) and turn.signals.opt_out:
+            primary = opt_out(s)
+        else:
+            primary = close_needs_review(s, ReviewReason.engine_error, flag=Flag.engine_error)
+        s.last_error = type(error).__name__
         return s, finish(s, primary, [], config)
 
 

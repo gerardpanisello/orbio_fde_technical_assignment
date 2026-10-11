@@ -117,6 +117,7 @@ class ConversationState(_State):
     post_close_corrections: list[PostCloseCorrection] = []
     config_version: str = ""
     last_turn_on: date | None = None  # injected `today` of the last step (scoring reference)
+    last_error: str | None = None  # exception type caught by step()'s safety net, for 004 to log
 
 
 def add_flag(state: ConversationState, flag: Flag) -> None:

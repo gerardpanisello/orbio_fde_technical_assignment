@@ -65,6 +65,7 @@ def opt_out(s: ConversationState) -> CloseOptedOut:
         flags=[Flag.do_not_contact],
         config_version=s.config_version,
         last_turn_on=s.last_turn_on,
+        last_error=s.last_error,
     )
     for name in ConversationState.model_fields:
         setattr(s, name, getattr(purged, name))

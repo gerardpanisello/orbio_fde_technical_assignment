@@ -23,7 +23,7 @@ from sazon_screening.engine.enums import (
     Stage,
     Status,
 )
-from sazon_screening.engine.inputs import CandidateTurn
+from sazon_screening.engine.inputs import CandidateTurn, Signals
 from sazon_screening.engine.state import ConversationState, Experience, Profile
 from sazon_screening.engine.turn import start, step
 from tests.engine.builders import (
@@ -39,6 +39,7 @@ from tests.engine.builders import (
     vehicle,
 )
 from tests.engine.conftest import TODAY
+from tests.engine.privacy import leaked_state
 
 
 class TestStartAndConsent:
@@ -223,3 +224,29 @@ def test_happy_path_follows_the_stage_order(config: EngineConfig) -> None:
     profile = c.state.profile
     for slot_name in Profile.model_fields:
         assert getattr(profile, slot_name).status == FieldStatus.valid, slot_name
+
+
+class TestSafetyNet:
+    @pytest.fixture
+    def broken_engine(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        def broken(*_: object) -> None:
+            raise KeyError("bug")
+
+        monkeypatch.setattr(turn_module, "step_unchecked", broken)
+
+    @pytest.mark.usefixtures("broken_engine")
+    def test_bug_records_the_error_type(self, config: EngineConfig) -> None:
+        state, _ = start(config)
+        new_state, _ = step(state, CandidateTurn(), config, TODAY)
+        assert new_state.last_error == "KeyError"
+        assert state.last_error is None
+
+    @pytest.mark.usefixtures("broken_engine")
+    def test_opt_out_is_honoured_even_when_the_engine_fails(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.location).say(loc("El Carmen"))
+        turn = CandidateTurn(signals=Signals(opt_out=True))
+        new_state, action = step(c.state, turn, config, TODAY)
+        assert action.primary == CloseOptedOut()
+        assert new_state.status == Status.opted_out
+        assert leaked_state(new_state) == {}
+        assert new_state.last_error == "KeyError"
