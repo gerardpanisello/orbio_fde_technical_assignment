@@ -27,7 +27,9 @@ from sazon_screening.llm.client.retry import RetryPolicy
 from sazon_screening.vocab import Language
 
 LLM_CONFIG_FILE = "llm.yaml"
-# backend/src/sazon_screening/llm/settings.py -> repo root is four levels up from llm/.
+# The client-editable config/ lives at the repo root, not inside the package: ops edit
+# it without a release. From a checkout this default finds it (backend/src/sazon_screening/
+# llm/settings.py -> four levels up); an installed package sets SAZON_CONFIG_DIR instead.
 DEFAULT_CONFIG_DIR = Path(__file__).resolve().parents[4] / "config"
 LLMMode = Literal["fake", "anthropic"]
 _MODES: tuple[LLMMode, ...] = ("fake", "anthropic")
@@ -48,7 +50,7 @@ class Settings(_Frozen):
 
 
 def load_settings(environ: Mapping[str, str] = os.environ) -> Settings:
-    """Read LLM_MODE and ANTHROPIC_API_KEY. `.env` is loaded by `uv run --env-file`."""
+    """Read LLM_MODE, ANTHROPIC_API_KEY and SAZON_CONFIG_DIR (`uv run --env-file` loads .env)."""
     mode = environ.get("LLM_MODE", "").strip() or "fake"
     if mode not in _MODES:
         raise SettingsError(f"LLM_MODE must be 'fake' or 'anthropic', got {mode!r}")
@@ -58,9 +60,11 @@ def load_settings(environ: Mapping[str, str] = os.environ) -> Settings:
             "LLM_MODE=anthropic requires ANTHROPIC_API_KEY "
             "(put it in .env and run with `uv run --env-file ../.env ...`)"
         )
+    config_dir = environ.get("SAZON_CONFIG_DIR", "").strip()
     return Settings(
         llm_mode="anthropic" if mode == "anthropic" else "fake",
         anthropic_api_key=SecretStr(key) if key else None,
+        config_dir=Path(config_dir) if config_dir else DEFAULT_CONFIG_DIR,
     )
 
 

@@ -1,16 +1,21 @@
 """Fixtures for the LLM layer tests (plan §7.1)."""
 
 from datetime import date
+from typing import TYPE_CHECKING
 
 import pytest
 
 from sazon_screening.config import EngineConfig, load_config
 from sazon_screening.llm.client.fake import FakeLLMClient
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
+from sazon_screening.llm.pipeline import ScreeningAgent
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import LLMConfig, load_llm_config
 from tests.llm.support import FakeClock
 from tests.paths import FIXTURE_CONFIG_DIR, SHIPPED_CONFIG_DIR
+
+if TYPE_CHECKING:
+    from tests.llm.chat import Chat
 
 # Monday, as in the engine tests: "el lunes" resolves to 2026-10-19.
 TODAY = date(2026, 10, 12)
@@ -59,3 +64,22 @@ def scripted(fake_clock: FakeClock) -> FakeLLMClient:
 def catalog() -> MessageCatalog:
     """The SHIPPED templates: they are product text, and the ACs are about what ships."""
     return load_catalog(SHIPPED_CONFIG_DIR / "messages")
+
+
+@pytest.fixture
+def chat(
+    engine_config: EngineConfig,
+    llm_config: LLMConfig,
+    catalog: MessageCatalog,
+    prompts: PromptRegistry,
+) -> "Chat":
+    from tests.llm.chat import MEXICAN_PHONE, Chat  # avoids an import cycle
+
+    agent = ScreeningAgent(
+        client=FakeLLMClient(mode="rules", engine_config=engine_config),
+        engine_config=engine_config,
+        llm_config=llm_config,
+        catalog=catalog,
+        prompts=prompts,
+    )
+    return Chat(agent=agent, llm_config=llm_config, context=MEXICAN_PHONE)

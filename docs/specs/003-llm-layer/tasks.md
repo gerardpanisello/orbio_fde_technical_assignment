@@ -369,7 +369,7 @@ Rules:
     - A JSON decode error while parsing maps to `malformed`, a pydantic `ValidationError` to `schema_invalid`.
     - The pure functions are `build_kwargs`, `interpret_parsed`, `interpret_text` and `classify` (the plan's single `interpret(..., parsed=)` was split in two for typing). `AnthropicClient(sdk=...)` accepts a stand-in so the call paths are tested offline. `error_class` is the class name only: SDK messages can echo the request.
 
-- [ ] **T27 — End-to-end demo conversations, boundaries, performance.**
+- [x] **T27 — End-to-end demo conversations, boundaries, performance.**
   - Tests `tests/llm/test_demo_conversations.py` (rules fake, network guard on):
     - an ES conversation (MX number, CDMX/Coyoacán) from greeting to slot selection → `interview_scheduled`; every reply passes the guard;
     - an EN conversation that switches to ES mid-flow → replies in ES after the switch (**003:AC-21**).

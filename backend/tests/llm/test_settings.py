@@ -97,3 +97,8 @@ class TestLLMConfig:
         data["roles"]["extraction"]["model"] = "claude-sonnet-5-5"
         edit_yaml(config_dir, {"roles": data["roles"]})
         assert load_llm_config(config_dir).roles[Role.extraction].model == "claude-sonnet-5-5"
+
+
+def test_config_dir_can_be_set_for_an_installed_package(tmp_path: Path) -> None:
+    """Installed from a wheel, the repo's config/ is not next to the code: point at it."""
+    assert load_settings({"SAZON_CONFIG_DIR": str(tmp_path)}).config_dir == tmp_path
