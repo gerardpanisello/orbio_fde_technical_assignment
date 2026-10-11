@@ -96,7 +96,7 @@ Rules:
 
 ## B. Boundary models
 
-- [ ] **T7 — Inputs.**
+- [x] **T7 — Inputs.**
   - `engine/inputs.py`: `Unclear`/`UNCLEAR`, `StartDateExpr` union, `AgeAnswer` (at least one of `is_adult`/`age`), `LocationAnswer`, `ExperienceAnswer`, the 12 proposal models, the `Proposal` union, `Signals`, `TurnContext`, `CandidateTurn`, `SilenceExpired`, `SlotSelected`, `NoSlotFits`, `TurnInput`.
   - Tests `tests/engine/test_inputs.py`:
     - parse from plain dicts, the way 003 will send them (each proposal type, `{"kind": "unclear"}` values, each start-date kind);
@@ -104,8 +104,9 @@ Rules:
     - unknown field or extra keys → `ValidationError`;
     - `TypeAdapter(TurnInput).json_schema()` builds.
   - *(FR-2, FR-3, FR-22, ADR 0005)*
+  - *Note (impl):* `Unclear.kind` has no default (`UNCLEAR = Unclear(kind="unclear")`): otherwise an empty `{}` from the LLM would silently parse as an unclear answer. Proposal and start-date models default their `field`/`kind`, so `NameProposal(value=...)` and `Asap()` work in builders. `StartDateProposal.value` is one discriminated union that includes `Unclear`.
 
-- [ ] **T8 — State & actions.**
+- [x] **T8 — State & actions.**
   - `engine/state.py`: `Slot[T]`, `LocationValue`, `Experience`, `Profile`, `AreaRef`, `PendingAsk`, `PostCloseCorrection`, `ConversationState`, and the helpers `add_flag` / `add_reason` (sorted/ordered unique).
   - `engine/actions.py`: all primary actions, prefaces, `EngineAction`, and `register_for()`.
   - Tests `tests/engine/test_state_actions.py`:
@@ -114,6 +115,7 @@ Rules:
     - every action type serialises with its `type` tag;
     - `register_for` table: en→en; es + MX→es-MX; es + no country + hint MX→es-MX; es + nothing→default (**AC-32**, unit).
   - *(FR-4, FR-6)*
+  - *Note (impl):* `NoMessage` (`no_message`) added per the OQ-2 decision. `ConversationState.pending` defaults to `ask(consent)`. `register_for(..., *, default_country)` is keyword-only for the default. The `EngineAction.register` field triggers a Pydantic shadowing warning (`ABCMeta.register`, harmless); it is silenced locally so the contract keeps the name `register`. **For T21:** `ShowRecap(profile=...)` must get `profile.model_copy(deep=True)`, otherwise the action aliases the mutable state.
 
 ## C. Validators & rules
 
