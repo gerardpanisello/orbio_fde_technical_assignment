@@ -355,13 +355,14 @@ Rules:
 
 ## F. Robustness & close-out
 
-- [ ] **T29 — Property, purity and performance tests.**
+- [x] **T29 — Property, purity and performance tests.**
   - `tests/engine/strategies.py`: Hypothesis strategies for proposals (valid, invalid and `UNCLEAR`), signals, events and contexts.
   - `test_properties.py`: the invariants in plan §7.4 on `step_unchecked`, `derandomize=True`, `max_examples=300`.
   - `test_purity.py`: AST scan of `engine/`.
   - `test_performance.py`: < 10 ms mean per turn.
   - Fix any bug Hypothesis finds by adding a regular regression test **first**.
   - *(NFR-1, NFR-2, NFR-4, NFR-5)*
+  - *Note (impl):* purely random turns rarely get past consent, so each generated conversation starts with a random-length prefix of the canonical valid candidate (`builders.canonical_turns()`) followed by up to 40 random turns; a sampling run reached all 11 stages and all 7 statuses. The allowed-transition set adds `abandoned → {disqualified, needs_review, qualified_unscheduled, opted_out}`: a turn after silence resumes **and** is evaluated in the same step. Hypothesis (300 examples, `derandomize=True`) found no bugs, so no regression test was needed. The purity scan also forbids `sys`, `uuid`, `secrets`, `socket`, `subprocess`, `print` and `input`. Measured: ~0.2 ms per turn (limit 10 ms). The property test adds ~7 s to the suite.
 
 - [ ] **T30 — Public API & AC coverage gate.**
   - `engine/__init__.py` re-exports the public API (`start`, `step`, `build_record`, `score_candidate`, input/action/state/record models) with `__all__`.

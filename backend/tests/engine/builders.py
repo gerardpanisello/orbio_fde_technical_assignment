@@ -147,6 +147,17 @@ _CANONICAL_TURNS = (
 )
 
 
+def canonical_turns() -> list[CandidateTurn]:
+    """The canonical valid candidate as turn inputs (consent ... recap confirmed)."""
+    return [
+        CandidateTurn(
+            proposals=list(turn.proposals),
+            context=TurnContext(offered_slots=turn.offered_slots),
+        )
+        for turn in _CANONICAL_TURNS
+    ]
+
+
 class Convo:
     """Drives `step_unchecked` (so bugs are not hidden by the safety net) and records actions."""
 
