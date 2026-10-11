@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from sazon_screening.config import ConfigError
+from sazon_screening.llm.extraction.schema import ExtractionOutput
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import load_llm_config
 from tests.paths import SHIPPED_CONFIG_DIR
@@ -45,6 +46,19 @@ def test_sha_changes_when_the_text_changes(tmp_path: Path) -> None:
 def test_unknown_or_malformed_id_is_a_config_error(prompt_id: str) -> None:
     with pytest.raises(ConfigError, match="prompt"):
         PromptRegistry().load(prompt_id)
+
+
+def test_extraction_prompt_names_every_schema_field() -> None:
+    """Guards drift: a schema field the prompt never explains is a field the model guesses."""
+    text = PromptRegistry().load("extraction.v1").text
+    missing = [name for name in ExtractionOutput.model_fields if f"`{name}`" not in text]
+    assert missing == []
+
+
+def test_extraction_prompt_treats_candidate_text_as_data() -> None:
+    text = PromptRegistry().load("extraction.v1").text
+    for tag in ("<candidate_message>", "<pending_ask>", "<recent_messages>"):
+        assert tag in text
 
 
 @pytest.mark.ac("003:AC-25")

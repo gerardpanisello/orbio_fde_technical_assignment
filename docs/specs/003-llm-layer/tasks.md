@@ -121,7 +121,7 @@ Rules:
 
 ## C. Extraction
 
-- [ ] **T10 — `ExtractionOutput` schema + `PendingView`.**
+- [x] **T10 — `ExtractionOutput` schema + `PendingView`.**
   - `extraction/schema.py`: the plan §3.6 model, with every field `Field(description=…)`.
   - `extraction/pending.py`: `OptionView`, `PendingView`, `pending_view(state, engine_config, catalog_labels, slots)`. Until T17 exists, labels come from a minimal callable; inject it.
   - Tests `tests/llm/extraction/test_schema.py`:
@@ -135,8 +135,9 @@ Rules:
     - recap → `current_values` filled.
   - **OQ-1:** add a short note under spec 003 §6 AC-4 proposing the FR-9-consistent wording ("choice/slot id not offered → dropped, `UNCLEAR` for the pending field"), marked *pending human approval*. Tests follow FR-9.
   - *(FR-5, FR-6)*
+  - *Note (impl):* labels are injected as a plain callable `EnumLabel(group, value, language)` (groups `yes_no`, `vehicle_type`, `availability`, `schedule`, matching the catalog's `labels` keys); T17 provides it from the catalog. `SlotDisplay` lives in `llm/slots.py` (shared by extraction and phrasing, so neither imports the other for it). `area_label` was started in `phrasing/labels.py` (T17 extends that module). Per the 2026-10-11 decisions, no OQ-1 note was added (AC-4 is already reworded).
 
-- [ ] **T11 — Mapping I: knock-out fields, location, unclear, empty.**
+- [x] **T11 — Mapping I: knock-out fields, location, unclear, empty.**
   - `extraction/mapping.py`: `DroppedProposal`, `Mapped`, `to_turn_input()` with per-field builders for consent, name, age (incl. `birth_year`), vehicle, license and location. Add `unclear_fields` handling and the per-proposal `try/except ValidationError`.
   - Tests `tests/llm/extraction/test_mapping.py`:
     - zone "Coyoacán" + city "Ciudad de México" + real → `LocationProposal("Coyoacán, Ciudad de México", True)`, and `step()` resolves to `cdmx-coyoacan` (**003:AC-1**);
@@ -147,7 +148,7 @@ Rules:
     - consent "no" → `ConsentProposal(False)`.
   - *(FR-6 a–c, e; carry-over 1, 3)*
 
-- [ ] **T12 — Mapping II: profile, dates, confirmations, choices, slots, signals.**
+- [x] **T12 — Mapping II: profile, dates, confirmations, choices, slots, signals.**
   - Builders for availability, schedule, experience, start date (all 5 kinds), confirmation (only for confirm/recap/correction pending kinds), `chosen_option_id` (must be offered), `correction_target`, and the slot rule (plan §3.6 rule 6). Copy signals and language; put `faq_question` and `sentiment` into `Mapped`.
   - Tests:
     - `next_weekday(mon)` / `offset(2, weeks)` / `asap` / `day_month(3, 11)` keep their kind; `step()` gives 2026-10-19 for `mon` (**003:AC-2**);
@@ -159,8 +160,9 @@ Rules:
     - `no_experience` → `years="none"`; platforms without years → `years=None`;
     - `correction_target="location"` → `CorrectionFieldProposal(location)`.
   - *(FR-6 d–g, FR-7, FR-9 decision 4)*
+  - *Note (impl):* the per-field builders live in `extraction/builders.py` and `mapping.py` keeps the orchestration, the slot rule and the signals (each under ~200 lines). Small choices: an empty `availability`/`schedule` list means "not mentioned"; a `confirmation` outside a confirm/recap/correction ask is dropped with reason `no_confirmation_pending` (never mapped to consent, decision 7); `chosen_option_id` is ignored unless a choice or slot is pending; a blank `faq_question` is no question.
 
-- [ ] **T13 — Extractor service.**
+- [x] **T13 — Extractor service.**
   - `extraction/extractor.py`: `InboundMessage`, `TranscriptEntry`, `Skipped`, `ExtractionTrace`, `Extractor.extract()`.
     - Preprocessing: media kind or placeholder, whitespace, truncation.
     - User-content layout (plan §3.6) with tag neutralisation.
@@ -172,8 +174,9 @@ Rules:
     - whitespace → 0 calls, empty turn; 5 000 chars → the recorded `user` holds ≤ `max_message_chars` of message text, `trace.truncated`; `"<audio omitted>"` and `kind="media"` → `Skipped("media")`, 0 calls (**003:AC-8**, extractor part);
     - two different conversations → identical `system`; candidate text only inside `<candidate_message>` in `user`; a candidate `</candidate_message>` is neutralised (**003:AC-25**, extraction part).
   - *(FR-5, FR-9, FR-10, NFR-4)*
+  - *Note (impl):* `ExtractionTrace` is defined in `extractor.py` (as this task says; plan §2 lists it under `trace.py`, which T24 can re-export). `Extractor(client, config, prompts, sleep=anyio.sleep)` takes the retry sleep so tests run on the fake clock; `extract()` has an extra keyword `conversation_id` used only for the log line (`log_call`), and it logs every call itself. The AC-4 test also steps the engine with the failed turn and checks `reask_field(age, extraction_failed)` with the re-ask counts unchanged. An unknown enum value from the model (e.g. `vehicle_type: "spaceship"`) is `schema_invalid` (whole-turn failure), per OQ-1.
 
-- [ ] **T14 — Extraction prompt v1.**
+- [x] **T14 — Extraction prompt v1.**
   - Write `prompts/extraction.v1.md` (static), covering:
     - the role and the FR-8 "never" list;
     - unclear vs absent;
