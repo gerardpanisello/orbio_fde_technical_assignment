@@ -1,6 +1,6 @@
 # Grupo Sazón — Delivery Driver Screening: Process Design
 
-**Status:** Draft v2 · **Owner:** Gerard · **Date:** 2026-10-11 · Open questions for the client: [decisions.md](decisions.md)
+**Status:** Approved v2 · **Owner:** Gerard · **Date:** 2026-10-11 · Open questions for the client: [decisions.md](decisions.md)
 
 ## 1. Goal
 **Today:** 13 recruiters × ~15 calls/day ≈ 975 calls/week to handle ~1,000 applications. 60% of those calls go unanswered, and 80% of the remaining time is spent on candidates who can't be hired.
