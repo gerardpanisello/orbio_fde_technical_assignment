@@ -14,13 +14,15 @@ input  = proposals: {field: typed value | UNCLEAR}  +  signals {opt_out, wants_h
          faq_question, language, off_topic, abuse, extraction_failed}  +  context {country_hint}
        | event: silence_expired | slot_selected(id) | no_slot_fits
 action = one primary action (ask_field, reask_field, confirm_ambiguous, show_recap, offer_slots,
-         close_*, ...) + optional prefaces (answer_faq, ack_correction, redirect)
+         close_*, no_message, ...) + optional prefaces (answer_faq, ack_correction, redirect)
          + language + register. Never natural-language text.
 ```
 
 - The **LLM layer** turns free text into `input` (extraction) and turns `action` into text (phrasing).
 - **Timers and calendars** (008/010) send `event`s; they never mutate state directly.
 - Structured values that need world knowledge are pre-digested by the extractor: `is_known_place` for locations, and start-date expressions (`asap`, `absolute`, `offset`, `next_weekday`). The engine does the deterministic part (matching, date arithmetic).
+
+- `no_message` is an explicit action (e.g. after `silence_expired`), so channels never infer "don't send" from context.
 
 ## Alternatives considered
 - **LLM returns the next question directly:** natural, but untestable and the flow can drift.
