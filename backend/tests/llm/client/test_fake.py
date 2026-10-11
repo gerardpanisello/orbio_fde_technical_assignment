@@ -131,6 +131,6 @@ def test_script_can_be_given_up_front() -> None:
     assert fake.pending(Role.summary) == 1
 
 
-def test_rules_mode_is_not_built_yet() -> None:
-    with pytest.raises(NotImplementedError):
+def test_rules_mode_needs_the_engine_config() -> None:
+    with pytest.raises(ValueError, match="engine config"):
         FakeLLMClient(mode="rules")

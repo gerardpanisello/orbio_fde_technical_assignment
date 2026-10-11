@@ -56,6 +56,15 @@ class NarrativeOutput(BaseModel):
     )
 
 
+class SummaryPayload(BaseModel):
+    """Structured input for the rule-based fake (never sent to the API)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: Status
+    language: Language
+
+
 class Summary(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -147,6 +156,7 @@ class Summarizer:
             max_tokens=self._role.max_tokens,
             effort=self._role.effort,
             timeout_s=self._role.timeout_s,
+            payload=SummaryPayload(status=record.status, language=language),
         )
 
     def _summary(

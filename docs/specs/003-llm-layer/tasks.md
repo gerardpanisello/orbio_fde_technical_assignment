@@ -307,7 +307,7 @@ Rules:
 
 ## F. Pipeline, rules fake, Anthropic client, demo
 
-- [ ] **T24 — `ScreeningAgent` pipeline.**
+- [x] **T24 — `ScreeningAgent` pipeline.**
   - `llm/trace.py` (`TurnContextIn`, `TurnTrace`, `TurnResult`) and `llm/pipeline.py`: `start_conversation`, `handle_message`, `handle_event`, `summarise`, per plan §3.9 / §4:
     - one `Deadline` per turn;
     - media → no engine step;
@@ -326,8 +326,9 @@ Rules:
     - extraction timeouts eating the budget (fake clock) → the template reply still arrives, `fake_clock.now ≤ 15` (**003:AC-26**);
     - an extraction failure → `reask` with the re-ask count unchanged in state (**003:AC-4**, pipeline part).
   - *(FR-1..4, NFR-1, NFR-3)*
+  - *Note (impl):* `start_conversation` takes no `today` (the engine's `start()` needs none) but takes `language`. The engine now also exports `register_for` (no behaviour change): a media reply has no engine action, and its register must follow the same rule. A media turn's phrasing trace is `outcome="skipped"` with `template_key="media_not_supported"`. `TurnTrace.prompts` holds `"<id>@<sha>"` per role. The trace latency is measured on the injected clock, so it is deterministic in tests.
 
-- [ ] **T25 — Rules fake + factory + `build_agent`.**
+- [x] **T25 — Rules fake + factory + `build_agent`.**
   - `client/fake_rules.py`: `extract(payload) -> ExtractionOutput` (plan §3.4 rules, ES/EN, pending-aware, using config city/zone names).
   - Rules mode in `FakeLLMClient`: extraction → rules; phrasing → `render_template`; summary → a fixed narrative.
   - `client/factory.py`: `make_client(settings, …)`; `anthropic_client` is imported lazily, only in anthropic mode.
@@ -343,6 +344,7 @@ Rules:
   - Tests `tests/llm/client/test_factory.py`: fake by default; anthropic without a key → `SettingsError` (**003:AC-22**).
   - Test `test_pipeline.py`: the injection message through the rules agent → `Redirect` preface, status `in_progress`, the text only in `calls[0].user` (**003:AC-9**).
   - *(FR-24)*
+  - *Note (impl):* rules mode works on a structured `payload` that every stage now attaches to its request (`ExtractionPayload`, `PhrasingPayload` = the template text, `SummaryPayload`); it is excluded from dumps and never sent. So the fake never re-parses prompts, and in rules mode phrasing is exactly the reviewed template. `FakeLLMClient(mode="rules", engine_config=...)` needs the engine config for place and platform names. Rules-mode calls report zero tokens and zero cost. Until T26, `make_client` refused anthropic mode with a `SettingsError`.
 
 - [ ] **T26 — Anthropic client (offline-tested).**
   - `client/anthropic_client.py`: `AnthropicClient` (`AsyncAnthropic(api_key, max_retries=0)`), plus the pure `build_kwargs`, `interpret`, `classify` (plan §3.3).

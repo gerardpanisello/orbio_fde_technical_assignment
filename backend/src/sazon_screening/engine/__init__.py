@@ -34,6 +34,7 @@ from sazon_screening.engine.actions import (
     ReaskField,
     Redirect,
     ShowRecap,
+    register_for,
 )
 from sazon_screening.engine.inputs import (
     UNCLEAR,
@@ -142,6 +143,7 @@ __all__ = [
     "Unclear",
     "VehicleProposal",
     "build_record",
+    "register_for",
     "score_candidate",
     "start",
     "step",

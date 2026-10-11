@@ -59,6 +59,14 @@ class ExtractionTrace(_Frozen):
     sentiment: Sentiment | None = None
 
 
+class ExtractionPayload(_Frozen):
+    """Structured input for the rule-based fake (never sent to the API)."""
+
+    text: str
+    pending: PendingView
+    language: Language
+
+
 ExtractionResult = tuple[Mapped | Skipped, ExtractionTrace, list[CallTelemetry]]
 
 
@@ -147,6 +155,7 @@ class Extractor:
             max_tokens=self._role.max_tokens,
             effort=self._role.effort,
             timeout_s=self._role.timeout_s,
+            payload=ExtractionPayload(text=text, pending=pending, language=language),
         )
 
     def _user_content(
