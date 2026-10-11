@@ -65,7 +65,11 @@ FACT_KEYS = (
     "selected_slot",
     "do_not_contact",
     "none",
+    "overview",
+    "sentiment",
+    "observations",
 )
+SENTIMENTS = ("positive", "neutral", "negative")
 
 
 class _Strict(BaseModel):
@@ -186,9 +190,12 @@ class SummaryLabels(_Strict):
     buckets: dict[Bucket, str]
     factor_reasons: dict[FactorReason, str]
     languages: dict[Language, str]
+    sentiments: dict[str, str]
 
     @model_validator(mode="after")
     def _every_value(self) -> Self:
+        if set(self.sentiments) != set(SENTIMENTS):
+            raise ValueError(f"summary.sentiments: needs exactly {', '.join(SENTIMENTS)}")
         missing_facts = [key for key in FACT_KEYS if not self.facts.get(key)]
         if missing_facts:
             raise ValueError(f"summary.facts: missing {', '.join(missing_facts)}")

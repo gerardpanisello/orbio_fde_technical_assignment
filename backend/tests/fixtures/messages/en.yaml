@@ -109,6 +109,9 @@ summary:
     selected_slot: selected_slot
     do_not_contact: do_not_contact
     none: none
+    overview: overview
+    sentiment: sentiment
+    observations: observations
   status:
     in_progress: Status in_progress
     interview_scheduled: Status interview_scheduled
@@ -169,3 +172,7 @@ summary:
   languages:
     es: Language es
     en: Language en
+  sentiments:
+    positive: positive
+    neutral: neutral
+    negative: negative

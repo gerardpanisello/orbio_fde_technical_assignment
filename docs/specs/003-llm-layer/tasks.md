@@ -282,14 +282,14 @@ Rules:
 
 ## E. Summary
 
-- [ ] **T22 — Record facts.**
+- [x] **T22 — Record facts.**
   - `summary/facts.py`: `SummaryFact`, `render_facts(record, language, catalog, engine_config)`. Status, reasons, score/bucket/top-3 factors, field values (labels), flags, candidate language, drop-off stage. Opted-out → only status, drop-off stage, do-not-contact.
   - Tests `tests/llm/summary/test_facts.py`:
     - one record per terminal status except opted-out (via `Convo.advance_to_status`) → the facts' values equal the record values, in es and in en (**003:AC-17**, facts part);
     - opted-out → no name, no field values (reuse `tests/engine/privacy.py`) (**003:AC-18**, facts part).
   - *(FR-19, FR-19b, FR-21)*
 
-- [ ] **T23 — Summarizer.**
+- [x] **T23 — Summarizer.**
   - `summary/summarizer.py`: `NarrativeOutput`, `Summary`, `summary_due(previous, new)`, `Summarizer.summarise(record, transcript, language=None)`:
     - opted-out → no call;
     - the transcript is truncated to `summary_max_transcript_chars` and delimited;
@@ -303,6 +303,7 @@ Rules:
     - `language="en"` → English fact labels; default from config is `es`;
     - `summary_due` table: in_progress→abandoned true; abandoned→in_progress false; abandoned→interview_scheduled true; disqualified→needs_review true; same→same false (**003:AC-20**, unit).
   - *(FR-18..22)*
+  - *Note (impl):* the narrative section needed recruiter labels too (`overview`, `sentiment`, `observations` fact keys and a `sentiments` map in the catalog's `summary` section). The summary call is not on the candidate's clock, so it gets its own `Deadline` (role timeout × attempts + 5 s) on an injectable clock. The `Summarizer` takes `clock=`/`sleep=` like the other stages.
 
 ## F. Pipeline, rules fake, Anthropic client, demo
 

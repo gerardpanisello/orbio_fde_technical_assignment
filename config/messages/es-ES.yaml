@@ -102,6 +102,9 @@ summary:
     selected_slot: Entrevista
     do_not_contact: No contactar
     none: "—"
+    overview: Resumen
+    sentiment: Tono
+    observations: Observaciones
   status:
     in_progress: En curso
     interview_scheduled: Entrevista agendada
@@ -154,3 +157,4 @@ summary:
     start_date_proximity: Incorporación próxima
     unknown: Desconocido
   languages: {es: Español, en: Inglés}
+  sentiments: {positive: Positivo, neutral: Neutro, negative: Negativo}
