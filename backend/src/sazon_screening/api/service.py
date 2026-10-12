@@ -22,6 +22,7 @@ from sazon_screening.api import repo
 from sazon_screening.api.db import Sessions
 from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
 from sazon_screening.api.slots import SlotProvider
+from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord, ConversationState, build_record
 from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
 from sazon_screening.llm.pipeline import Event, ScreeningAgent
@@ -138,6 +139,10 @@ class ScreeningService:
             return await self._save_turn(conversation_id, None, result, now)
 
     # --- summaries (FR-8, FR-14) ---------------------------------------------------------
+
+    @property
+    def engine_config(self) -> EngineConfig:
+        return self._agent.engine_config
 
     @property
     def default_summary_language(self) -> Language:

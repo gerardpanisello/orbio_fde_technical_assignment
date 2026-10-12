@@ -252,3 +252,11 @@ class Analytics(BaseModel):
 class SeedOut(BaseModel):
     created: int
     ids: list[str]
+
+
+# --- labels for config ids ---------------------------------------------------------------
+
+
+class AreaLabels(BaseModel):
+    cities: dict[str, str]  # city id -> display name
+    zones: dict[str, str]  # zone id -> display name
