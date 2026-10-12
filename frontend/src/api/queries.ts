@@ -9,6 +9,7 @@ export const keys = {
   summary: (id: string, lang: Language) => ['summary', id, lang] as const,
   analytics: ['analytics'] as const,
   areas: ['areas'] as const,
+  zones: ['zones'] as const,
 }
 
 /** City/zone display names from config/service_areas.yaml; they never change at runtime. */
@@ -26,4 +27,9 @@ export function useCandidate(id: string | null) {
 
 export function useAnalytics() {
   return useQuery({ queryKey: keys.analytics, queryFn: api.analytics })
+}
+
+/** Staffing per served area (spec 015); edits on the Zonas page update this cache. */
+export function useZones() {
+  return useQuery({ queryKey: keys.zones, queryFn: api.listZones })
 }

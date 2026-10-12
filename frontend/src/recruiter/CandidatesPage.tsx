@@ -1,13 +1,14 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { api } from '../api/client'
-import { keys, useAnalytics, useAreaLabels } from '../api/queries'
+import { keys, useAnalytics, useAreaLabels, useZones } from '../api/queries'
 import { Icon } from '../components/Icon'
 import { Kpi } from '../components/Kpi'
 import { EmptyState, ErrorState, Loading, Spinner } from '../components/States'
 import { clearFilters, filtersFromParams, hasActiveFilters, withParam } from '../lib/filters'
 import { formatPercent } from '../lib/format'
 import { STATUS_META } from '../lib/status'
+import { DEFICIT_BELOW_PCT, OCCUPANCY_BANDS, zoneTotals } from '../lib/zones'
 import { CandidateDrawer } from './CandidateDrawer'
 import { CandidateTable } from './CandidateTable'
 import { FilterBar, SortSelect } from './FilterBar'
@@ -19,6 +20,8 @@ export function CandidatesPage() {
   const filters = filtersFromParams(params)
   const areas = useAreaLabels()
   const analytics = useAnalytics()
+  const zones = useZones()
+  const navigate = useNavigate()
   const list = useQuery({
     queryKey: keys.candidates(filters),
     queryFn: () => api.listCandidates(filters),
@@ -32,6 +35,7 @@ export function CandidatesPage() {
     setFilter('status', filters.status === status ? null : status)
 
   const a = analytics.data
+  const z = zones.data ? zoneTotals(zones.data) : null
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 lg:px-8">
       <PageHeader
@@ -49,7 +53,7 @@ export function CandidatesPage() {
         }
       />
 
-      <section className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4" aria-label="Indicadores">
+      <section className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5" aria-label="Indicadores">
         <Kpi
           label="Candidaturas"
           value={a ? String(a.total) : '—'}
@@ -73,6 +77,20 @@ export function CandidatesPage() {
           onClick={() => toggleStatus('needs_review')}
           active={filters.status === 'needs_review'}
           loading={analytics.isLoading}
+        />
+        <Kpi
+          label="Zonas con déficit"
+          dot={OCCUPANCY_BANDS.short.color}
+          value={z ? String(z.deficit) : zones.isError ? '!' : '—'}
+          hint={
+            z
+              ? `<${DEFICIT_BELOW_PCT} % de plantilla · ${z.waitlisted} en lista de espera`
+              : zones.isError
+                ? 'No se pudo cargar'
+                : undefined
+          }
+          onClick={() => navigate('/recruiter/zonas')}
+          loading={zones.isLoading}
         />
         <Kpi
           label="Tasa de finalización"

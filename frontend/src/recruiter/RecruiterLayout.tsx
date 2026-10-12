@@ -8,6 +8,7 @@ import { Spinner } from '../components/States'
 const NAV: { to: string; label: string; icon: IconName; end?: boolean }[] = [
   { to: '/recruiter', label: 'Candidatos', icon: 'users', end: true },
   { to: '/recruiter/entrevistas', label: 'Entrevistas', icon: 'calendar' },
+  { to: '/recruiter/zonas', label: 'Zonas', icon: 'map' },
   { to: '/recruiter/analitica', label: 'Analítica', icon: 'chart' },
 ]
 
