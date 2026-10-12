@@ -1,0 +1,42 @@
+# Grupo Sazón: follow-ups when a candidate goes silent mid-screening (spec 008).
+#
+# Ops can edit this file without touching code. The agent reads it at startup and
+# refuses to start if something is wrong, with a message naming the key.
+# Bump `version` on every change.
+#
+# The values below are the SUGGESTED starting point from the process design (spec 001
+# §5): 2 h, 23 h and 72 h after the candidate's last message, then `abandoned` 24 h
+# after the last reminder. Grupo Sazón approves or changes them.
+#
+# What you can change:
+#   - enabled: false stops every follow-up (and the automatic `abandoned`).
+#   - follow_ups: one line per reminder. `after` is the time since the candidate's LAST
+#     message (e.g. 30m, 2h, 3d), strictly increasing. `kind` is `nudge`, and the last
+#     one must be `last_call` (it says it is the last reminder).
+#   - abandon_after: time after the last reminder with no answer -> `abandoned`.
+#   - quiet_hours: no reminders between `start` and `end`, in the candidate's local
+#     time (the city's timezone in service_areas.yaml, else the country default below).
+#     A reminder due inside them is sent when they end.
+#   - whatsapp_window_hours: WhatsApp's session window. A reminder sent later than this
+#     after the candidate's last message must be an approved WhatsApp template.
+#   - default_timezones: per country, when the candidate's city is not known yet.
+#   - tick_seconds: how often the agent checks for due reminders.
+version: "2026-10-12.1"
+
+enabled: true
+tick_seconds: 30
+
+follow_ups:
+  - {after: 2h, kind: nudge}
+  - {after: 23h, kind: nudge}
+  - {after: 72h, kind: last_call}
+
+abandon_after: 24h
+
+quiet_hours: {start: "22:00", end: "09:00"}
+
+whatsapp_window_hours: 24
+
+default_timezones:
+  ES: Europe/Madrid
+  MX: America/Mexico_City

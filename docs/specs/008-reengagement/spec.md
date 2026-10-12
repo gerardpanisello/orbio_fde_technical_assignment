@@ -36,7 +36,7 @@
 - AC-9 (frontend) Chat shows follow-ups arriving (polling); live panel "Avanzar tiempo" button; detail shows follow-ups; analytics card "Re-engagement".
 
 ## 5. Tasks
-- [ ] T1 Config + pure policy + tests (AC-1..AC-4).
+- [x] T1 Config + pure policy + tests (AC-1..AC-4).
 - [ ] T2 Templates + follow-up phrasing (AC-7).
 - [ ] T3 DB fields + scheduler loop + lock + idempotency + resume tracking (AC-5, AC-6).
 - [ ] T4 Dev `advance` endpoint, time scale, analytics (AC-8); seed a few nudged/reactivated conversations.
