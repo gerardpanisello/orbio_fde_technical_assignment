@@ -10,7 +10,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 1 | `001-process-design` | **Phase 1 doc** (1–2 pages): stages, branching, personality, fields & validation, edge cases, outcomes, tone. Doc: [process-design.md](specs/001-process-design/process-design.md) | ✅ |
 | 2 | `002-screening-engine` | Domain models, state machine, validators, zones config, scoring — pure Python, no LLM, fully tested | ✅ |
 | 3 | `003-llm-layer` | Claude client, extraction (structured output), reply generation, language detection, summary, retries/fallbacks — live-tested | ✅ |
-| 4 | `004-persistence-api` | SQLite models, conversation/candidate storage, FastAPI endpoints | 🟨 |
+| 4 | `004-persistence-api` | SQLite models, conversation/candidate storage, FastAPI endpoints, demo seed — spec: [004](specs/004-persistence-api/spec.md) | ✅ |
 | 5 | `005-candidate-chat-ui` | WhatsApp-style web chat — spec: [005-006-frontend](specs/005-006-frontend/spec.md) | ⬜ |
 | 6 | `006-recruiter-dashboard` | Pipeline, candidate detail (summary/transcript/JSON), actions, CSV export | ⬜ |
 | 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone | ⬜ |

@@ -111,3 +111,45 @@ Configuration: `config/llm.yaml` (models, timeouts, length caps, prices) and
 edit them without a release. System prompts ship inside the package
 (`sazon_screening/llm/prompts/`). An installed package finds `config/` through
 `SAZON_CONFIG_DIR`.
+
+## API (spec 004): run the backend
+
+FastAPI app over the agent, with SQLite storage. Offline by default (`LLM_MODE=fake`).
+
+```
+uv run uvicorn sazon_screening.api.app:create_app --factory --reload   # http://127.0.0.1:8000
+curl -X POST "http://127.0.0.1:8000/api/dev/seed?n=40"                 # demo data (APP_ENV=dev)
+```
+
+Interactive docs at `http://127.0.0.1:8000/docs`. With the real model:
+`uv run --env-file ../.env uvicorn sazon_screening.api.app:create_app --factory --reload`.
+
+Environment (all optional; see `../.env.example`):
+
+| Variable | Default | |
+|---|---|---|
+| `LLM_MODE` | `fake` | `anthropic` needs `ANTHROPIC_API_KEY` |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./sazon.db` | any async SQLAlchemy URL (Postgres: `postgresql+asyncpg://...`) |
+| `APP_ENV` | `dev` | `prod` turns off `/api/dev/*` (403) |
+| `CORS_ORIGINS` | `http://localhost:5173` | comma-separated (the Vite dev server) |
+
+| Method and path | What it does |
+|---|---|
+| `GET /api/health` | liveness, LLM mode, env |
+| `POST /api/conversations` `{language?, country_hint?}` | new chat; 201 with Sofi's greeting |
+| `POST /api/conversations/{id}/messages` `{text}` | one turn; `{reply: {text, quick_replies} \| null, status}`. A button tap is sent as its label |
+| `GET /api/conversations/{id}` | transcript + status (chat reload) |
+| `GET /api/candidates?status=&country=&city=&bucket=&recruiter_status=&q=&sort=` | dashboard list; `sort` is `score`, `updated` or `created`, `-` for descending (default `-updated`) |
+| `GET /api/candidates/export.csv` | same filters, as CSV |
+| `GET /api/candidates/{id}` | record (002 schema), summary, transcript, traces, recruiter actions |
+| `GET /api/candidates/{id}/summary?lang=es\|en` | stored summary; generated once if missing (409 while in progress) |
+| `POST /api/candidates/{id}/actions` `{action, note?}` | `shortlist`, `reject`, `hire`, `override`, `note` (audit log) |
+| `GET /api/analytics` | funnel totals, completion, drop-off, durations, reasons, fallback rate, cost |
+| `POST /api/dev/seed?n=40&seed=42` | simulated candidates through the real pipeline (dev only) |
+| `POST /api/dev/conversations/{id}/silence` | the candidate goes quiet: `silence_expired` (dev only, until 008) |
+
+How it fits together: routes are thin; `api/service.py` runs a turn (load state, call the
+agent with no DB session open, save state + messages + trace in one transaction) under
+a per-conversation lock; `api/repo.py` holds all the SQL. Tables are created at startup
+(no migrations yet). Interview slots come from `config/interview_slots.yaml` until real
+calendars (010). Opting out purges the record (engine) and redacts the stored transcript.

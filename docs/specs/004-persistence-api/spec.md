@@ -68,4 +68,16 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 - [x] T5 Candidate list/detail/summary/actions/export (AC-5..AC-7, AC-10).
 - [x] T6 Analytics (AC-8).
 - [x] T7 Seed + dev routes (AC-9).
-- [ ] T8 README (how to run the API: `uv run fastapi dev src/sazon_screening/api/app.py`), CLAUDE.md commands, ROADMAP.
+- [x] T8 README (how to run the API: `uv run uvicorn sazon_screening.api.app:create_app --factory --reload`), CLAUDE.md commands, ROADMAP.
+
+## 6. Implementation notes (deviations and decisions made while building)
+- **Run command:** a uvicorn factory (`create_app --factory`) instead of `fastapi dev`, so importing the module never reads the environment or opens a DB.
+- **Opt-out:** besides the engine's purge, the stored transcript, quick replies and traces of an opted-out conversation are redacted, and old summaries deleted (AC-10).
+- **Summaries:** deleted whenever the status changes (they describe the past); a summary that finishes after a newer turn changed the status is dropped. `GET summary` on an in-progress conversation is 409.
+- **Recruiter override** is a boolean column `recruiter_override` (not inside `flags_json`, which mirrors the engine's flags). `override` on any status other than disqualified/needs_review, and shortlist/hire/override on an opted-out candidate, are 409.
+- **Extra columns** for SQL filtering/aggregation: `disqualification_reason`, `drop_off_stage` (conversations); `cost_usd`, `latency_ms`, `fallback` (messages); `cost_usd` (summaries). When the agent sends nothing, the turn trace is stored on the candidate's message.
+- **Slots:** `config/interview_slots.yaml` (working days × fixed times); slot ids are ISO local date-times (`2026-10-13T10:00`).
+- **Seed:** content and timestamps are deterministic for a seed and a `now`; conversation ids are random UUIDs so seeding twice never collides. The rules fake learned a few real unserved places (Zaragoza, Bilbao, Vallecas, Querétaro, Tijuana) so the offline demo can reach `out_of_area`.
+- **SQLite** runs in WAL mode (`synchronous=NORMAL`, foreign keys on).
+- **Analytics:** `finished` = interview_scheduled, qualified_unscheduled, disqualified or needs_review; country is `unknown` until a location or phone prefix is known.
+- **Known limits:** the per-conversation lock is in-process (one instance) and its dict is never pruned; no auth on recruiter routes; no migrations.

@@ -37,7 +37,7 @@ Backend (run inside `backend/`):
 - Install: `uv sync`
 - Tests: `uv run pytest` · Lint: `uv run ruff check . && uv run ruff format --check .` · Types: `uv run mypy`
 - All checks: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -q`
-- API (from phase 4): `uv run fastapi dev`
+- API: `uv run uvicorn sazon_screening.api.app:create_app --factory --reload` (docs at `/docs`; demo data: `POST /api/dev/seed`)
 
 Frontend (from phase 5, inside `frontend/`): `npm run dev`
 
