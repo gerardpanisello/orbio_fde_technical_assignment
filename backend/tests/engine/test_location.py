@@ -109,6 +109,28 @@ class TestExactMatch:
     def test_zone_with_its_city_resolves_to_the_zone(self, config: EngineConfig, text: str) -> None:
         assert ref_ids(match(text, config)) == ["cdmx-coyoacan"]
 
+    @pytest.mark.parametrize(
+        "text",
+        ["colonia Roma, CDMX", "Col. Roma", "en la colonia Roma", "barrio de Roma", "zona Roma"],
+    )
+    def test_place_type_words_around_a_zone_are_ignored(
+        self, config: EngineConfig, text: str
+    ) -> None:
+        """Found by the sample conversations: "colonia Roma, CDMX" was out of area."""
+        assert ref_ids(match(text, config)) == ["cdmx-cuauhtemoc"]
+
+    @pytest.mark.parametrize("text", ["barrio de Chamberí, Madrid", "el barrio Chamberí"])
+    def test_place_type_words_in_spain(self, config: EngineConfig, text: str) -> None:
+        assert ref_ids(match(text, config)) == ["mad-chamberi"]
+
+    def test_a_name_that_starts_with_an_article_still_matches_whole(
+        self, config: EngineConfig
+    ) -> None:
+        assert ref_ids(match("El Carme", config)) == ["val-el-carmen"]
+
+    def test_place_words_alone_are_no_match(self, config: EngineConfig) -> None:
+        assert match("colonia", config) == NoMatch()
+
     def test_city_alone_is_city_only(self, config: EngineConfig) -> None:
         result = match("Madrid", config)
         assert isinstance(result, Matched)
@@ -256,6 +278,10 @@ class TestValidateLocation:
         assert (value.country, value.city, value.zone) == (Country.ES, "madrid", None)
         assert not value.in_service_area
         assert hard_rule_failure(state_at(value), config) == "out_of_area"
+
+    def test_colonia_of_a_served_zone_is_in_area(self, config: EngineConfig) -> None:
+        value = accepted_value(validate("colonia Roma, CDMX", config, known=True))
+        assert (value.city, value.zone, value.in_service_area) == ("cdmx", "cdmx-cuauhtemoc", True)
 
     @pytest.mark.ac("AC-11")
     def test_known_unserved_place_is_out_of_area(self, config: EngineConfig) -> None:

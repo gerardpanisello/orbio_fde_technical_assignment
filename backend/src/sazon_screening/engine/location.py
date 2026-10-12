@@ -80,6 +80,16 @@ def match_location(
     return result
 
 
+# Generic words candidates put around a place name: "colonia Roma", "barrio de Chamberí",
+# "Col. Roma". Language vocabulary, not a business rule (which places we serve stays in
+# config). Matched on normalised text, and only tried when the segment as written misses,
+# so a configured name that starts with one of these words still matches whole.
+_PLACE_WORDS = re.compile(
+    r"^(?:(?:en|la|el|los|las|mi|in|the|my)\s+)*"
+    r"(?:colonia|col|barrio|bo|zona|distrito|alcaldia|delegacion|municipio|fraccionamiento"
+    r"|fracc|neighbou?rhood|district|area)"
+    r"(?:\s+(?:de|del|la|el|of|the))*\s+"
+)
 _MIN_FUZZY_LENGTH = 4  # shorter words are one typo away from too many places
 _FUZZY_TIE_MARGIN = 2.0  # keep every candidate this close to the best score
 
@@ -90,9 +100,9 @@ def _match(
     whole, *parts = _segments(text)
     if not whole:
         return NoMatch()
-    if hits := _hits(whole, entries, threshold):
+    if hits := _hits_bare(whole, entries, threshold):
         return _combine(hits, [], index)
-    part_hits = [(part, _hits(part, entries, threshold)) for part in parts]
+    part_hits = [(part, _hits_bare(part, entries, threshold)) for part in parts]
     return _combine(
         [hit for _, hits in part_hits for hit in hits],
         [part for part, hits in part_hits if not hits],
@@ -106,6 +116,14 @@ def _segments(text: str) -> list[str]:
     pieces = [normalise(piece) for piece in re.split(r"[,/()]", text)]
     parts = [p for p in dict.fromkeys(pieces) if p and p != whole]
     return [whole, *parts]
+
+
+def _hits_bare(segment: str, entries: tuple[IndexEntry, ...], threshold: int) -> list[IndexEntry]:
+    """Hits for the segment as written; failing that, without generic place words."""
+    if hits := _hits(segment, entries, threshold):
+        return hits
+    bare = _PLACE_WORDS.sub("", segment, count=1)
+    return _hits(bare, entries, threshold) if bare and bare != segment else []
 
 
 def _hits(segment: str, entries: tuple[IndexEntry, ...], threshold: int) -> list[IndexEntry]:
