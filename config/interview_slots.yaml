@@ -1,0 +1,12 @@
+# Grupo Sazón: interview slots the agent offers to qualified candidates (spec 004 FR-5).
+#
+# Ops can edit this file without touching code. It is read at startup.
+# A stand-in until real recruiter calendars are connected (spec 010).
+#
+# What you can change:
+#   - working_days: how many working days (Monday to Friday) ahead to offer, from tomorrow.
+#   - times: interview times offered on each of those days (24 h, local time of the city).
+#     Every day x every time is one slot, so keep the total small: it is a chat list.
+version: "2026-10-12.1"
+working_days: 3
+times: ["10:00", "17:00"]

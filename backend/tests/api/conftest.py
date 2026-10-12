@@ -9,14 +9,39 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
 
+from sazon_screening.api.app import create_app
 from sazon_screening.api.db import Sessions, create_tables, make_engine, make_sessions
+from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
+from sazon_screening.api.slots import load_slot_provider
 from sazon_screening.config import EngineConfig, load_config
-from sazon_screening.llm.settings import Settings
+from sazon_screening.llm.client.fake import FakeLLMClient
+from sazon_screening.llm.phrasing.catalog import load_catalog
+from sazon_screening.llm.pipeline import ScreeningAgent
+from sazon_screening.llm.prompts import PromptRegistry
+from sazon_screening.llm.settings import Settings, load_llm_config
 from tests.paths import SHIPPED_CONFIG_DIR
 
 START = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)  # a Monday
+
+# A Spanish candidate in Madrid, from consent to a booked interview (shipped config).
+HAPPY_PATH = [
+    "sí",
+    "Me llamo Lucía Martín",
+    "tengo 27",
+    "moto",
+    "sí",
+    "vivo en Chamberí, Madrid",
+    "tiempo completo",
+    "tardes",
+    "3 años en Glovo",
+    "el lunes",
+    "sí",
+    "1",
+]
 
 
 @pytest.fixture
@@ -60,3 +85,41 @@ async def sessions(settings: AppSettings) -> AsyncIterator[Sessions]:
     await create_tables(engine)
     yield make_sessions(engine)
     await engine.dispose()
+
+
+@pytest.fixture
+def fake_client(shipped_config: EngineConfig) -> FakeLLMClient:
+    """Rules mode: keyword extraction, template phrasing; `.calls` records every request."""
+    return FakeLLMClient(mode="rules", engine_config=shipped_config)
+
+
+@pytest.fixture
+def agent(fake_client: FakeLLMClient, shipped_config: EngineConfig) -> ScreeningAgent:
+    return ScreeningAgent(
+        client=fake_client,
+        engine_config=shipped_config,
+        llm_config=load_llm_config(SHIPPED_CONFIG_DIR),
+        catalog=load_catalog(SHIPPED_CONFIG_DIR / "messages"),
+        prompts=PromptRegistry(),
+    )
+
+
+@pytest.fixture
+def service(agent: ScreeningAgent, sessions: Sessions, clock: TickingClock) -> ScreeningService:
+    return ScreeningService(agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), clock)
+
+
+@pytest.fixture
+async def app(
+    settings: AppSettings, agent: ScreeningAgent, clock: TickingClock
+) -> AsyncIterator[FastAPI]:
+    app = create_app(settings, agent=agent, clock=clock)
+    async with app.router.lifespan_context(app):  # ASGITransport does not run the lifespan
+        yield app
+
+
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client

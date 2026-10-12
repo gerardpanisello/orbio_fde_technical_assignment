@@ -63,8 +63,8 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 ## 5. Tasks
 - [x] T1 deps (`fastapi`, `uvicorn`, `sqlalchemy[asyncio]`, `aiosqlite`, `httpx` for tests), settings (`DATABASE_URL`, `APP_ENV`, CORS origins), app factory + health. 
 - [x] T2 DB models + repo + test fixtures (temp SQLite, fake agent).
-- [ ] T3 Slot provider + `service.py` turn orchestration with lock + background summary (AC-1..AC-4).
-- [ ] T4 Conversation routes (AC-1..AC-4).
+- [x] T3 Slot provider + `service.py` turn orchestration with lock + background summary (AC-1..AC-4).
+- [x] T4 Conversation routes (AC-1..AC-4).
 - [ ] T5 Candidate list/detail/summary/actions/export (AC-5..AC-7, AC-10).
 - [ ] T6 Analytics (AC-8).
 - [ ] T7 Seed + dev routes (AC-9).

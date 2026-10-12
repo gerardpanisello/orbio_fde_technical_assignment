@@ -92,6 +92,11 @@ class ScreeningAgent:
         """The rules in force, e.g. for `build_record` at the caller."""
         return self._engine_config
 
+    @property
+    def default_summary_language(self) -> Language:
+        """The recruiters' language (`llm.yaml`): 004 stores this summary after each close."""
+        return self._config.summary_default_language
+
     # --- the three entry points --------------------------------------------------------
 
     async def start_conversation(
