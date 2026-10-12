@@ -15,7 +15,12 @@ from sazon_screening.api.seed import PERSONAS, seed
 from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
 from sazon_screening.api.slots import load_slot_provider
+from sazon_screening.config import EngineConfig
+from sazon_screening.llm.client.fake import FakeLLMClient
+from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
+from sazon_screening.llm.prompts import PromptRegistry
+from sazon_screening.llm.settings import load_llm_config
 from tests.api.conftest import START, TickingClock
 from tests.paths import SHIPPED_CONFIG_DIR
 
@@ -138,3 +143,40 @@ async def test_silence_route_abandons_and_summarises(client: AsyncClient) -> Non
     summary = await client.get(f"/api/candidates/{created['id']}/summary")
     assert summary.json()["status"] == "abandoned"
     assert (await client.post("/api/dev/conversations/nope/silence")).status_code == 404
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-9")
+async def test_seed_uses_the_server_agent_unless_mode_fake(
+    settings: AppSettings, shipped_config: EngineConfig, clock: TickingClock
+) -> None:
+    """The seed runs on the server's agent (the real model with `--env-file ../.env`);
+    `?mode=fake` seeds offline with the rules agent and never touches the server's client."""
+    server_client = FakeLLMClient(mode="rules", engine_config=shipped_config)
+    server_client.name = "server-model"  # stands in for the real model
+    server_agent = ScreeningAgent(
+        client=server_client,
+        engine_config=shipped_config,
+        llm_config=load_llm_config(SHIPPED_CONFIG_DIR),
+        catalog=load_catalog(SHIPPED_CONFIG_DIR / "messages"),
+        prompts=PromptRegistry(),
+    )
+    app = create_app(settings, agent=server_agent, clock=clock)
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            fake = await client.post("/api/dev/seed", params={"n": 3, "mode": "fake"})
+            assert fake.status_code == 201
+            assert server_client.calls == []
+            rows = (await client.get("/api/candidates")).json()
+            assert len(rows) == 3
+            detail = (await client.get(f"/api/candidates/{fake.json()['ids'][0]}")).json()
+            assert "fake-rules" in str(detail)
+
+            default = await client.post("/api/dev/seed", params={"n": 1})
+            assert default.status_code == 201
+            assert server_client.calls != []  # the server's own agent ran the turns
+            detail = (await client.get(f"/api/candidates/{default.json()['ids'][0]}")).json()
+            assert "server-model" in str(detail)
+
+            assert (await client.post("/api/dev/seed", params={"mode": "x"})).status_code == 422

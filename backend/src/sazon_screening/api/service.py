@@ -81,6 +81,10 @@ class ScreeningService:
     def now(self) -> datetime:
         return self._clock()
 
+    def with_agent(self, agent: ScreeningAgent) -> "ScreeningService":
+        """The same database, slots and clock behind another agent (the offline demo seed)."""
+        return ScreeningService(agent, self._sessions, self._slots, self._clock)
+
     # --- candidate side ------------------------------------------------------------------
 
     async def start_conversation(

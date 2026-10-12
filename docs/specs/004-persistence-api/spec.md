@@ -23,7 +23,7 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 - FR-11 `GET /api/analytics` → totals by status, completion rate, drop-off by stage, median duration, disqualification reasons, fallback rate, avg cost per screening, by country (feeds 006/011).
 
 **Demo / dev**
-- FR-12 `POST /api/dev/seed?n=40` (only when `APP_ENV=dev`) → creates N simulated conversations with the **fake** LLM (varied personas: qualified, each disqualifier, abandoned at different stages, needs_review, EN speakers), spread over the last 14 days, so the dashboard has data. Deterministic with a seed.
+- FR-12 `POST /api/dev/seed?n=40` (only when `APP_ENV=dev`) → creates N simulated conversations through the server's own agent (the real model when the API runs with `LLM_MODE=anthropic`; `?mode=fake` forces the offline rules agent) (varied personas: qualified, each disqualifier, abandoned at different stages, needs_review, EN speakers), spread over the last 14 days, so the dashboard has data. Deterministic with a seed.
 - FR-13 `POST /api/dev/conversations/{id}/silence` (dev) → sends `silence_expired` (until 008 adds timers).
 
 **Cross-cutting**

@@ -118,7 +118,8 @@ FastAPI app over the agent, with SQLite storage. Offline by default (`LLM_MODE=f
 
 ```
 uv run uvicorn sazon_screening.api.app:create_app --factory --reload   # http://127.0.0.1:8000
-curl -X POST "http://127.0.0.1:8000/api/dev/seed?n=40"                 # demo data (APP_ENV=dev)
+curl -X POST "http://127.0.0.1:8000/api/dev/seed?n=40"                 # demo data (APP_ENV=dev), server's LLM mode
+curl -X POST "http://127.0.0.1:8000/api/dev/seed?n=40&mode=fake"       # demo data, always offline (free)
 ```
 
 Interactive docs at `http://127.0.0.1:8000/docs`. With the real model:
@@ -145,7 +146,7 @@ Environment (all optional; see `../.env.example`):
 | `GET /api/candidates/{id}/summary?lang=es\|en` | stored summary; generated once if missing (409 while in progress) |
 | `POST /api/candidates/{id}/actions` `{action, note?}` | `shortlist`, `reject`, `hire`, `override`, `note` (audit log) |
 | `GET /api/analytics` | funnel totals, completion, drop-off, durations, reasons, fallback rate, cost |
-| `POST /api/dev/seed?n=40&seed=42` | simulated candidates through the real pipeline (dev only) |
+| `POST /api/dev/seed?n=40&seed=42[&mode=fake]` | simulated candidates through the real pipeline and the server's agent; `mode=fake` forces the offline rules agent (dev only) |
 | `POST /api/dev/conversations/{id}/silence` | the candidate goes quiet: `silence_expired` (dev only, until 008) |
 
 How it fits together: routes are thin; `api/service.py` runs a turn (load state, call the
