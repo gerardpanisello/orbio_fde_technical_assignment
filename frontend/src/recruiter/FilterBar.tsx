@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AreaLabels, CandidateFilters } from '../api/client'
 import { Icon } from '../components/Icon'
-import { COUNTRY, RECRUITER_STATUS } from '../lib/labels'
+import { CHANNEL, COUNTRY, RECRUITER_STATUS } from '../lib/labels'
 import { hasActiveFilters } from '../lib/filters'
 import { BUCKET_META, STATUS_META, STATUS_ORDER } from '../lib/status'
 
@@ -89,6 +89,8 @@ export function FilterBar({
         options={Object.entries(BUCKET_META).map(([k, m]) => [k, m.label])} />
       <Select label="Gestión" value={filters.recruiter_status} onChange={(v) => onChange('recruiter_status', v)}
         options={Object.entries(RECRUITER_STATUS)} />
+      <Select label="Canal" value={filters.channel} onChange={(v) => onChange('channel', v)}
+        options={Object.entries(CHANNEL)} />
       {hasActiveFilters(filters) && (
         <button type="button" className="btn-ghost" onClick={onClear}>
           <Icon name="x" /> Limpiar

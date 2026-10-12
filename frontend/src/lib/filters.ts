@@ -1,7 +1,7 @@
 import type { CandidateFilters, SortKey } from '../api/client'
 
 /** The filter bar lives in the URL (?status=…&q=…), so a filtered view survives reloads and can be shared. */
-export const FILTER_KEYS = ['status', 'country', 'city', 'bucket', 'recruiter_status', 'q'] as const
+export const FILTER_KEYS = ['status', 'country', 'city', 'bucket', 'recruiter_status', 'channel', 'q'] as const
 export const DEFAULT_SORT: SortKey = '-score' // FR-8: highest priority first
 
 export function filtersFromParams(params: URLSearchParams): CandidateFilters {

@@ -16,7 +16,7 @@ import { EmptyState, ErrorState, Loading } from '../components/States'
 import { formatDuration, formatPercent, formatUsd } from '../lib/format'
 import { rankQuestions } from '../lib/faq'
 import { buildFunnel } from '../lib/funnel'
-import { COUNTRY, DISQUALIFICATION, STAGE } from '../lib/labels'
+import { CHANNEL, COUNTRY, DISQUALIFICATION, STAGE } from '../lib/labels'
 import { STATUS_META, STATUS_ORDER } from '../lib/status'
 import { PageHeader, SeedButton } from './common'
 
@@ -149,7 +149,21 @@ function Dashboard({ a, refreshing }: { a: Analytics; refreshing: boolean }) {
           )}
         </ChartCard>
 
-        <ByCountry a={a} />
+        <StatusMix
+          title="Estado por país"
+          note="«Sin país»: aún no se conocía la ubicación ni el prefijo del teléfono."
+          dimension="País"
+          groups={a.by_country}
+          labels={COUNTRY_LABEL}
+        />
+
+        <StatusMix
+          title="Estado por canal"
+          note="Chat web (simulado) frente a WhatsApp real (spec 016)."
+          dimension="Canal"
+          groups={a.by_channel}
+          labels={CHANNEL}
+        />
 
         <FaqCard faq={a.faq} />
 
@@ -342,28 +356,43 @@ function HBars({ data, labelWidth }: { data: Datum[]; labelWidth: number }) {
 
 const COUNTRY_LABEL: Record<string, string> = { ...COUNTRY, unknown: 'Sin país' }
 
-/** Status mix per country: stacked bars in the shared status colours, with a legend. */
-function ByCountry({ a }: { a: Analytics }) {
-  const countries = Object.keys(a.by_country).sort((x, y) =>
+type StatusCounts = { [S in Status]?: number }
+
+/** Status mix per group (country, channel): stacked bars in the shared status colours. */
+function StatusMix({
+  title,
+  note,
+  dimension,
+  groups: byGroup,
+  labels,
+}: {
+  title: string
+  note: string
+  dimension: string
+  groups: Record<string, StatusCounts>
+  labels: Record<string, string>
+}) {
+  const groups = Object.keys(byGroup).sort((x, y) =>
     x === 'unknown' ? 1 : y === 'unknown' ? -1 : x.localeCompare(y),
   )
-  const present = STATUS_ORDER.filter((s) => countries.some((c) => (a.by_country[c][s] ?? 0) > 0))
-  const data = countries.map((c) => ({
-    label: `${COUNTRY_LABEL[c] ?? c} (${Object.values(a.by_country[c]).reduce((x, y) => x + y, 0)})`,
-    ...Object.fromEntries(present.map((s) => [s, a.by_country[c][s] ?? 0])),
+  const total = (g: string) => Object.values(byGroup[g]).reduce((x, y) => (x ?? 0) + (y ?? 0), 0)
+  const present = STATUS_ORDER.filter((s) => groups.some((g) => (byGroup[g][s] ?? 0) > 0))
+  const data = groups.map((g) => ({
+    label: `${labels[g] ?? g} (${total(g)})`,
+    ...Object.fromEntries(present.map((s) => [s, byGroup[g][s] ?? 0])),
   }))
 
   return (
     <ChartCard
-      title="Estado por país"
-      note="«Sin país»: aún no se conocía la ubicación ni el prefijo del teléfono."
+      title={title}
+      note={note}
       className="lg:col-span-2"
       table={{
-        head: ['País', ...present.map((s) => STATUS_META[s].label), 'Total'],
-        rows: countries.map((c) => [
-          COUNTRY_LABEL[c] ?? c,
-          ...present.map((s) => String(a.by_country[c][s] ?? 0)),
-          String(Object.values(a.by_country[c]).reduce((x, y) => x + y, 0)),
+        head: [dimension, ...present.map((s) => STATUS_META[s].label), 'Total'],
+        rows: groups.map((g) => [
+          labels[g] ?? g,
+          ...present.map((s) => String(byGroup[g][s] ?? 0)),
+          String(total(g)),
         ]),
       }}
     >

@@ -34,5 +34,5 @@ Meta **WhatsApp Cloud API** (test phone number, up to 5 verified recipients, fre
 - [x] T1 Settings + Graph API client (httpx, typed payload builders for text/buttons/list/template/read) + fake client for tests.
 - [x] T2 DB: `conversations.channel`, phone column (lookup), processed WhatsApp message ids, do-not-contact; service: find-or-create by phone; outbound delivery hook used by turns and re-engagement.
 - [x] T3 Webhook routes (verify, signature, background processing, dedupe) + inbound mapping (FR-4).
-- [ ] T4 Analytics/list: channel field + filter; frontend: channel badge + filter (small; coordinate — the voice agent also touches frontend, keep changes to `src/lib/status.ts`-like shared files minimal).
+- [x] T4 Analytics/list: channel field + filter; frontend: channel badge + filter (small; coordinate — the voice agent also touches frontend, keep changes to `src/lib/status.ts`-like shared files minimal).
 - [ ] T5 `docs/whatsapp-setup.md`, README/ROADMAP; live test with Gerard's credentials when available.

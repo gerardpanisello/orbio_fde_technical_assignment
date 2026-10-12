@@ -300,6 +300,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/whatsapp/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Webhook
+         * @description AC-1: echo `hub.challenge` when the verify token matches; 403 otherwise.
+         */
+        get: operations["verify_webhook_api_whatsapp_webhook_get"];
+        put?: never;
+        /** Receive Webhook */
+        post: operations["receive_webhook_api_whatsapp_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/voice/status": {
         parameters: {
             query?: never;
@@ -436,6 +457,12 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            /** By Channel */
+            by_channel: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
             faq: components["schemas"]["FaqAnalytics"];
             reengagement: components["schemas"]["ReengagementAnalytics"];
         };
@@ -532,6 +559,11 @@ export interface components {
             /** Start Date */
             start_date: string | null;
             language: components["schemas"]["Language"];
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "web" | "whatsapp";
             /** Interview Slot */
             interview_slot: string | null;
             /**
@@ -1025,6 +1057,13 @@ export interface components {
             /** Model Id */
             model_id: string | null;
         };
+        /** WebhookAck */
+        WebhookAck: {
+            /** Received */
+            received: number;
+            /** Accepted */
+            accepted: number;
+        };
         /**
          * ZoneOut
          * @description One served area: a zone, or a city served as a whole (then `id == city`).
@@ -1211,6 +1250,7 @@ export interface operations {
                 city?: string | null;
                 bucket?: components["schemas"]["Bucket"] | null;
                 recruiter_status?: ("new" | "shortlisted" | "rejected" | "hired") | null;
+                channel?: ("web" | "whatsapp") | null;
                 q?: string | null;
                 sort?: "score" | "-score" | "updated" | "-updated" | "created" | "-created";
             };
@@ -1248,6 +1288,7 @@ export interface operations {
                 city?: string | null;
                 bucket?: components["schemas"]["Bucket"] | null;
                 recruiter_status?: ("new" | "shortlisted" | "rejected" | "hired") | null;
+                channel?: ("web" | "whatsapp") | null;
                 q?: string | null;
                 sort?: "score" | "-score" | "updated" | "-updated" | "created" | "-created";
             };
@@ -1584,6 +1625,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_webhook_api_whatsapp_webhook_get: {
+        parameters: {
+            query?: {
+                "hub.mode"?: string;
+                "hub.verify_token"?: string;
+                "hub.challenge"?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    receive_webhook_api_whatsapp_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAck"];
                 };
             };
         };

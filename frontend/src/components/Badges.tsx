@@ -1,5 +1,5 @@
-import type { Bucket, RecruiterStatus, Status } from '../api/client'
-import { RECRUITER_STATUS } from '../lib/labels'
+import type { Bucket, CandidateRow, RecruiterStatus, Status } from '../api/client'
+import { CHANNEL, RECRUITER_STATUS } from '../lib/labels'
 import { BUCKET_META, STATUS_META } from '../lib/status'
 
 /** Status = coloured dot + label on a soft tint; text stays ink so it is always readable. */
@@ -48,6 +48,21 @@ export function RecruiterTag({ status, override }: { status: RecruiterStatus; ov
     >
       {RECRUITER_STATUS[status]}
       {override && ' (manual)'}
+    </span>
+  )
+}
+
+/** Spec 016: a WhatsApp candidate gets a green tag; the web chat (the default) a quiet one. */
+export function ChannelBadge({ channel }: { channel: CandidateRow['channel'] }) {
+  const whatsapp = channel === 'whatsapp'
+  return (
+    <span
+      title={whatsapp ? 'Habla con Sofi por WhatsApp' : 'Habla con Sofi en el chat web'}
+      className={`inline-flex items-center rounded border px-1.5 py-px text-[11px] font-medium whitespace-nowrap ${
+        whatsapp ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-stone-200 text-stone-500'
+      }`}
+    >
+      {CHANNEL[channel]}
     </span>
   )
 }

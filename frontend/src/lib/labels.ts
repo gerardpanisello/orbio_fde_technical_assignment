@@ -7,6 +7,12 @@ import type { ActionName, AreaLabels, RecruiterStatus } from '../api/client'
 
 type S = components['schemas']
 
+/** Spec 016: where the candidate talks to Sofi. */
+export const CHANNEL: Record<S['CandidateRow']['channel'], string> = {
+  web: 'Chat web',
+  whatsapp: 'WhatsApp',
+}
+
 export const VEHICLE: Record<S['VehicleType'], string> = {
   motorbike: 'Moto',
   car: 'Coche',

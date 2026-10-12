@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CandidateDetail } from '../api/client'
 import { useAreaLabels, useCandidate } from '../api/queries'
-import { PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
+import { ChannelBadge, PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
 import { Icon } from '../components/Icon'
 import { Reasons } from '../components/Reasons'
 import { RecordFields } from '../components/RecordFields'
@@ -101,6 +101,7 @@ function DrawerBody({
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <StatusBadge status={candidate.status} size="md" />
+          <ChannelBadge channel={candidate.channel} />
           {candidate.bucket && <PriorityPill bucket={candidate.bucket} score={candidate.score} />}
           <RecruiterTag status={candidate.recruiter_status} override={candidate.recruiter_override} />
           {candidate.interview_slot && (

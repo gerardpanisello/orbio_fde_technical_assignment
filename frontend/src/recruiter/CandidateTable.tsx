@@ -1,5 +1,5 @@
 import type { AreaLabels, CandidateRow } from '../api/client'
-import { PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
+import { ChannelBadge, PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
 import { formatDate, formatSlot, timeAgo } from '../lib/format'
 import { AVAILABILITY, DISQUALIFICATION, VEHICLE, list, placeLabel } from '../lib/labels'
 
@@ -65,6 +65,7 @@ export function CandidateTable({
                     <span className="text-stone-400 italic">Sin nombre</span>
                   )}
                   <RecruiterTag status={row.recruiter_status} override={row.recruiter_override} />
+                  {row.channel === 'whatsapp' && <ChannelBadge channel={row.channel} />}
                 </div>
                 {row.vehicle_type && (
                   <div className="text-xs text-stone-500">{VEHICLE[row.vehicle_type]}</div>

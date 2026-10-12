@@ -25,3 +25,13 @@ describe('filters <-> URL <-> API query', () => {
     expect(hasActiveFilters(filtersFromParams(clearFilters(params)))).toBe(false)
   })
 })
+
+describe('channel filter (spec 016)', () => {
+  it('round-trips the channel through the URL and the API query', () => {
+    const filters = filtersFromParams(new URLSearchParams('channel=whatsapp'))
+    expect(filters).toEqual({ channel: 'whatsapp', sort: '-score' })
+    expect(toQueryString(filters)).toBe('?channel=whatsapp&sort=-score')
+    expect(hasActiveFilters(filters)).toBe(true)
+    expect(clearFilters(new URLSearchParams('channel=web')).toString()).toBe('')
+  })
+})
