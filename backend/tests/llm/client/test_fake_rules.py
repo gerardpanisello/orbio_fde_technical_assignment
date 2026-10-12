@@ -44,6 +44,16 @@ def rules(engine_config: EngineConfig) -> RuleExtractor:
             asking(FieldName.location),
             {"location_zone": "Coyoacán", "location_city": "CDMX", "location_is_real_place": True},
         ),
+        (
+            "vivo en Zaragoza",  # a real place we do not serve: the out-of-area demo (004 seed)
+            asking(FieldName.location),
+            {"location_city": "vivo en Zaragoza", "location_is_real_place": True},
+        ),
+        (
+            "Narnia",
+            asking(FieldName.location),
+            {"location_city": "Narnia", "location_is_real_place": None},
+        ),
         ("fines de semana", asking(FieldName.availability), {"availability": ["weekends"]}),
         ("por las tardes", asking(FieldName.schedule), {"schedule": ["afternoon"]}),
         (

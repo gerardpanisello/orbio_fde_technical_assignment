@@ -8,10 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite>=0.22.1",
     "anthropic>=1.13.0",
+    "fastapi>=0.143.0",
     "pydantic>=2.14.0",
     "pyyaml>=6.0.3",
+    "sqlalchemy[asyncio]>=2.1.4",
     "tzdata>=2026.5",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [build-system]
@@ -20,11 +24,14 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "hypothesis>=6.169.0",
+    "jsonschema>=4.26.0",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
+    "types-jsonschema>=4.26.0.20261006",
     "types-pyyaml>=6.0.12.20260906",
 ]
 

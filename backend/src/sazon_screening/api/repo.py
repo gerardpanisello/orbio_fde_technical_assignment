@@ -1,0 +1,155 @@
+"""Queries: the only module with SQL. Plain functions over an `AsyncSession`.
+
+The caller owns the transaction (`async with sessions.begin()`), so one turn's writes
+(state, both messages) commit together or not at all.
+"""
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Literal
+
+from sqlalchemy import ColumnElement, Integer, Select, delete, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
+
+REDACTED = "[deleted: the candidate opted out]"
+
+# --- conversations ---------------------------------------------------------------------
+
+
+async def get_conversation(session: AsyncSession, conversation_id: str) -> Conversation | None:
+    return await session.get(Conversation, conversation_id)
+
+
+def add(session: AsyncSession, row: Conversation | Message | RecruiterAction) -> None:
+    session.add(row)
+
+
+# --- messages --------------------------------------------------------------------------
+
+
+async def list_messages(session: AsyncSession, conversation_id: str) -> Sequence[Message]:
+    query = select(Message).where(Message.conversation_id == conversation_id).order_by(Message.id)
+    return (await session.scalars(query)).all()
+
+
+async def redact_messages(session: AsyncSession, conversation_id: str) -> None:
+    """Opt-out (002 FR-11): the transcript and traces hold PII, so blank them out."""
+    await session.execute(
+        update(Message)
+        .where(Message.conversation_id == conversation_id)
+        .values(text=REDACTED, quick_replies_json=[], trace_json=None)
+    )
+
+
+# --- summaries -------------------------------------------------------------------------
+
+
+async def get_summary(
+    session: AsyncSession, conversation_id: str, language: str
+) -> SummaryRow | None:
+    return await session.get(SummaryRow, (conversation_id, language))
+
+
+async def save_summary(session: AsyncSession, row: SummaryRow) -> None:
+    await session.merge(row)  # insert or replace (same conversation + language)
+
+
+async def delete_summaries(session: AsyncSession, conversation_id: str) -> None:
+    await session.execute(delete(SummaryRow).where(SummaryRow.conversation_id == conversation_id))
+
+
+# --- recruiter actions -----------------------------------------------------------------
+
+
+async def list_actions(session: AsyncSession, conversation_id: str) -> Sequence[RecruiterAction]:
+    query = (
+        select(RecruiterAction)
+        .where(RecruiterAction.conversation_id == conversation_id)
+        .order_by(RecruiterAction.id)
+    )
+    return (await session.scalars(query)).all()
+
+
+# --- candidate list (FR-6, FR-10) ------------------------------------------------------
+
+SortKey = Literal["score", "-score", "updated", "-updated", "created", "-created"]
+
+
+@dataclass(frozen=True)
+class CandidateFilters:
+    status: str | None = None
+    country: str | None = None
+    city: str | None = None
+    bucket: str | None = None
+    recruiter_status: str | None = None
+    q: str | None = None  # part of the name, any case
+    sort: SortKey = "-updated"
+
+
+async def list_candidates(
+    session: AsyncSession, filters: CandidateFilters
+) -> Sequence[Conversation]:
+    query = select(Conversation)
+    for column, value in (
+        (Conversation.status, filters.status),
+        (Conversation.country, filters.country),
+        (Conversation.city, filters.city),
+        (Conversation.bucket, filters.bucket),
+        (Conversation.recruiter_status, filters.recruiter_status),
+    ):
+        if value:
+            query = query.where(column == value)
+    if filters.q:
+        query = query.where(func.lower(Conversation.full_name).contains(filters.q.lower()))
+    return (await session.scalars(_sorted(query, filters.sort))).all()
+
+
+def _sorted(query: Select[Conversation], sort: SortKey) -> Select[Conversation]:
+    column = {
+        "score": Conversation.score,
+        "updated": Conversation.updated_at,
+        "created": Conversation.created_at,
+    }[sort.lstrip("-")]
+    order = column.desc() if sort.startswith("-") else column.asc()
+    # Unscored candidates always go last; the id breaks ties so the order is stable.
+    return query.order_by(column.is_(None), order, Conversation.id)
+
+
+# --- analytics (FR-11) -----------------------------------------------------------------
+
+
+async def count_by(
+    session: AsyncSession, column: Any, *where: ColumnElement[bool]
+) -> dict[str | None, int]:
+    query = select(column, func.count()).where(*where).group_by(column)
+    return dict((await session.execute(query)).tuples())
+
+
+async def count_by_country_and_status(session: AsyncSession) -> list[tuple[str | None, str, int]]:
+    query = select(Conversation.country, Conversation.status, func.count()).group_by(
+        Conversation.country, Conversation.status
+    )
+    return list((await session.execute(query)).tuples())
+
+
+async def durations(
+    session: AsyncSession, statuses: Sequence[str]
+) -> list[tuple[datetime, datetime]]:
+    query = select(Conversation.created_at, Conversation.updated_at).where(
+        Conversation.status.in_(statuses)
+    )
+    return list((await session.execute(query)).tuples())
+
+
+async def turn_totals(session: AsyncSession) -> tuple[int, int, float]:
+    """Agent replies: (turns, fallbacks, total cost in USD incl. summaries)."""
+    query = select(func.count(), func.coalesce(func.sum(Message.fallback.cast(Integer)), 0)).where(
+        Message.role == "agent"
+    )
+    turns, fallbacks = (await session.execute(query)).tuples().one()
+    cost = await session.scalar(select(func.coalesce(func.sum(Message.cost_usd), 0.0)))
+    summary_cost = await session.scalar(select(func.coalesce(func.sum(SummaryRow.cost_usd), 0.0)))
+    return int(turns), int(fallbacks), float(cost or 0) + float(summary_cost or 0)

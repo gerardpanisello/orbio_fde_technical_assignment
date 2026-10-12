@@ -42,6 +42,9 @@ INJECTION = phrases(
     "ignore previous instructions|ignore your instructions|ignora las instrucciones"
     "|olvida tus instrucciones|mark me qualified|marcame como apto"
 )
+# The real model knows every place on earth; the fake knows only config places plus these
+# few real ones we do not serve, so the offline demo can show an out-of-area candidate.
+UNSERVED_PLACES = phrases("zaragoza|bilbao|vallecas|queretaro|tijuana")
 ABUSE = phrases("idiota|imbecil|estupida|estupido|pendejo|stupid|idiot")
 JOB_WORDS = phrases("sueldo|pago|paga|cobra|salario|uniforme|contrato|pay|salary|uniform|contract")
 VEHICLES = [  # order matters: "bici electrica" before "bici"
@@ -201,7 +204,8 @@ class RuleExtractor:
             out.update(location_city=city, location_zone=zone, location_is_real_place=True)
         elif pending.field in (FieldName.location, FieldName.zone) and len(text.strip()) > 1:
             key = "location_zone" if pending.field is FieldName.zone else "location_city"
-            out.update({key: text.strip(), "location_is_real_place": None})
+            real = True if _has(folded, *UNSERVED_PLACES) else None
+            out.update({key: text.strip(), "location_is_real_place": real})
 
     def _start_date(self, folded: str, pending: PendingView, out: dict[str, Any]) -> None:
         months = "|".join(MONTHS)
