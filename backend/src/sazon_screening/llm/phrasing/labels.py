@@ -76,7 +76,7 @@ def field_values(
     """
     values: dict[FieldName, str] = {}
     if (name := profile.full_name.value) is not None:
-        values[FieldName.full_name] = name
+        values[FieldName.full_name] = display_name(name)
     if (age := profile.age.value) is not None:
         values[FieldName.age] = _age_text(age, labels)
     if (vehicle := profile.vehicle_type.value) is not None:
@@ -93,13 +93,49 @@ def field_values(
     if (schedule := profile.schedule.value) is not None:
         values[FieldName.schedule] = ", ".join(labels.schedule[s] for s in schedule)
     if (experience := profile.experience.value) is not None:
-        platforms = ", ".join(_platform_name(p) for p in experience.platforms)
-        unit = labels.year if experience.years == 1 else labels.years
-        years = f"{experience.years} {unit}"
-        values[FieldName.experience] = f"{years} ({platforms})" if platforms else years
+        values[FieldName.experience] = _experience_text(
+            experience.years, experience.platforms, labels
+        )
     if (start := profile.start_date.value) is not None:
         values[FieldName.start_date] = start.strftime("%d/%m/%Y")
     return values
+
+
+def display_name(name: str) -> str:
+    """ "lucía fernández ruiz" reads "Lucía Fernández Ruiz". Display only (recap, summary,
+    first name): the profile keeps what the candidate wrote. A word they wrote with any
+    capital ("McDonald", "JOSÉ") stays as written, and particles ("de la") stay lowercase.
+    """
+    words = name.split()
+    shown = [
+        word if index and word in _NAME_PARTICLES else _capitalise(word)
+        for index, word in enumerate(words)
+    ]
+    return " ".join(shown)
+
+
+_NAME_PARTICLES = frozenset({"de", "del", "la", "las", "los", "y", "e", "da", "das", "do", "dos"})
+
+
+def _capitalise(word: str) -> str:
+    if word != word.lower():
+        return word
+    return "-".join(part[:1].upper() + part[1:] for part in word.split("-"))
+
+
+def _experience_text(years_done: int, platform_ids: list[str], labels: Labels) -> str:
+    """0 years and no platform is "no experience"; 0 years with one is under a year
+    ("6 meses en Glovo" is stored as 0 years: the engine counts whole years).
+    """
+    platforms = ", ".join(_platform_name(p) for p in platform_ids)
+    if years_done == 0 and not platforms:
+        return labels.no_experience
+    if years_done == 0:
+        years = labels.less_than_a_year
+    else:
+        unit = labels.year if years_done == 1 else labels.years
+        years = f"{years_done} {unit}"
+    return f"{years} ({platforms})" if platforms else years
 
 
 def _yes_no(value: bool) -> str:

@@ -158,7 +158,8 @@ def test_slots_are_numbered(catalog: MessageCatalog, engine_config: EngineConfig
         (Register.es_ES, 3, "3 años (Glovo)"),
         (Register.es_MX, 1, "1 año (Glovo)"),
         (Register.en, 1, "1 year (Glovo)"),
-        (Register.en, 0, "0 years (Glovo)"),
+        (Register.en, 0, "less than 1 year (Glovo)"),
+        (Register.es_ES, 0, "menos de 1 año (Glovo)"),
     ],
 )
 def test_recap_years_of_experience_agree_in_number(
@@ -212,3 +213,52 @@ def test_out_of_area_close_makes_no_promise(catalog: MessageCatalog, register: R
     )
     for promise in ("te avisaremos", "te escribiremos", "we'll let you know", "we will contact"):
         assert promise not in text
+
+
+@pytest.mark.parametrize(
+    ("register", "platforms", "expected"),
+    [
+        (Register.es_ES, [], "Sin experiencia"),
+        (Register.es_MX, [], "Sin experiencia"),
+        (Register.en, [], "No experience"),
+        (Register.es_MX, ["rappi"], "menos de 1 año (Rappi)"),
+    ],
+)
+def test_recap_zero_years_reads_as_none_or_under_a_year(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    platforms: list[str],
+    expected: str,
+) -> None:
+    """Eval 2026-10-12: "6 meses en Glovo" showed as "0 años"."""
+    profile = Profile()
+    profile.experience = Slot(
+        status=FieldStatus.valid, value=Experience(years=0, platforms=platforms)
+    )
+    labels = catalog.for_register(register).labels
+    values = field_values(profile, engine_config, language_of(register), labels)
+    assert values[FieldName.experience] == expected
+
+
+@pytest.mark.parametrize(
+    ("written", "shown"),
+    [
+        ("lucía fernández ruiz", "Lucía Fernández Ruiz"),
+        ("maría de la o", "María de la O"),
+        ("ana garcía-lópez", "Ana García-López"),
+        ("JOSÉ PÉREZ", "JOSÉ PÉREZ"),  # written with capitals: shown as written
+        ("Ana de la Rosa", "Ana de la Rosa"),
+        ("Tom McDonald", "Tom McDonald"),
+    ],
+)
+def test_recap_title_cases_a_lowercase_name(
+    catalog: MessageCatalog, engine_config: EngineConfig, written: str, shown: str
+) -> None:
+    """Display only: the profile keeps what the candidate wrote."""
+    profile = Profile()
+    profile.full_name = Slot(status=FieldStatus.valid, value=written)
+    labels = catalog.for_register(Register.es_ES).labels
+    values = field_values(profile, engine_config, language_of(Register.es_ES), labels)
+    assert values[FieldName.full_name] == shown
+    assert profile.full_name.value == written

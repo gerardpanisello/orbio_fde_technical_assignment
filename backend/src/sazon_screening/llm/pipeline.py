@@ -37,6 +37,7 @@ from sazon_screening.llm.extraction.extractor import (
 )
 from sazon_screening.llm.extraction.pending import pending_view
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
+from sazon_screening.llm.phrasing.labels import display_name
 from sazon_screening.llm.phrasing.phraser import OutboundMessage, Phraser, PhrasingTrace
 from sazon_screening.llm.phrasing.templates import RenderContext
 from sazon_screening.llm.prompts import PromptRegistry
@@ -234,10 +235,10 @@ class ScreeningAgent:
         last_message: str | None,
         is_greeting: bool = False,
     ) -> RenderContext:
-        name = state.profile.full_name.value
+        name = state.profile.full_name.value or ""
         return RenderContext(
             privacy_url=str(self._config.privacy_url),
-            first_name=name.split()[0] if name else None,
+            first_name=display_name(name).split()[0] if name.strip() else None,
             last_candidate_message=last_message,
             slots=context.slot_map(),
             is_greeting=is_greeting,

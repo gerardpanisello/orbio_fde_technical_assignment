@@ -39,6 +39,8 @@ labels:
   birth_year: birth year
   year: year
   years: years
+  less_than_a_year: less than a year
+  no_experience: no experience
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
   ask_field:

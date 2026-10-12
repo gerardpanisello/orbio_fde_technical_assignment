@@ -27,6 +27,8 @@ labels:
   birth_year: year of birth
   year: year
   years: years
+  less_than_a_year: less than 1 year
+  no_experience: No experience
 
 templates:
   greeting: "Hi! I'm Sofi, Grupo Sazón's automated virtual assistant 👋 I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: {privacy_url} Do you agree that we use your data for this process?"

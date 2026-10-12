@@ -37,6 +37,8 @@ labels:
   birth_year: año de nacimiento
   year: año
   years: años
+  less_than_a_year: menos de 1 año
+  no_experience: Sin experiencia
 
 templates:
   greeting: "¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón 👋 Te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Política de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"

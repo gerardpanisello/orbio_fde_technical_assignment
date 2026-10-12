@@ -93,6 +93,8 @@ class Labels(_Strict):
     birth_year: str  # "año de nacimiento": shown next to a year instead of an age
     year: str  # "año", after exactly one year of experience
     years: str  # "años", after any other number of years of experience
+    less_than_a_year: str  # "menos de 1 año": some experience, but under a year
+    no_experience: str  # "Sin experiencia": no delivery experience at all
 
     @model_validator(mode="after")
     def _every_value(self) -> Self:
