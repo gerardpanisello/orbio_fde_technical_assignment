@@ -72,6 +72,9 @@ src/
 - **Explainability:** the drawer shows the score as a sum of factors (value and points per
   factor), disqualification and review reasons, flags, each extracted field with its validation
   status, the transcript, per-turn traces (model, latency, cost, fallback) and the raw record JSON.
+- **Re-engagement (spec 008):** the open chat polls its conversation every 4 s (only while visible,
+  idle and in progress; `lib/reengagement.ts#shouldPoll`), so reminders arrive on their own; the demo
+  panel's **Avanzar tiempo ⏩** runs the next step via `POST /api/dev/conversations/{id}/advance`.
 - **Chat state** is in `useChat`: the conversation id is kept in `sessionStorage`, so a reload
   restores the transcript; a failed send marks the bubble "No se pudo enviar · Reintentar".
 - **City and zone names** come from `GET /api/meta/areas` (read from `config/service_areas.yaml`),
