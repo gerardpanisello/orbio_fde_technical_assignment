@@ -125,14 +125,14 @@ async def count_by(
     session: AsyncSession, column: Any, *where: ColumnElement[bool]
 ) -> dict[str | None, int]:
     query = select(column, func.count()).where(*where).group_by(column)
-    return dict((await session.execute(query)).tuples())
+    return dict((await session.execute(query)).all())  # Result itself has .keys(): not dict()-able
 
 
 async def count_by_country_and_status(session: AsyncSession) -> list[tuple[str | None, str, int]]:
     query = select(Conversation.country, Conversation.status, func.count()).group_by(
         Conversation.country, Conversation.status
     )
-    return list((await session.execute(query)).tuples())
+    return [(country, status, count) for country, status, count in await session.execute(query)]
 
 
 async def durations(
@@ -141,15 +141,14 @@ async def durations(
     query = select(Conversation.created_at, Conversation.updated_at).where(
         Conversation.status.in_(statuses)
     )
-    return list((await session.execute(query)).tuples())
+    return [(created, updated) for created, updated in await session.execute(query)]
 
 
 async def turn_totals(session: AsyncSession) -> tuple[int, int, float]:
     """Agent replies: (turns, fallbacks, total cost in USD incl. summaries)."""
-    query = select(func.count(), func.coalesce(func.sum(Message.fallback.cast(Integer)), 0)).where(
-        Message.role == "agent"
-    )
-    turns, fallbacks = (await session.execute(query)).tuples().one()
+    fallbacks = func.coalesce(func.sum(Message.fallback.cast(Integer)), 0)
+    query = select(func.count(), fallbacks).where(Message.role == "agent")
+    turn_count, fallback_count = (await session.execute(query)).one()
     cost = await session.scalar(select(func.coalesce(func.sum(Message.cost_usd), 0.0)))
     summary_cost = await session.scalar(select(func.coalesce(func.sum(SummaryRow.cost_usd), 0.0)))
-    return int(turns), int(fallbacks), float(cost or 0) + float(summary_cost or 0)
+    return int(turn_count), int(fallback_count), float(cost or 0) + float(summary_cost or 0)

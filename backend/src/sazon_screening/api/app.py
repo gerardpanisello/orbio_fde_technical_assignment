@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sazon_screening.api.db import create_tables, make_engine, make_sessions
-from sazon_screening.api.routes import conversations
+from sazon_screening.api.routes import analytics, candidates, conversations
 from sazon_screening.api.service import (
     Clock,
     ConversationNotFound,
@@ -73,6 +73,8 @@ def create_app(
         return {"status": "ok", "llm_mode": settings.llm.llm_mode, "env": settings.app_env}
 
     app.include_router(conversations.router)
+    app.include_router(candidates.router)
+    app.include_router(analytics.router)
     return app
 
 
