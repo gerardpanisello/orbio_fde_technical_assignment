@@ -100,6 +100,8 @@ export const api = {
   analytics: () => request<Analytics>('/api/analytics'),
   areaLabels: () => request<AreaLabels>('/api/meta/areas?lang=es'),
 
+  health: () => request<{ status: string; llm_mode: string; env: string }>('/api/health'),
+
   // dev helpers (APP_ENV=dev only)
   seed: (n = 40) => post<{ created: number; ids: string[] }>(`/api/dev/seed?n=${n}`),
   silence: (id: string) => post<Turn>(`/api/dev/conversations/${id}/silence`),

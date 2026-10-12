@@ -58,8 +58,8 @@ This is what Grupo Sazón (and the Orbio evaluator) actually sees. Two users, on
 - [x] T2 Home + layout + design tokens (colours, status badge map).
 - [x] T3 Chat: start screen, bubbles, quick replies, typing indicator, session restore, error/retry, final banner (AC-1..AC-3).
 - [x] T4 Chat demo side panel with the live record.
-- [ ] T5 Recruiter: candidates page with KPIs, filters, table (AC-4).
-- [ ] T6 Candidate detail + actions + summary language toggle (AC-5, AC-6).
+- [x] T5 Recruiter: candidates page with KPIs, filters, table (AC-4).
+- [x] T6 Candidate detail + actions + summary language toggle (AC-5, AC-6).
 - [ ] T7 Export + interviews view (AC-7).
 - [ ] T8 Analytics page (AC-8).
 - [ ] T9 Polish pass (empty/loading/error states, responsive), README section, CLAUDE.md commands (AC-9).
