@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { MemoryRouter } from 'react-router'
 import { api, type Conversation, type Turn } from '../api/client'
 import { VoicePage } from './VoicePage'
@@ -62,28 +63,57 @@ function reply(text: string): Turn {
 
 function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  // StrictMode as in main.tsx: its double mount once dropped Sofi's first message.
   return render(
-    <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/voz']}>
-        <VoicePage />
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <StrictMode>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={['/voz']}>
+          <VoicePage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    </StrictMode>,
   )
 }
 
 const lastRecognition = () => FakeRecognition.instances.at(-1)!
+
+/** Browser voice stand-ins: record what Sofi says, finish each utterance shortly after. */
+const spoken: string[] = []
+class FakeUtterance {
+  lang = ''
+  rate = 1
+  voice: unknown = null
+  onend: (() => void) | null = null
+  onerror: (() => void) | null = null
+  text: string
+  constructor(text: string) {
+    this.text = text
+  }
+}
+const fakeSynth = {
+  getVoices: () => [],
+  cancel: () => {},
+  speak(u: FakeUtterance) {
+    spoken.push(u.text)
+    setTimeout(() => u.onend?.(), 5)
+  },
+}
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn() // not in jsdom
   sessionStorage.clear()
   localStorage.clear()
   FakeRecognition.instances = []
+  spoken.length = 0
+  vi.stubGlobal('SpeechSynthesisUtterance', FakeUtterance)
+  vi.stubGlobal('speechSynthesis', fakeSynth)
   vi.spyOn(api, 'voiceStatus').mockResolvedValue({ tts: 'browser', model_id: null })
   vi.spyOn(api, 'startConversation').mockResolvedValue(greeting)
 })
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   delete (window as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition
 })
 
@@ -103,8 +133,11 @@ describe('VoicePage', () => {
     expect(await screen.findByTestId('voice-current', {}, { timeout: 3000 })).toHaveTextContent('Soy Sofi')
     await waitFor(() => expect(screen.getByTestId('voice-engine')).toHaveTextContent('voz: navegador'))
 
-    // jsdom has no speechSynthesis: "speaking" ends at once and the mic opens (auto-listen).
-    await waitFor(() => expect(lastRecognition().started).toBe(true))
+    // Sofi reads the greeting aloud (speakable version), then the mic opens by itself.
+    await waitFor(() => expect(lastRecognition()?.started).toBe(true))
+    expect(spoken.join(' ')).toContain('Soy Sofi')
+    expect(spoken.join(' ')).toContain('Puedes decir: Sí o No.')
+    expect(spoken.join(' ')).not.toContain('👋')
     expect(lastRecognition().lang).toBe('es-ES')
     expect(screen.getByTestId('voice-phase')).toHaveTextContent('Te escucho')
 

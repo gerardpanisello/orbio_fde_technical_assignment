@@ -161,6 +161,14 @@ function VoiceCall({ chat, country, supported }: { chat: Chat; country: Country 
   const spoken = useRef<Set<string> | null>(null)
   const restoredAtMount = useRef(chat.phase === 'restoring')
   const draining = useRef(false)
+  const interruptions = useRef(0) // bumped when the candidate cuts Sofi off on purpose
+  const mounted = useRef(false)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   async function drain() {
     if (draining.current) return
@@ -172,13 +180,20 @@ function VoiceCall({ chat, country, supported }: { chat: Chat; country: Country 
       const now = latest.current
       if (!now) break
       setSpeakingKey(item.key)
-      await now.speaker.speak(
+      const before = interruptions.current
+      const finished = await now.speaker.speak(
         toSpeakable(item.text, {
           language: now.language,
           country: now.country,
           quickReplies: item.quickReplies.map((q) => q.label),
         }),
       )
+      if (!finished && before === interruptions.current) {
+        // Cut off by something other than the candidate (React's dev double mount, the
+        // page closing): say it again if we are still here, else keep it for later.
+        queue.current.unshift(item)
+        if (!mounted.current) break
+      }
     }
     draining.current = false
     setSpeakingKey(null)
@@ -234,6 +249,9 @@ function VoiceCall({ chat, country, supported }: { chat: Chat; country: Country 
   })
 
   function startListening() {
+    // Guard on the queue itself, not the rendered phase: Sofi may have started a few ms
+    // before the button re-rendered as disabled.
+    if (draining.current || queue.current.length || chat.typing) return
     setNotice(null)
     setHeardProblem(null)
     setMisses(0)
@@ -242,6 +260,7 @@ function VoiceCall({ chat, country, supported }: { chat: Chat; country: Country 
 
   function pick(label: string) {
     // FR-7: tapping a quick reply still works, and interrupts Sofi.
+    interruptions.current++
     queue.current = []
     speaker.cancel()
     recognizer.abort()

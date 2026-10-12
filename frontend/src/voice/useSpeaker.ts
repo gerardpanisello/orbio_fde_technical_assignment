@@ -11,7 +11,8 @@ const MAX_PROVIDER_FAILURES = 2
 /**
  * Spec 013 FR-5: Sofi's voice. ElevenLabs through our backend when it is configured
  * (`GET /api/voice/status`), the browser's speechSynthesis otherwise or when a request
- * fails. `speak()` resolves when she has finished (or was cancelled), never rejects.
+ * fails. `speak()` never rejects: it resolves `true` when she finished, `false` when
+ * `cancel()` cut her off (the caller decides whether to say it again).
  */
 export function useSpeaker({ language, country }: { language: Language; country: Country | null }) {
   const [engine, setEngine] = useState<VoiceEngine>('checking')
@@ -91,30 +92,32 @@ export function useSpeaker({ language, country }: { language: Language; country:
   )
 
   const speak = useCallback(
-    async (text: string) => {
-      if (!text.trim()) return
+    async (text: string): Promise<boolean> => {
+      if (!text.trim()) return true
       const gen = ++generation.current
+      const current = () => gen === generation.current
       setSpeaking(true)
       try {
         await ready.current // the first message waits for GET /api/voice/status
-        if (gen !== generation.current) return
+        if (!current()) return false
         if (engineRef.current === 'elevenlabs') {
           try {
             const blob = await api.tts(text, language, country)
-            if (gen !== generation.current) return
+            if (!current()) return false
             await playAudio(blob, gen)
             failures.current = 0
-            return
+            return current()
           } catch {
             failures.current += 1
             if (failures.current >= MAX_PROVIDER_FAILURES) {
               engineRef.current = 'browser'
               setEngine('browser')
             }
-            if (gen !== generation.current) return
+            if (!current()) return false
           }
         }
         await speakWithBrowser(text, gen)
+        return current()
       } finally {
         if (gen === generation.current) setSpeaking(false)
       }

@@ -13,7 +13,7 @@ describe('toSpeakable', () => {
   it('reads the greeting without emoji or URL, pointing to the privacy policy on screen', () => {
     const spoken = toSpeakable(GREETING_ES, { ...es, quickReplies: ['Sí', 'No'] })
     expect(spoken).toBe(
-      '¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón Te haré unas preguntas rápidas (3 minutos) sobre el puesto de repartidor o repartidora. Puedes leer la política de privacidad que verás en pantalla. ¿Aceptas que usemos tus datos para este proceso? Puedes decir: Sí o No.',
+      '¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón. Te haré unas preguntas rápidas (3 minutos) sobre el puesto de repartidor o repartidora. Puedes leer la política de privacidad que verás en pantalla. ¿Aceptas que usemos tus datos para este proceso? Puedes decir: Sí o No.',
     )
     expect(spoken).not.toMatch(/https?:|👋/)
   })
@@ -29,6 +29,7 @@ describe('toSpeakable', () => {
 
   it('strips any other URL, emojis (with skin tones and joiners) and markdown', () => {
     expect(toSpeakable('Mira https://a.example/x?y=1 ahora 🙌🏽 👩‍💻 ✅', es)).toBe('Mira ahora.')
+    expect(toSpeakable('¡Genial! 🎉 ¿Seguimos? 👍 Vale 👌 sí', es)).toBe('¡Genial! ¿Seguimos? Vale sí.')
     expect(toSpeakable('**Importante**: trae tu _DNI_ y `carné`. Ver [web](https://a.example)', es)).toBe(
       'Importante: trae tu DNI y carné. Ver web.',
     )

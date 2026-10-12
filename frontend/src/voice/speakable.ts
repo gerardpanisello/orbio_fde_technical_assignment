@@ -33,6 +33,10 @@ const WEEKDAY_WORDS = [...WEEKDAYS.es, ...WEEKDAYS.en, 'miercoles', 'sabado'].jo
 // Emojis, skin tones, flags, and the invisible joiners/selectors that glue them together.
 const EMOJI_RE =
   /\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}]|[\u{1F1E6}-\u{1F1FF}]|\u{FE0F}|\u{200D}|\u{20E3}/gu
+const EMOJI_BEFORE_SENTENCE_RE = new RegExp(
+  String.raw`\s*(?:${EMOJI_RE.source})+(?=\s+[¿¡]?\p{Lu})`,
+  'gu',
+)
 const URL_RE = /\bhttps?:\/\/[^\s)]+/gi
 const PRIVACY_RE =
   /(pol[ií]tica de privacidad|aviso de privacidad|privacy notice|privacy policy)\s*:?\s*https?:\/\/[^\s)]+/gi
@@ -179,6 +183,8 @@ export function toSpeakable(text: string, options: SpeakOptions): string {
   let out = text.replace(PRIVACY_RE, (_m, label: string) => ` ${privacySentence(label, language)} `)
   out = stripMarkdown(out)
   out = out.replace(URL_RE, '')
+  // "Grupo Sazón 👋 Te haré…": an emoji that ends a sentence becomes a full stop (a pause).
+  out = out.replace(EMOJI_BEFORE_SENTENCE_RE, '.')
   out = out.replace(EMOJI_RE, '')
   out = spellDates(out, language, now)
   const lines = linesToSentences(out, language)
