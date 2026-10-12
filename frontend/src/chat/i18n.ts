@@ -33,6 +33,7 @@ export const CHAT_TEXT: Record<Language, ChatText> = {
     banner: {
       interview_scheduled: 'Entrevista agendada',
       qualified_unscheduled: 'Solicitud completa: el equipo te escribirá para agendar',
+      waitlisted: 'En lista de espera: te avisaremos cuando haya hueco en tu zona',
       needs_review: 'Una persona del equipo revisará tu solicitud',
       disqualified: 'Proceso finalizado',
       opted_out: 'Has salido del proceso',
@@ -55,6 +56,7 @@ export const CHAT_TEXT: Record<Language, ChatText> = {
     banner: {
       interview_scheduled: 'Interview booked',
       qualified_unscheduled: 'Application complete: the team will message you to book',
+      waitlisted: "On the waiting list: we'll let you know when there's a spot in your area",
       needs_review: 'Someone from the team will review your application',
       disqualified: 'Process finished',
       opted_out: 'You left the process',

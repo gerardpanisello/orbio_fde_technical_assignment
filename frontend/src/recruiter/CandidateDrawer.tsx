@@ -140,7 +140,10 @@ function DrawerBody({
             <div className="grid gap-4 md:grid-cols-2">
               <section className="card p-4">
                 <h3 className="eyebrow mb-3">Puntuación y factores</h3>
-                <ScoreBreakdown score={record.score} />
+                <ScoreBreakdown
+                  score={detail.live_score ?? record.score}
+                  atClose={detail.live_score ? record.score : null}
+                />
               </section>
               <section className="card p-4">
                 <h3 className="eyebrow mb-3">Datos extraídos</h3>

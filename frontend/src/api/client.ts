@@ -26,6 +26,9 @@ export type RecruiterAction = Schemas['ActionOut']
 export type Analytics = Schemas['Analytics']
 export type AreaLabels = Schemas['AreaLabels']
 export type ScoreFactor = Schemas['ScoreFactor']
+export type ScoreResult = Schemas['ScoreResult']
+export type Zone = Schemas['ZoneOut']
+export type ZonePatch = Schemas['ZonePatchIn']
 
 type ListQuery = NonNullable<operations['list_candidates_api_candidates_get']['parameters']['query']>
 /** GET /api/candidates query: status, country, city, bucket, recruiter_status, q, sort. */
@@ -44,6 +47,17 @@ export class ApiError extends Error {
   }
 }
 
+/** FastAPI 422 bodies are a list of Pydantic errors: keep their messages, not the JSON. */
+function validationText(detail: unknown): string {
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((d: unknown) => (d && typeof d === 'object' && 'msg' in d ? String(d.msg) : null))
+      .filter(Boolean)
+    if (messages.length) return messages.join('; ')
+  }
+  return JSON.stringify(detail)
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -54,7 +68,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       const body: unknown = await response.json()
       if (body && typeof body === 'object' && 'detail' in body) {
-        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+        detail = typeof body.detail === 'string' ? body.detail : validationText(body.detail)
       }
     } catch {
       // not JSON (e.g. the dev proxy's 502 when the API is down): keep statusText
@@ -66,6 +80,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) })
+const patch = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: 'PATCH', body: JSON.stringify(body) })
 
 /** Filters -> query string. Empty values are dropped so URLs stay short. */
 export function toQueryString(filters: CandidateFilters): string {
@@ -99,6 +115,9 @@ export const api = {
     post<RecruiterAction>(`/api/candidates/${id}/actions`, { action, note }),
   analytics: () => request<Analytics>('/api/analytics'),
   areaLabels: () => request<AreaLabels>('/api/meta/areas?lang=es'),
+  listZones: () => request<Zone[]>('/api/zones?lang=es'),
+  updateZone: (id: string, body: ZonePatch) =>
+    patch<Zone>(`/api/zones/${encodeURIComponent(id)}?lang=es`, body),
 
   health: () => request<{ status: string; llm_mode: string; env: string }>('/api/health'),
 

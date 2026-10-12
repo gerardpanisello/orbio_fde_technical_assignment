@@ -96,7 +96,7 @@ function Dashboard({ a, refreshing }: { a: Analytics; refreshing: boolean }) {
       <div className="grid gap-5 lg:grid-cols-2">
         <ChartCard
           title="Embudo de selección"
-          note="Conversaciones cerradas. Las bajas cuentan como salida en el consentimiento; las revisiones manuales no cuentan como requisitos superados."
+          note="Conversaciones cerradas. Las bajas cuentan como salida en el consentimiento; las revisiones manuales no cuentan como requisitos superados; la lista de espera cuenta como apta (zona cubierta)."
           table={{
             head: ['Etapa', 'Candidaturas', '% de iniciadas'],
             rows: funnel.map((s) => [s.label, String(s.value), formatPercent(s.share)]),

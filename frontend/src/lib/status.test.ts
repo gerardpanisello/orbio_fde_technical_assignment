@@ -5,6 +5,7 @@ const ALL: Status[] = [
   'in_progress',
   'interview_scheduled',
   'qualified_unscheduled',
+  'waitlisted',
   'disqualified',
   'needs_review',
   'abandoned',

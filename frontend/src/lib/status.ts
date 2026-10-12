@@ -4,14 +4,15 @@ import type { Bucket, Status } from '../api/client'
  * One source of truth for status colours: badges, table and charts all read from here,
  * so "Entrevista agendada" is the same green everywhere.
  *
- * The five chromatic steps were checked with the dataviz palette validator in this
+ * The six chromatic steps were checked with the dataviz palette validator in this
  * (stacking) order: lightness band, chroma, colour-blind and normal-vision separation of
- * neighbours all pass. Greys are the "no outcome" statuses on purpose. Colour is never
+ * neighbours all pass (waitlisted's magenta: worst neighbour CVD dE 13, spec 015). Greys are the "no outcome" statuses on purpose. Colour is never
  * the only cue: every badge and chart also shows the label.
  */
 export const STATUS_ORDER: Status[] = [
   'interview_scheduled',
   'qualified_unscheduled',
+  'waitlisted',
   'needs_review',
   'in_progress',
   'abandoned',
@@ -29,6 +30,11 @@ export const STATUS_META: Record<Status, { label: string; color: string; hint: s
     label: 'Apto, sin entrevista',
     color: '#2a78d6',
     hint: 'Apto, pero ninguna hora le venía bien: llamar para agendar',
+  },
+  waitlisted: {
+    label: 'En lista de espera',
+    color: '#e87ba4',
+    hint: 'Apto, pero su zona tiene la plantilla cubierta: avisar cuando haya hueco',
   },
   needs_review: {
     label: 'Requiere revisión',

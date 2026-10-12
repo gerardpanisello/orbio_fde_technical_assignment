@@ -2,7 +2,8 @@
 import type { AreaLabels, CandidateRecord, ScoreFactor } from '../api/client'
 import type { components } from '../api/schema'
 import { formatDate } from './format'
-import { AVAILABILITY, FIELD, SCHEDULE, VEHICLE, list, placeLabel, platformLabel } from './labels'
+import { zoneDemandText } from './zones'
+import { AVAILABILITY, FACTOR, FIELD, SCHEDULE, VEHICLE, list, placeLabel, platformLabel } from './labels'
 
 type Fields = CandidateRecord['fields']
 export type FieldKey = keyof Fields
@@ -73,6 +74,8 @@ function fieldValue(fields: Fields, key: FieldKey, areas: AreaLabels | undefined
 /** The value a score factor was computed from, e.g. "5 años", "Glovo, Just Eat". */
 export function factorValue(factor: ScoreFactor): string {
   const value = factor.value
+  // null is meaningful here: the area has no staffing data, so no bonus (spec 015 AC-5)
+  if (factor.reason_code === 'zone_demand') return zoneDemandText(value)
   if (value === null || value === undefined) return 'sin dato'
   switch (factor.reason_code) {
     case 'years_of_experience':
@@ -88,4 +91,9 @@ export function factorValue(factor: ScoreFactor): string {
     default:
       return Array.isArray(value) ? value.join(', ') : String(value)
   }
+}
+
+/** One factor as a sentence: "Demanda en su zona: 45 % cubierta (+20)". */
+export function factorSentence(factor: ScoreFactor): string {
+  return `${FACTOR[factor.reason_code]}: ${factorValue(factor)} (+${factor.points})`
 }

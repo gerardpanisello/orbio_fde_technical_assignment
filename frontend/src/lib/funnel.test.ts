@@ -41,6 +41,17 @@ describe('buildFunnel', () => {
     for (let i = 1; i < steps.length; i++) expect(steps[i].value).toBeLessThanOrEqual(steps[i - 1].value)
   })
 
+  it('counts waitlisted candidates as qualified, not booked (spec 015)', () => {
+    const steps = buildFunnel({
+      ...base,
+      total: 42,
+      by_status: { ...base.by_status, waitlisted: 2 },
+    })
+    const value = (key: string) => steps.find((s) => s.key === key)?.value
+    expect(value('qualified')).toBe(20)
+    expect(value('booked')).toBe(15)
+  })
+
   it('handles no data', () => {
     const steps = buildFunnel({ ...base, total: 0, by_status: {}, drop_off_by_stage: {} })
     expect(steps.every((s) => s.value === 0 && s.share === 0)).toBe(true)

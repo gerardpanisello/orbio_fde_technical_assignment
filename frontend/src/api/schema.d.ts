@@ -177,6 +177,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/zones": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Zones */
+        get: operations["list_zones_api_zones_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/zones/{area_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Zone
+         * @description Set target and/or current drivers (each >= 0, else 422). Unknown area -> 404.
+         */
+        patch: operations["update_zone_api_zones__area_id__patch"];
+        trace?: never;
+    };
     "/api/meta/areas": {
         parameters: {
             query?: never;
@@ -206,7 +243,12 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Seed */
+        /**
+         * Seed
+         * @description Seed through the server's own agent: the real model when the API runs with
+         *     `LLM_MODE=anthropic`, so the dashboard shows real summaries and costs. `?mode=fake`
+         *     seeds offline with the rules agent instead (free, deterministic).
+         */
         post: operations["seed_api_dev_seed_post"];
         delete?: never;
         options?: never;
@@ -338,6 +380,7 @@ export interface components {
         CandidateDetail: {
             candidate: components["schemas"]["CandidateRow"];
             record: components["schemas"]["CandidateRecord"];
+            live_score: components["schemas"]["ScoreResult"] | null;
             summary: components["schemas"]["SummaryOut"] | null;
             /** Transcript */
             transcript: components["schemas"]["MessageOut"][];
@@ -389,6 +432,9 @@ export interface components {
             bucket: components["schemas"]["Bucket"] | null;
             /** Score */
             score: number | null;
+            /** Score At Close */
+            score_at_close: number | null;
+            bucket_at_close: components["schemas"]["Bucket"] | null;
             vehicle_type: components["schemas"]["VehicleType"] | null;
             /** Availability */
             availability: components["schemas"]["Availability"][] | null;
@@ -458,7 +504,7 @@ export interface components {
          * @description Why a score factor earned its points (FR-30); `unknown` = field unclear or missing.
          * @enum {string}
          */
-        FactorReason: "years_of_experience" | "known_platforms" | "availability_breadth" | "schedule_flexibility" | "start_date_proximity" | "unknown";
+        FactorReason: "years_of_experience" | "known_platforms" | "availability_breadth" | "schedule_flexibility" | "start_date_proximity" | "zone_demand" | "unknown";
         /**
          * FieldName
          * @description Things the engine can ask for. `zone` and `slot` are ask targets only, not stored fields.
@@ -680,7 +726,7 @@ export interface components {
          * Status
          * @enum {string}
          */
-        Status: "in_progress" | "interview_scheduled" | "qualified_unscheduled" | "disqualified" | "needs_review" | "abandoned" | "opted_out";
+        Status: "in_progress" | "interview_scheduled" | "qualified_unscheduled" | "waitlisted" | "disqualified" | "needs_review" | "abandoned" | "opted_out";
         /** SummaryFact */
         SummaryFact: {
             /** Key */
@@ -766,6 +812,54 @@ export interface components {
          * @enum {string}
          */
         VehicleType: "motorbike" | "car" | "bicycle" | "e_bike" | "none";
+        /**
+         * ZoneOut
+         * @description One served area: a zone, or a city served as a whole (then `id == city`).
+         */
+        ZoneOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** City */
+            city: string;
+            /** City Name */
+            city_name: string;
+            country: components["schemas"]["Country"];
+            /** Target Drivers */
+            target_drivers: number | null;
+            /** Current Drivers */
+            current_drivers: number | null;
+            /** Occupancy Pct */
+            occupancy_pct: number | null;
+            /** Full */
+            full: boolean;
+            pipeline: components["schemas"]["ZonePipeline"];
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /**
+         * ZonePatchIn
+         * @description Either or both. On an area without data, the missing number starts at 0.
+         */
+        ZonePatchIn: {
+            /** Target Drivers */
+            target_drivers?: number | null;
+            /** Current Drivers */
+            current_drivers?: number | null;
+        };
+        /**
+         * ZonePipeline
+         * @description Qualified candidates in the area, by status.
+         */
+        ZonePipeline: {
+            /** Qualified Unscheduled */
+            qualified_unscheduled: number;
+            /** Interview Scheduled */
+            interview_scheduled: number;
+            /** Waitlisted */
+            waitlisted: number;
+        };
     };
     responses: never;
     parameters: never;
@@ -1087,6 +1181,74 @@ export interface operations {
             };
         };
     };
+    list_zones_api_zones_get: {
+        parameters: {
+            query?: {
+                lang?: components["schemas"]["Language"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_zone_api_zones__area_id__patch: {
+        parameters: {
+            query?: {
+                lang?: components["schemas"]["Language"];
+            };
+            header?: never;
+            path: {
+                area_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZonePatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     area_labels_api_meta_areas_get: {
         parameters: {
             query?: {
@@ -1123,6 +1285,7 @@ export interface operations {
             query?: {
                 n?: number;
                 seed?: number;
+                mode?: "fake" | null;
             };
             header?: never;
             path?: never;

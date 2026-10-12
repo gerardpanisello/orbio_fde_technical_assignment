@@ -93,6 +93,14 @@ export function CandidateTable({
               </td>
               <td className="px-3 py-2">
                 <PriorityPill bucket={row.bucket} score={row.score} />
+                {row.score_at_close != null && row.score != null && row.score_at_close !== row.score && (
+                  <div
+                    className="mt-0.5 text-[11px] whitespace-nowrap text-stone-400 tabular-nums"
+                    title="La prioridad usa la ocupación actual de su zona; esta es la puntuación al cerrar"
+                  >
+                    Al cerrar: {row.score_at_close}
+                  </div>
+                )}
               </td>
               <td className="max-w-40 px-3 py-2 text-stone-700">{list(row.availability, AVAILABILITY)}</td>
               <td className="px-3 py-2 whitespace-nowrap text-stone-700 tabular-nums">

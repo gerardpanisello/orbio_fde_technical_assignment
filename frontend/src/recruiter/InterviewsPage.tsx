@@ -16,6 +16,7 @@ import { PageHeader, SeedButton } from './common'
 
 const BOOKED = { status: 'interview_scheduled', sort: '-score' } as const
 const UNSCHEDULED = { status: 'qualified_unscheduled', sort: '-score' } as const
+const WAITLISTED = { status: 'waitlisted', sort: '-score' } as const
 
 /** FR-12: the interview agenda. */
 export function InterviewsPage() {
@@ -26,6 +27,10 @@ export function InterviewsPage() {
     queryKey: keys.candidates(UNSCHEDULED),
     queryFn: () => api.listCandidates(UNSCHEDULED),
   })
+  const waitlisted = useQuery({
+    queryKey: keys.candidates(WAITLISTED),
+    queryFn: () => api.listCandidates(WAITLISTED),
+  })
   const openId = params.get('id')
   const open = (id: string) => setParams(withParam(params, 'id', id))
 
@@ -34,6 +39,7 @@ export function InterviewsPage() {
   const tomorrow = localDayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
   const groups = booked.data ? groupByDay(booked.data, today) : null
   const pending = unscheduled.data?.length ?? 0
+  const waiting = waitlisted.data?.length ?? 0
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 lg:px-8">
@@ -50,6 +56,22 @@ export function InterviewsPage() {
               {pending} {pending === 1 ? 'candidato apto' : 'candidatos aptos'} sin entrevista:
             </strong>{' '}
             ninguna hora les venía bien. Llámales para agendar.
+          </span>
+          <Icon name="arrowRight" className="size-4 text-stone-400" />
+        </Link>
+      )}
+
+      {waiting > 0 && (
+        <Link
+          to="/recruiter?status=waitlisted"
+          className={`card ${pending > 0 ? 'mt-3' : 'mt-5'} flex items-center gap-3 px-4 py-3 text-sm transition hover:border-stone-300`}
+        >
+          <span className="size-2 rounded-full" style={{ backgroundColor: STATUS_META.waitlisted.color }} />
+          <span className="flex-1 text-stone-700">
+            <strong className="font-semibold text-stone-900">
+              {waiting} {waiting === 1 ? 'candidato apto' : 'candidatos aptos'} en lista de espera:
+            </strong>{' '}
+            su zona tiene la plantilla cubierta. Ver en Zonas cuándo hay hueco.
           </span>
           <Icon name="arrowRight" className="size-4 text-stone-400" />
         </Link>

@@ -73,7 +73,10 @@ export function LiveRecordPanel({
 
           <section>
             <h3 className="eyebrow mb-2">Puntuación</h3>
-            <ScoreBreakdown score={detail.record.score} />
+            <ScoreBreakdown
+              score={detail.live_score ?? detail.record.score}
+              atClose={detail.live_score ? detail.record.score : null}
+            />
           </section>
 
           {lastTrace && (

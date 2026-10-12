@@ -9,13 +9,14 @@ export type FunnelStep = { key: string; label: string; value: number; share: num
  * FR-13 funnel, derived from /api/analytics. Counts closed conversations only (in-progress
  * ones have no outcome yet). Opt-outs count as leaving at consent, and candidates sent to
  * manual review are not counted as having passed the knock-outs. Each step is clamped to
- * the previous one, so the funnel never widens.
+ * the previous one, so the funnel never widens. Waitlisted candidates (spec 015) are
+ * qualified: they count as "Aptas" but not as booked (their zone was full).
  */
 export function buildFunnel(a: Analytics): FunnelStep[] {
   const n = (status: string) => a.by_status[status] ?? 0
   const drop = (stage: string) => a.drop_off_by_stage[stage] ?? 0
   const booked = n('interview_scheduled')
-  const qualified = booked + n('qualified_unscheduled')
+  const qualified = booked + n('qualified_unscheduled') + n('waitlisted')
   const started = a.total - n('in_progress')
   const consented = started - n('opted_out') - drop('consent')
   const passed = qualified + AFTER_KNOCKOUTS.reduce((sum, stage) => sum + drop(stage), 0)

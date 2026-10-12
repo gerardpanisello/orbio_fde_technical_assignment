@@ -81,6 +81,7 @@ export const FACTOR: Record<S['FactorReason'], string> = {
   availability_breadth: 'Disponibilidad',
   schedule_flexibility: 'Flexibilidad horaria',
   start_date_proximity: 'Incorporación próxima',
+  zone_demand: 'Demanda en su zona',
   unknown: 'Dato no disponible',
 }
 

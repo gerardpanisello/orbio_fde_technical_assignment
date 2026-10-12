@@ -168,7 +168,10 @@ function FinalBanner({ status, slot, chat }: { status: Chat['status']; slot: str
           booked ? 'bg-[#d9fdd3] text-[#0b5d3b]' : 'bg-white/95 text-wa-meta'
         }`}
       >
-        <Icon name={booked ? 'calendar' : 'check'} className="size-4 shrink-0" />
+        <Icon
+          name={booked ? 'calendar' : status === 'waitlisted' ? 'clock' : 'check'}
+          className="size-4 shrink-0"
+        />
         <span>
           {t.banner[status]}
           {booked && slot && `: ${formatSlot(slot, chat.language)}`}
