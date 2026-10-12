@@ -1,0 +1,68 @@
+# Grupo Sazón: initial staffing per served area (spec 015). SEED ONLY.
+#
+# Read once, the first time the API starts with an empty database. After that, the
+# database is the source of truth: recruiters edit targets and current drivers in the
+# dashboard "Zonas" page, and "Contratar" adds one driver to the candidate's area.
+# Editing this file later changes nothing in an existing database.
+#
+# What you can change:
+#   - target_drivers: how many drivers the area needs.
+#   - current_drivers: how many it has today.
+#   Occupancy = current / target. Below the bands in screening.yaml (scoring.zone_demand)
+#   candidates in the area get extra priority; at or above 100 % they are waitlisted
+#   instead of being offered an interview (never rejected).
+#   - Leave an area out to mean "no data": no extra priority, never waitlisted.
+#
+# Rules (checked at startup): every id is a served area from service_areas.yaml (a zone,
+# or a city served as a whole); numbers are whole and not negative.
+
+version: "2026-10-12.1"
+
+areas:
+  # --- Spain ---------------------------------------------------------------------------
+  mad-centro: {target_drivers: 40, current_drivers: 26}          # 65 %
+  mad-chamberi: {target_drivers: 30, current_drivers: 12}        # 40 %
+  mad-salamanca: {target_drivers: 30, current_drivers: 32}       # 107 %: full (waitlist demo)
+  mad-retiro: {target_drivers: 25, current_drivers: 21}          # 84 %
+  mad-tetuan: {target_drivers: 25, current_drivers: 9}           # 36 %
+  bcn-ciutat-vella: {target_drivers: 35, current_drivers: 30}    # 86 %
+  bcn-eixample: {target_drivers: 45, current_drivers: 20}        # 44 %
+  bcn-gracia: {target_drivers: 25, current_drivers: 17}          # 68 %
+  bcn-sants-montjuic: {target_drivers: 25, current_drivers: 25}  # 100 %: full
+  bcn-sant-marti: {target_drivers: 30, current_drivers: 14}      # 47 %
+  val-el-carmen: {target_drivers: 20, current_drivers: 15}       # 75 %
+  val-ruzafa: {target_drivers: 25, current_drivers: 10}          # 40 %
+  val-benimaclet: {target_drivers: 15, current_drivers: 12}      # 80 %
+  val-el-cabanyal: {target_drivers: 15, current_drivers: 6}      # 40 %
+  val-campanar: {target_drivers: 15, current_drivers: 11}        # 73 %
+  sev-triana: {target_drivers: 20, current_drivers: 13}          # 65 %
+  sev-nervion: {target_drivers: 20, current_drivers: 18}         # 90 %
+  sev-macarena: {target_drivers: 20, current_drivers: 8}         # 40 %
+  sev-los-remedios: {target_drivers: 15, current_drivers: 12}    # 80 %
+  sev-casco-antiguo: {target_drivers: 25, current_drivers: 20}   # 80 %
+  mlg-centro: {target_drivers: 25, current_drivers: 19}          # 76 %
+  mlg-el-palo: {target_drivers: 15, current_drivers: 7}          # 47 %
+  mlg-teatinos: {target_drivers: 20, current_drivers: 8}         # 40 %
+  mlg-huelin: {target_drivers: 15, current_drivers: 13}          # 87 %
+  mlg-cruz-de-humilladero: {target_drivers: 15, current_drivers: 9}  # 60 %
+
+  # --- Mexico --------------------------------------------------------------------------
+  cdmx-coyoacan: {target_drivers: 50, current_drivers: 22}       # 44 %
+  cdmx-cuauhtemoc: {target_drivers: 60, current_drivers: 45}     # 75 %
+  cdmx-benito-juarez: {target_drivers: 45, current_drivers: 38}  # 84 %
+  cdmx-miguel-hidalgo: {target_drivers: 40, current_drivers: 40} # 100 %: full
+  cdmx-alvaro-obregon: {target_drivers: 35, current_drivers: 15} # 43 %
+  gdl-centro: {target_drivers: 30, current_drivers: 24}          # 80 %
+  gdl-providencia: {target_drivers: 30, current_drivers: 16}     # 53 %
+  gdl-chapultepec: {target_drivers: 20, current_drivers: 17}     # 85 %
+  gdl-zapopan: {target_drivers: 35, current_drivers: 13}         # 37 %
+  gdl-tlaquepaque: {target_drivers: 20, current_drivers: 11}     # 55 %
+  mty-centro: {target_drivers: 30, current_drivers: 22}          # 73 %
+  mty-san-pedro: {target_drivers: 25, current_drivers: 11}       # 44 %
+  mty-cumbres: {target_drivers: 20, current_drivers: 15}         # 75 %
+  mty-obispado: {target_drivers: 15, current_drivers: 13}        # 87 %
+  # mty-el-carmen: no data yet (no extra priority, never waitlisted)
+  pue-centro-historico: {target_drivers: 25, current_drivers: 18}  # 72 %
+  pue-angelopolis: {target_drivers: 20, current_drivers: 7}      # 35 %
+  pue-la-paz: {target_drivers: 15, current_drivers: 12}          # 80 %
+  # pue-cholula: no data yet

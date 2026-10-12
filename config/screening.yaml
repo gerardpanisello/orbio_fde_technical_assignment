@@ -13,7 +13,10 @@
 #   - thresholds: how many times the agent re-asks, loop guards, place-name matching.
 #   - scoring: points per factor and the high/medium bucket thresholds. Scoring only
 #     ranks qualified candidates; it never rejects anyone.
-version: "2026-10-11.1"
+#   - scoring.zone_demand: extra points when the candidate's area is short of drivers
+#     (staffing per area is edited in the dashboard "Zonas" page; initial values in
+#     zone_staffing.yaml). An area with no staffing data gets no extra points.
+version: "2026-10-12.1"
 default_country: ES
 
 # Assumption, to confirm with the client (spec 002 §7 #3).
@@ -46,7 +49,7 @@ thresholds:
   max_plausible_age: 99
   experience_confirm_above_years: 40       # more years than this -> ask the candidate to confirm
 
-scoring:                                   # maximum total: 100
+scoring:                                   # maximum total: 120
   experience_years: {points_per_year: 5, max_points: 20}
   platforms: {points_per_known_platform: 10, max_points: 20}   # unknown platforms score 0
   availability: {full_time: 15, part_time: 8, weekends: 7, max_points: 25}
@@ -55,4 +58,8 @@ scoring:                                   # maximum total: 100
     - {within_days: 3, points: 20}
     - {within_days: 14, points: 10}
     - {within_days: 30, points: 5}
-  buckets: {high: 60, medium: 35}          # score >= 60 high, >= 35 medium, else low
+  zone_demand:                             # area staffing (current / target); first band that fits wins
+    - {below_pct: 50, points: 20}          # under 50 % staffed: we need drivers badly
+    - {below_pct: 80, points: 12}
+    - {below_pct: 100, points: 5}          # at or above 100 %: 0 points (and waitlisted)
+  buckets: {high: 70, medium: 40}          # score >= 70 high, >= 40 medium, else low

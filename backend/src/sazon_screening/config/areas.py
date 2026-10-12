@@ -54,5 +54,15 @@ class LocationIndex:
     def served_city_ids(self) -> tuple[str, ...]:
         return tuple(self.cities)
 
+    def served_areas(self) -> tuple[AreaRef, ...]:
+        """Every area candidates are placed in: each zone, or a city served as a whole.
+
+        These are the units staffing is tracked for (spec 015), in config order.
+        """
+        areas: list[AreaRef] = []
+        for city_id, city_ref in self.cities.items():
+            areas += self.zones_by_city[city_id] or (city_ref,)
+        return tuple(areas)
+
     def zone_entries(self, city_id: str) -> tuple[IndexEntry, ...]:
         return tuple(e for e in self.entries if e.level == "zone" and e.ref.city == city_id)

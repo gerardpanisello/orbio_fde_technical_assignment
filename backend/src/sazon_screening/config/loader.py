@@ -10,10 +10,17 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from sazon_screening.config.models import EngineConfig, ScreeningConfig, ServiceAreasConfig
+from sazon_screening.config.models import (
+    EngineConfig,
+    ScreeningConfig,
+    ServiceAreasConfig,
+    ZoneStaffingConfig,
+    build_location_index,
+)
 
 SERVICE_AREAS_FILE = "service_areas.yaml"
 SCREENING_FILE = "screening.yaml"
+ZONE_STAFFING_FILE = "zone_staffing.yaml"
 
 
 class ConfigError(Exception):
@@ -29,6 +36,22 @@ def load_config(config_dir: Path) -> EngineConfig:
     except ValidationError as error:
         # Cross-file checks (min_age, default_country) are about screening.yaml values.
         raise ConfigError(_format(SCREENING_FILE, error)) from None
+
+
+def load_zone_staffing(config_dir: Path, service_areas: ServiceAreasConfig) -> ZoneStaffingConfig:
+    """Read the staffing seed (spec 015). Every id must be a served area: a zone, or a city
+    served as a whole. A city that has zones is not an area (its zones are)."""
+    staffing = load_yaml_model(config_dir / ZONE_STAFFING_FILE, ZoneStaffingConfig)
+    served = {area.id for area in build_location_index(service_areas).served_areas()}
+    unknown = [area_id for area_id in staffing.areas if area_id not in served]
+    if unknown:
+        lines = [
+            f"{ZONE_STAFFING_FILE}: areas.{area_id}: not a served area in "
+            f"{SERVICE_AREAS_FILE} (use a zone id, or a city id for a city without zones)"
+            for area_id in unknown
+        ]
+        raise ConfigError("\n".join(lines))
+    return staffing
 
 
 def load_yaml_model[M: BaseModel](path: Path, model: type[M]) -> M:

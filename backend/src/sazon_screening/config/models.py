@@ -277,6 +277,26 @@ class ScreeningConfig(_Strict):
         return self.license_required[vehicle.value]
 
 
+# --- zone_staffing.yaml (spec 015) --------------------------------------------------
+
+
+class AreaStaffing(_Strict):
+    """Drivers an area needs and has. Occupancy = current / target."""
+
+    target_drivers: int = Field(ge=0)
+    current_drivers: int = Field(ge=0)
+
+
+class ZoneStaffingConfig(_Strict):
+    """Initial staffing per served area: seeds the database once; the DB rules after that.
+
+    Ids are checked against service_areas.yaml by the loader (a cross-file rule).
+    """
+
+    version: str
+    areas: dict[Slug, AreaStaffing] = {}
+
+
 # --- both files -----------------------------------------------------------------------
 
 
