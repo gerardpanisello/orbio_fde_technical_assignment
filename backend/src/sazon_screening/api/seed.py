@@ -18,7 +18,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sazon_screening.api.service import ScreeningService, TurnOutcome
+from sazon_screening.api.service import Channel, ScreeningService, TurnOutcome
 from sazon_screening.engine import SilenceExpired
 from sazon_screening.vocab import Country, Language
 
@@ -186,16 +186,26 @@ async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -
     rng = random.Random(seed)
     weights = [p.weight for p in PERSONAS]
     chosen = PERSONAS[:n] + rng.choices(PERSONAS, weights=weights, k=max(0, n - len(PERSONAS)))
-    return [await _play(service, persona, rng, now) for persona in chosen]
+    # Spec 016: every third candidate "came" through WhatsApp, so the dashboard shows both
+    # channels. No phone numbers: nothing is ever sent to WhatsApp for demo data.
+    return [
+        await _play(service, persona, rng, now, channel="whatsapp" if i % 3 == 2 else "web")
+        for i, persona in enumerate(chosen)
+    ]
 
 
 async def _play(
-    service: ScreeningService, persona: Persona, rng: random.Random, now: datetime
+    service: ScreeningService,
+    persona: Persona,
+    rng: random.Random,
+    now: datetime,
+    *,
+    channel: Channel = "web",
 ) -> str:
     low, high = persona.started_hours_ago
     at = now - timedelta(seconds=rng.randint(low * HOUR, high * HOUR))
     conversation_id = await service.start_conversation(
-        persona.language, persona.country_hint, at=at
+        persona.language, persona.country_hint, at=at, channel=channel
     )
     script = persona.script(rng)
     pause = persona.pause_after if persona.pause_after is not None else len(script)

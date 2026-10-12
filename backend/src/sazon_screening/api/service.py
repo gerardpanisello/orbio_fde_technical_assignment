@@ -13,15 +13,22 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Literal, Protocol
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
 from sazon_screening.api.db import Sessions
-from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
+from sazon_screening.api.models import (
+    Conversation,
+    InboundSeen,
+    Message,
+    RecruiterAction,
+    SummaryRow,
+)
 from sazon_screening.api.slots import SlotProvider
 from sazon_screening.api.staffing import Staffing, area_of_row, area_of_state, load_staffing
 from sazon_screening.api.staffing import seed_staffing as insert_seed
@@ -46,6 +53,7 @@ from sazon_screening.reengagement import (
     timezone_for,
 )
 from sazon_screening.vocab import Country, Language, Status
+from sazon_screening.whatsapp.phone import phone_hash, phone_ref
 
 logger = logging.getLogger("sazon_screening.api")
 Clock = Callable[[], datetime]
@@ -96,6 +104,29 @@ class Reengaged:
     planned: Planned | None = None  # the next step, when it is not due yet
 
 
+Channel = Literal["web", "whatsapp"]
+DeliveryKind = Literal["reply", "follow_up", "close"]
+
+
+@dataclass(frozen=True)
+class Outbound:
+    """A message for a channel that pushes (spec 016): the web chat pulls instead."""
+
+    conversation_id: str
+    phone: str | None
+    reply: OutboundMessage
+    kind: DeliveryKind
+    # Later than the WhatsApp window after the candidate's last message: free text would
+    # be rejected, only an approved template can go (spec 008 FR-3).
+    outside_window: bool = False
+
+
+class Delivery(Protocol):
+    """A channel adapter's outbound side. Must not raise: it logs and carries on."""
+
+    async def deliver(self, outbound: Outbound) -> None: ...
+
+
 class ScreeningService:
     def __init__(
         self,
@@ -115,13 +146,18 @@ class ScreeningService:
         # FR-4: one turn at a time per conversation. Per process: enough for one instance
         # (several instances need a DB row lock or a queue; deployment design, 014).
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        # Spec 016: channels that push messages (re-engagement goes out through them).
+        self._deliveries: dict[str, Delivery] = {}
+
+    def register_delivery(self, channel: Channel, delivery: Delivery) -> None:
+        self._deliveries[channel] = delivery
 
     def now(self) -> datetime:
         return self._clock()
 
     def with_agent(self, agent: ScreeningAgent) -> "ScreeningService":
         """The same database, slots and clock behind another agent (the offline demo seed)."""
-        return ScreeningService(
+        service = ScreeningService(
             agent,
             self._sessions,
             self._slots,
@@ -129,6 +165,8 @@ class ScreeningService:
             self._staffing_seed,
             self._reengagement,
         )
+        service._deliveries = self._deliveries
+        return service
 
     async def init_zone_staffing(self) -> bool:
         """Seed `zone_staffing` from config if the table is empty (spec 015 FR-1).
@@ -150,32 +188,92 @@ class ScreeningService:
         *,
         conversation_id: str | None = None,
         at: datetime | None = None,
+        channel: Channel = "web",
     ) -> str:
-        """FR-1: store a new conversation with Sofi's greeting; returns its id."""
-        now = at or self._clock()
-        conversation_id = conversation_id or str(uuid4())
+        """FR-1: store a new conversation with Sofi's greeting; returns its id.
+        `channel` is only for demo data (spec 016): real WhatsApp ones use `start_whatsapp`."""
+        conversation_id, _ = await self._open(
+            language,
+            country_hint,
+            conversation_id or str(uuid4()),
+            at or self._clock(),
+            channel=channel,
+        )
+        return conversation_id
+
+    async def start_whatsapp(
+        self,
+        phone: str,
+        first_message: str,
+        *,
+        language: Language = Language.es,
+        country_hint: Country | None = None,
+        at: datetime | None = None,
+    ) -> tuple[str, OutboundMessage | None]:
+        """Spec 016 FR-3: a new number wrote. The candidate writes first, so their message
+        (e.g. "Hola") is stored before the greeting and opens the 24 h window. Returns
+        the conversation id and the greeting to send."""
+        conversation_id, result = await self._open(
+            language,
+            country_hint,
+            str(uuid4()),
+            at or self._clock(),
+            channel="whatsapp",
+            phone=phone,
+            first_message=first_message,
+        )
+        return conversation_id, result.reply
+
+    async def _open(
+        self,
+        language: Language,
+        country_hint: Country | None,
+        conversation_id: str,
+        now: datetime,
+        *,
+        channel: Channel = "web",
+        phone: str | None = None,
+        first_message: str | None = None,
+    ) -> tuple[str, TurnResult]:
         context = self._context(country_hint, now)
         result = await self._agent.start_conversation(
             language=language, context=context, conversation_id=conversation_id
         )
         async with self._sessions.begin() as session:
-            conversation = Conversation(id=conversation_id, created_at=now, recruiter_status="new")
+            conversation = Conversation(
+                id=conversation_id,
+                created_at=now,
+                recruiter_status="new",
+                channel=channel,
+                phone=phone,
+            )
+            if first_message is not None:
+                self._candidate_wrote(conversation, now)
             self._copy_state(conversation, result.state, now)
             repo.add(session, conversation)
-            self._add_messages(session, conversation_id, None, result, now)
-        return conversation_id
+            self._add_messages(session, conversation_id, first_message, result, now)
+        return conversation_id, result
 
     async def send_message(
-        self, conversation_id: str, text: str, *, at: datetime | None = None
+        self,
+        conversation_id: str,
+        text: str,
+        *,
+        at: datetime | None = None,
+        kind: Literal["text", "media"] = "text",
     ) -> TurnOutcome:
-        """FR-2: one candidate turn. A closed conversation still answers (the engine acks)."""
+        """FR-2: one candidate turn. A closed conversation still answers (the engine acks).
+
+        `kind="media"`: the channel says it was a voice note or a photo (spec 016 FR-4);
+        `text` is then only the placeholder stored in the transcript.
+        """
         async with self._locks[conversation_id]:
             now = at or self._clock()
             state, history = await self._load(conversation_id)
             zone_full = await self._zone_full(state, conversation_id)
             result = await self._agent.handle_message(
                 state,
-                InboundMessage(text=text),
+                InboundMessage(text=text, kind=kind),
                 history,
                 today=now.date(),
                 context=self._context(state.country_hint, now, zone_full=zone_full),
@@ -202,6 +300,41 @@ class ScreeningService:
             conversation_id=conversation_id,
         )
         return await self._save_turn(conversation_id, None, result, now)
+
+    # --- WhatsApp (spec 016) -------------------------------------------------------------
+
+    async def conversation_for_phone(self, phone: str) -> str | None:
+        async with self._sessions() as session:
+            row = await repo.latest_conversation_for_phone(session, phone)
+        return row.id if row else None
+
+    async def quick_reply_label(self, conversation_id: str, reply_id: str) -> str | None:
+        """The label of a quick reply Sofi offered (FR-4): a tapped WhatsApp button returns
+        its id and a title that may have been shortened; the pipeline gets the full label,
+        exactly as if the candidate had typed it. The latest offer of that id wins."""
+        async with self._sessions() as session:
+            messages = await repo.list_messages(session, conversation_id)
+        for message in reversed(messages):
+            if message.role != "agent":
+                continue
+            for option in message.quick_replies_json or []:
+                if option.get("id") == reply_id:
+                    return option.get("label")
+        return None
+
+    async def is_do_not_contact(self, phone: str) -> bool:
+        async with self._sessions() as session:
+            return await repo.is_do_not_contact(session, phone_hash(phone))
+
+    async def claim_inbound(self, message_id: str, *, at: datetime | None = None) -> bool:
+        """FR-2: True the first time a WhatsApp message id is seen, False on a redelivery.
+        The primary key makes it atomic, even across processes sharing the database."""
+        try:
+            async with self._sessions.begin() as session:
+                repo.add(session, InboundSeen(message_id=message_id, received_at=at or self.now()))
+        except IntegrityError:
+            return False
+        return True
 
     # --- re-engagement (spec 008) --------------------------------------------------------
 
@@ -238,8 +371,44 @@ class ScreeningService:
         Under the conversation's lock, so a candidate's message and a reminder never
         race, and with a compare-and-set on the step, so it is sent at most once.
         """
+        now = at or self._clock()
         async with self._locks[conversation_id]:
-            return await self._reengage(conversation_id, force=force, now=at or self._clock())
+            outcome = await self._reengage(conversation_id, force=force, now=now)
+        await self._deliver_reengagement(conversation_id, outcome, now)
+        return outcome
+
+    async def _deliver_reengagement(
+        self, conversation_id: str, outcome: Reengaged, now: datetime
+    ) -> None:
+        """Spec 016 FR-6: a reminder (or the abandon's close) for a WhatsApp conversation
+        goes out through WhatsApp. Outside the lock: a slow Graph API never blocks the
+        candidate's next message. Never raises: the step is already stored."""
+        if outcome.reply is None or outcome.action == "none" or not self._deliveries:
+            return
+        try:
+            async with self._sessions() as session:
+                row = await self._get(session, conversation_id)
+            delivery = self._deliveries.get(row.channel)
+            if delivery is None:
+                return
+            cfg = self.reengagement
+            opened = row.last_candidate_at
+            outside = (
+                outcome.requires_template
+                if outcome.action == "follow_up"
+                else opened is None or (cfg is not None and now > opened + cfg.window)
+            )
+            await delivery.deliver(
+                Outbound(
+                    conversation_id=conversation_id,
+                    phone=row.phone,
+                    reply=outcome.reply,
+                    kind="follow_up" if outcome.action == "follow_up" else "close",
+                    outside_window=outside,
+                )
+            )
+        except Exception:
+            logger.exception("re-engagement delivery failed (conversation %s)", conversation_id)
 
     async def _reengage(self, conversation_id: str, *, force: bool, now: datetime) -> Reengaged:
         async with self._sessions() as session:
@@ -468,11 +637,25 @@ class ScreeningService:
                 await repo.delete_summaries(session, conversation_id)  # they describe the past
             if result.state.status is Status.opted_out:
                 await repo.redact_messages(session, conversation_id)  # 002 FR-11
+                await self._do_not_contact(session, conversation, now)
         if result.state.last_error:
             logger.error(
                 "engine error %s (conversation %s)", result.state.last_error, conversation_id
             )
         return TurnOutcome(result=result, status=result.state.status)
+
+    async def _do_not_contact(
+        self, session: AsyncSession, conversation: Conversation, now: datetime
+    ) -> None:
+        """Spec 016 FR-3: an opted-out number is never messaged again. Only its hash is
+        kept; the number itself is erased with the rest of the PII (002 FR-11)."""
+        if conversation.phone is None:
+            return
+        await repo.add_do_not_contact(session, phone_hash(conversation.phone), now)
+        logger.info(
+            "do-not-contact %s (conversation %s)", phone_ref(conversation.phone), conversation.id
+        )
+        conversation.phone = None
 
     @staticmethod
     def _candidate_wrote(conversation: Conversation, now: datetime) -> None:

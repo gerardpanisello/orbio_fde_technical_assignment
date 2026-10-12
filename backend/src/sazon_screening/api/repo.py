@@ -14,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api.models import (
     Conversation,
+    DoNotContact,
+    InboundSeen,
     Message,
     RecruiterAction,
     SummaryRow,
@@ -30,9 +32,33 @@ async def get_conversation(session: AsyncSession, conversation_id: str) -> Conve
 
 
 def add(
-    session: AsyncSession, row: Conversation | Message | RecruiterAction | ZoneStaffing
+    session: AsyncSession,
+    row: Conversation | Message | RecruiterAction | ZoneStaffing | InboundSeen,
 ) -> None:
     session.add(row)
+
+
+# --- WhatsApp (spec 016) ---------------------------------------------------------------
+
+
+async def latest_conversation_for_phone(session: AsyncSession, phone: str) -> Conversation | None:
+    """The candidate's most recent conversation on this number (closed ones included: the
+    engine answers those with its closed acknowledgement)."""
+    query = (
+        select(Conversation)
+        .where(Conversation.phone == phone)
+        .order_by(Conversation.created_at.desc(), Conversation.id.desc())
+        .limit(1)
+    )
+    return (await session.scalars(query)).first()
+
+
+async def is_do_not_contact(session: AsyncSession, phone_hash: str) -> bool:
+    return await session.get(DoNotContact, phone_hash) is not None
+
+
+async def add_do_not_contact(session: AsyncSession, phone_hash: str, at: datetime) -> None:
+    await session.merge(DoNotContact(phone_hash=phone_hash, created_at=at))
 
 
 # --- re-engagement (spec 008) ----------------------------------------------------------
@@ -176,6 +202,7 @@ class CandidateFilters:
     city: str | None = None
     bucket: str | None = None
     recruiter_status: str | None = None
+    channel: str | None = None  # spec 016
     q: str | None = None  # part of the name, any case
     sort: SortKey = "-updated"
 
@@ -190,6 +217,7 @@ async def list_candidates(
         (Conversation.city, filters.city),
         (Conversation.bucket, filters.bucket),
         (Conversation.recruiter_status, filters.recruiter_status),
+        (Conversation.channel, filters.channel),
     ):
         if value:
             query = query.where(column == value)
@@ -224,6 +252,13 @@ async def count_by_country_and_status(session: AsyncSession) -> list[tuple[str |
         Conversation.country, Conversation.status
     )
     return [(country, status, count) for country, status, count in await session.execute(query)]
+
+
+async def count_by_channel_and_status(session: AsyncSession) -> list[tuple[str, str, int]]:
+    query = select(Conversation.channel, Conversation.status, func.count()).group_by(
+        Conversation.channel, Conversation.status
+    )
+    return [(channel, status, count) for channel, status, count in await session.execute(query)]
 
 
 async def durations(

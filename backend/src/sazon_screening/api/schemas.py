@@ -6,7 +6,7 @@ from typing import Annotated, Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
-from sazon_screening.api.service import ActionName, Reengaged, TurnOutcome
+from sazon_screening.api.service import ActionName, Channel, Reengaged, TurnOutcome
 from sazon_screening.api.staffing import Staffing, area_of_row, live_score
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord, ScoreResult
@@ -130,6 +130,7 @@ class CandidateRow(BaseModel):
     platforms: list[str] | None
     start_date: date | None
     language: Language
+    channel: Channel  # spec 016: where the candidate talks to Sofi (never their number)
     interview_slot: str | None  # ISO local date-time, e.g. "2026-10-13T10:00"
     recruiter_status: RecruiterStatus
     recruiter_override: bool
@@ -175,6 +176,7 @@ class CandidateRow(BaseModel):
                 "platforms": experience.platforms if experience else None,
                 "start_date": fields.start_date.value,
                 "language": row.language,
+                "channel": row.channel,
                 "interview_slot": row.interview_slot,
                 "recruiter_status": row.recruiter_status,
                 "recruiter_override": row.recruiter_override,
@@ -353,6 +355,7 @@ class Analytics(BaseModel):
     fallback_rate: float  # agent replies that used the template instead of the model
     avg_cost_usd: float  # LLM cost per conversation, including summaries
     by_country: dict[str, dict[Status, int]]  # "unknown" when no country is known yet
+    by_channel: dict[Channel, dict[Status, int]]  # spec 016: web chat vs WhatsApp
     faq: FaqAnalytics
     reengagement: ReengagementAnalytics
 

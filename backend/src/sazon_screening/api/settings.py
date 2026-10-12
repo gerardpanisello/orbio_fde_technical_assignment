@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from sazon_screening.llm.settings import Settings, SettingsError, load_settings
+from sazon_screening.whatsapp.settings import WhatsAppSettings, load_whatsapp_settings
 
 AppEnv = Literal["dev", "prod"]
 DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./sazon.db"  # relative to where the API runs
@@ -31,6 +32,8 @@ class AppSettings(BaseModel):
     # Spec 013: Sofi's voice. No key -> the voice page uses the browser's own voice.
     elevenlabs_api_key: SecretStr | None = None
     elevenlabs_voice_id: str | None = None  # overrides config/voice.yaml
+    # Spec 016: the real WhatsApp channel. Off unless WHATSAPP_ENABLED=true.
+    whatsapp: WhatsAppSettings = WhatsAppSettings()
 
 
 def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
@@ -65,4 +68,5 @@ def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
         reengagement_time_scale=time_scale,
         elevenlabs_api_key=SecretStr(eleven_key) if eleven_key else None,
         elevenlabs_voice_id=environ.get("ELEVENLABS_VOICE_ID", "").strip() or None,
+        whatsapp=load_whatsapp_settings(environ),
     )

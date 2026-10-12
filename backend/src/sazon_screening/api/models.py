@@ -53,6 +53,12 @@ class Conversation(Base):
     follow_ups_sent: Mapped[int] = mapped_column(default=0)  # in the current silence
     last_follow_up_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
     reactivated_after_step: Mapped[int | None]  # the reminder the candidate came back after
+    # Channel (spec 016 FR-6): "web" (the simulated chat) or "whatsapp".
+    channel: Mapped[str] = mapped_column(String(16), default="web", index=True)
+    # WhatsApp only: the candidate's wa_id (international number, digits), to reply and to
+    # find the conversation again. Never copied into the state, record, transcript, summaries
+    # or exports; cleared on opt-out (the do-not-contact set keeps only a hash).
+    phone: Mapped[str | None] = mapped_column(String(32), index=True)
     # Recruiter side (FR-9):
     recruiter_status: Mapped[str] = mapped_column(String(16), default="new", index=True)
     recruiter_override: Mapped[bool] = mapped_column(default=False)
@@ -109,4 +115,25 @@ class RecruiterAction(Base):
     conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True)
     action: Mapped[str] = mapped_column(String(16))
     note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class InboundSeen(Base):
+    """WhatsApp message ids already accepted (spec 016 FR-2): Meta may deliver one twice."""
+
+    __tablename__ = "whatsapp_inbound_seen"
+
+    message_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    received_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class DoNotContact(Base):
+    """Numbers that opted out (spec 001 FR-7/FR-11, 016 FR-3): never messaged again.
+
+    Only the SHA-256 of the number is kept, so the set itself holds no phone numbers.
+    """
+
+    __tablename__ = "do_not_contact"
+
+    phone_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)

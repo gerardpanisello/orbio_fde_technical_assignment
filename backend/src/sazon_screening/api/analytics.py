@@ -48,6 +48,9 @@ async def build_analytics(session: AsyncSession) -> Analytics:
     by_country: dict[str, dict[Status, int]] = {}
     for country, status, count in await repo.count_by_country_and_status(session):
         by_country.setdefault(country or "unknown", {})[Status(status)] = count
+    by_channel: dict[str, dict[Status, int]] = {}
+    for channel, status, count in await repo.count_by_channel_and_status(session):
+        by_channel.setdefault(channel, {})[Status(status)] = count
     return Analytics(
         total=total,
         by_status=by_status,
@@ -62,6 +65,7 @@ async def build_analytics(session: AsyncSession) -> Analytics:
         fallback_rate=_ratio(fallbacks, turns),
         avg_cost_usd=round(cost / total, 6) if total else 0.0,
         by_country=by_country,
+        by_channel=by_channel,
         faq=_faq(await repo.faq_traces(session)),
         reengagement=_reengagement(
             await repo.follow_up_steps(session), await repo.reactivation_steps(session)

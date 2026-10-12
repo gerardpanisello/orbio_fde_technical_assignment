@@ -19,7 +19,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sazon_screening.api.db import create_tables, make_engine, make_sessions
-from sazon_screening.api.routes import analytics, candidates, conversations, dev, meta, zones
+from sazon_screening.api.routes import (
+    analytics,
+    candidates,
+    conversations,
+    dev,
+    meta,
+    whatsapp,
+    zones,
+)
 from sazon_screening.api.routes.voice import router as voice_router
 from sazon_screening.api.service import (
     Clock,
@@ -34,6 +42,9 @@ from sazon_screening.config import load_zone_staffing
 from sazon_screening.llm.pipeline import ScreeningAgent, build_agent
 from sazon_screening.reengagement import load_reengagement
 from sazon_screening.reengagement.scheduler import ReengagementScheduler
+from sazon_screening.whatsapp.channel import WhatsAppChannel
+from sazon_screening.whatsapp.client import GraphWhatsAppClient, WhatsAppClient
+from sazon_screening.whatsapp.settings import load_whatsapp_config
 
 logger = logging.getLogger("sazon_screening.api")
 
@@ -43,6 +54,7 @@ def create_app(
     *,
     agent: ScreeningAgent | None = None,
     clock: Clock = utc_now,
+    whatsapp_client: WhatsAppClient | None = None,
 ) -> FastAPI:
     """`agent` and `clock` are for tests; by default both come from settings and the system."""
     settings = settings or load_app_settings()
@@ -65,6 +77,15 @@ def create_app(
             reengagement.scaled(settings.reengagement_time_scale),
         )
         await app.state.service.init_zone_staffing()  # spec 015: only into an empty table
+        # Spec 016: the WhatsApp channel, only when enabled (tests pass a fake client).
+        wa_client: WhatsAppClient | None = None
+        app.state.whatsapp = None
+        if settings.whatsapp.enabled:
+            wa_client = whatsapp_client or GraphWhatsAppClient(settings.whatsapp)
+            app.state.whatsapp = WhatsAppChannel(
+                app.state.service, wa_client, load_whatsapp_config(settings.llm.config_dir)
+            )
+            app.state.service.register_delivery("whatsapp", app.state.whatsapp)
         # Spec 008: the follow-up loop. Tests leave it off and call `tick()` themselves.
         app.state.scheduler = ReengagementScheduler(
             app.state.service, tick_seconds=reengagement.tick_seconds
@@ -77,6 +98,8 @@ def create_app(
             loop.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await loop
+        if wa_client is not None:
+            await wa_client.aclose()
         await engine.dispose()
 
     app = FastAPI(title="Grupo Sazón screening API", version="0.1.0", lifespan=lifespan)
@@ -101,6 +124,7 @@ def create_app(
     app.include_router(zones.router)
     app.include_router(meta.router)
     app.include_router(dev.router)
+    app.include_router(whatsapp.router)  # spec 016
     app.include_router(voice_router)  # spec 013
     return app
 

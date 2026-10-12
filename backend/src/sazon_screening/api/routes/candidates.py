@@ -27,7 +27,7 @@ from sazon_screening.api.schemas import (
     SummaryOut,
     TraceOut,
 )
-from sazon_screening.api.service import ConversationNotFound
+from sazon_screening.api.service import Channel, ConversationNotFound
 from sazon_screening.api.staffing import load_staffing
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord
@@ -42,6 +42,7 @@ def candidate_filters(
     city: str | None = None,
     bucket: Bucket | None = None,
     recruiter_status: RecruiterStatus | None = None,
+    channel: Channel | None = None,
     q: str | None = None,
     sort: SortKey = "-updated",
 ) -> CandidateFilters:
@@ -51,6 +52,7 @@ def candidate_filters(
         city=city,
         bucket=bucket,
         recruiter_status=recruiter_status,
+        channel=channel,
         q=q,
         sort=sort,
     )
