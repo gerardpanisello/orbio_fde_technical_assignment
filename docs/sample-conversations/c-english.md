@@ -1,0 +1,253 @@
+# English speaker
+
+> An English-speaking candidate in Barcelona: the agent greets and runs the whole screening in English, with English slot labels.
+
+Final status: **`interview_scheduled`** · 11 candidate messages · total cost $0.0183 · client `anthropic` · today = 2026-10-13
+
+## Transcript
+
+**Sofi:** Hi! I'm Sofi, Grupo Sazón's automated virtual assistant 👋 I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: https://gruposazon.example/privacidad Do you agree that we use your data for this process?
+
+`[Yes]` `[No]`
+
+**Candidate:** sure, go ahead
+
+**Sofi:** Great! What's your name? First name and surname, please.
+
+**Candidate:** I'm Tom Baker, 31
+
+**Sofi:** Thanks, Tom! Which vehicle would you deliver with?
+
+`[Motorbike]` `[Car]` `[Bicycle]` `[E-bike]` `[No vehicle]`
+
+**Candidate:** I drive a car
+
+**Sofi:** Got it, Tom! Do you have a valid driving licence?
+
+`[Yes]` `[No]`
+
+**Candidate:** yes, EU licence
+
+**Sofi:** Great, thanks Tom! Which city and area would you like to deliver in?
+
+**Candidate:** Gràcia, Barcelona
+
+**Sofi:** Thanks, Tom, Gràcia is great! What availability works for you: full-time, part-time or weekends?
+
+`[Full-time]` `[Part-time]` `[Weekends]`
+
+**Candidate:** part time
+
+**Sofi:** Thanks, Tom! And when would you prefer to deliver: mornings, afternoons, evenings or flexible?
+
+`[Mornings]` `[Afternoons]` `[Evenings]` `[Flexible]`
+
+**Candidate:** evenings mostly
+
+**Sofi:** Evenings, got it, Tom! How many years of delivery experience do you have, and with which apps?
+
+**Candidate:** none really, first time doing delivery
+
+**Sofi:** No problem at all, Tom, everyone starts somewhere! When could you start?
+
+**Candidate:** in two weeks
+
+**Sofi:** Thanks, Tom! Let's go over your details:  
+• Full name: Tom Baker  
+• Age: 31  
+• Vehicle: Car  
+• Driving licence: Yes  
+• City and area: Gràcia (Barcelona)  
+• Availability: Part-time  
+• Schedule: Evenings  
+• Experience: 0 years  
+• Start date: 27/10/2026  
+  
+Is everything correct?
+
+`[Yes]` `[No]`
+
+**Candidate:** yes that's all correct
+
+**Sofi:** Great, thanks Tom! These are the available times for your interview:  
+1. Wed 14 Oct, 10:00  
+2. Wed 14 Oct, 17:00  
+3. Thu 15 Oct, 10:00  
+4. Thu 15 Oct, 17:00  
+5. Fri 16 Oct, 10:00  
+6. Fri 16 Oct, 17:00  
+Which one works best for you?
+
+`[Wed 14 Oct, 10:00]` `[Wed 14 Oct, 17:00]` `[Thu 15 Oct, 10:00]` `[Thu 15 Oct, 17:00]` `[Fri 16 Oct, 10:00]` `[Fri 16 Oct, 17:00]`
+
+**Candidate:** Wed 14 Oct, 10:00
+
+**Sofi:** Perfect, Tom! Your interview is booked for Wed 14 Oct, 10:00. See you then! 😊
+
+## Outcome
+
+Status: **`interview_scheduled`**
+
+<details>
+<summary>Candidate record (JSON)</summary>
+
+```json
+{
+  "record_version": 1,
+  "status": "interview_scheduled",
+  "disqualification_reason": null,
+  "needs_review_reasons": [],
+  "score": {
+    "score": 23,
+    "bucket": "low",
+    "factors": [
+      {
+        "field": "experience",
+        "value": 0,
+        "points": 0,
+        "reason_code": "years_of_experience"
+      },
+      {
+        "field": "experience",
+        "value": [],
+        "points": 0,
+        "reason_code": "known_platforms"
+      },
+      {
+        "field": "availability",
+        "value": [
+          "part_time"
+        ],
+        "points": 8,
+        "reason_code": "availability_breadth"
+      },
+      {
+        "field": "schedule",
+        "value": [
+          "evening"
+        ],
+        "points": 5,
+        "reason_code": "schedule_flexibility"
+      },
+      {
+        "field": "start_date",
+        "value": "2026-10-27",
+        "points": 10,
+        "reason_code": "start_date_proximity"
+      }
+    ],
+    "max_score": 100
+  },
+  "flags": [],
+  "language": "en",
+  "drop_off_stage": "scheduling",
+  "selected_slot_id": "2026-10-14T10:00",
+  "config_version": "2026-10-11.1+2026-10-11.2",
+  "consent": true,
+  "fields": {
+    "full_name": {
+      "status": "valid",
+      "value": "Tom Baker"
+    },
+    "age": {
+      "status": "valid",
+      "value": {
+        "is_adult": null,
+        "age": 31,
+        "birth_year": null
+      }
+    },
+    "vehicle_type": {
+      "status": "valid",
+      "value": "car"
+    },
+    "has_license": {
+      "status": "valid",
+      "value": true
+    },
+    "location": {
+      "status": "valid",
+      "value": {
+        "raw_text": "Gràcia, Barcelona",
+        "country": "ES",
+        "city": "barcelona",
+        "zone": "bcn-gracia",
+        "in_service_area": true
+      }
+    },
+    "availability": {
+      "status": "valid",
+      "value": [
+        "part_time"
+      ]
+    },
+    "schedule": {
+      "status": "valid",
+      "value": [
+        "evening"
+      ]
+    },
+    "experience": {
+      "status": "valid",
+      "value": {
+        "years": 0,
+        "platforms": []
+      }
+    },
+    "start_date": {
+      "status": "valid",
+      "value": "2026-10-27"
+    }
+  },
+  "post_close_corrections": []
+}
+```
+
+</details>
+
+## Recruiter summary
+
+_Generated by: llm_
+
+**Estado:** Entrevista agendada
+**Puntuación:** 23/100
+**Prioridad:** Baja
+**Factores principales:** Incorporación próxima (+10), Disponibilidad (+8), Flexibilidad horaria (+5)
+**Nombre completo:** Tom Baker
+**Edad:** 31
+**Vehículo:** Coche
+**Carné de conducir:** Sí
+**Ciudad y barrio:** Gràcia (Barcelona)
+**Disponibilidad:** Media jornada
+**Horario:** Noches
+**Experiencia:** 0 años
+**Fecha de inicio:** 27/10/2026
+**Idioma del candidato:** Inglés
+**Última etapa:** Agenda
+**Entrevista:** 2026-10-14T10:00
+
+**Resumen:** Tom respondió a todas las preguntas de forma directa y confirmó sus datos sin cambios. Reservó una entrevista para el miércoles 14 de octubre a las 10:00. No hizo preguntas ni expresó dudas durante la conversación.
+**Tono:** Positivo. Respuestas cordiales y colaboradoras, sin objeciones ni quejas.
+**Observaciones:**
+- Dice que es su primera vez haciendo reparto; no tiene experiencia previa según su propia declaración.
+- Indica disponibilidad a tiempo parcial y preferencia por turnos de tarde.
+
+## Cost and latency per turn
+
+| # | Input | Extraction | Engine action | Phrasing | Cost (USD) | Latency (ms) |
+|---|---|---|---|---|---:|---:|
+| 0 | greeting | skipped | `ask_field` | ok | 0.0017 | 1312 |
+| 1 | message | ok | `ask_field` | ok | 0.0010 | 3125 |
+| 2 | message | ok | `ask_field` | ok | 0.0012 | 3313 |
+| 3 | message | ok | `ask_field` | ok | 0.0011 | 3109 |
+| 4 | message | ok | `ask_field` | ok | 0.0011 | 3375 |
+| 5 | message | ok | `ask_field` | ok | 0.0013 | 4344 |
+| 6 | message | ok | `ask_field` | ok | 0.0013 | 3312 |
+| 7 | message | ok | `ask_field` | ok | 0.0012 | 2891 |
+| 8 | message | ok | `ask_field` | ok | 0.0011 | 3156 |
+| 9 | message | ok | `show_recap` | ok | 0.0029 | 3657 |
+| 10 | message | ok | `offer_slots` | ok | 0.0028 | 3906 |
+| 11 | message | ok | `confirm_interview` | ok | 0.0014 | 3203 |
+| - | summary | - | - | llm | 0.0003 | 2172 |
+
+**Totals:** turns $0.0180 + summary $0.0003 = **$0.0183** · average turn latency **3225 ms** · max 4344 ms
