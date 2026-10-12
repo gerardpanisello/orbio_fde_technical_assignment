@@ -45,7 +45,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "PT", "C4", "RET"]
 [tool.mypy]
 strict = true
 python_version = "3.12"
-files = ["src"]
+files = ["src", "evals"]
 plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
