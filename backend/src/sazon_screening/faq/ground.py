@@ -28,6 +28,13 @@ class FaqTrace(_Frozen):
     entry_ids: list[str] = []  # the entries given to phrasing, best first
     entry_question: str | None = None  # the best entry's own question, for analytics
     error: str | None = None  # retrieval itself failed (a bug): answered as unanswered
+    # Why it is unanswered: nothing scored high enough, or (FR-8) the phrasing model
+    # said the retrieved entries do not answer it. None when answered (or old traces).
+    reason: Literal["no_match", "not_relevant", "error"] | None = None
+
+    def not_relevant(self) -> "FaqTrace":
+        """FR-8: the entries shared words with the question but did not answer it."""
+        return self.model_copy(update={"outcome": "unanswered", "reason": "not_relevant"})
 
 
 class FaqGrounding(_Frozen):
@@ -46,7 +53,10 @@ def answer_question(
     hits = retriever.search(question, country)
     kept = [retriever.base.entry(hit.entry_id) for hit in retriever.confident(hits)]
     if not kept:
-        return FaqTrace(question=question, country=country, hits=hits, outcome="unanswered"), None
+        trace = FaqTrace(
+            question=question, country=country, hits=hits, outcome="unanswered", reason="no_match"
+        )
+        return trace, None
     trace = FaqTrace(
         question=question,
         country=country,
@@ -61,4 +71,11 @@ def answer_question(
 
 def unanswered(question: str, country: Country | None, error: str | None = None) -> FaqTrace:
     """No knowledge base configured, or the search failed: hold and flag."""
-    return FaqTrace(question=question, country=country, hits=[], outcome="unanswered", error=error)
+    return FaqTrace(
+        question=question,
+        country=country,
+        hits=[],
+        outcome="unanswered",
+        error=error,
+        reason="error" if error else "no_match",
+    )

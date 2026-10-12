@@ -244,6 +244,8 @@ class ScreeningAgent:
         reply, phrasing, phrase_calls = await self._phraser.phrase(
             action, ctx, deadline, conversation_id=conversation_id
         )
+        if faq_trace is not None and phrasing.faq_relevant is False:
+            faq_trace = faq_trace.not_relevant()  # FR-8: held and flagged for the recruiter
         trace = self._trace(
             turn_input, action, extraction, phrasing, calls + phrase_calls, began, faq=faq_trace
         )

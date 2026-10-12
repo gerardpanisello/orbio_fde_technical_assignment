@@ -112,6 +112,9 @@ class FakeLLMClient:
         value: Any
         if isinstance(payload, ExtractionPayload):
             value = rules.extract(payload.text, payload.pending)
+        elif isinstance(payload, PhrasingPayload) and payload.faq:
+            # 009: retrieval only; the approved answer is trusted as relevant.
+            value = {"answers_question": True, "message": payload.reference_message}
         elif isinstance(payload, PhrasingPayload):
             value = payload.reference_message  # the reviewed template, as is
         elif isinstance(payload, SummaryPayload):

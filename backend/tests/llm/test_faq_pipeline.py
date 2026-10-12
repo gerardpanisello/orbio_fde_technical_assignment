@@ -99,6 +99,11 @@ def approved(faq: FaqBase, entry_id: str, register: Register = Register.es_ES) -
     return faq.entry(entry_id).answer_for(register)
 
 
+def grounded(message: str, *, answers: bool = True) -> Scripted:
+    """With approved entries attached, phrasing returns a `FaqReply` (FR-8)."""
+    return Scripted(value={"answers_question": answers, "message": message})
+
+
 # --- AC-4: answer, then the pending question, in one message ---------------------------
 
 
@@ -194,10 +199,11 @@ async def test_the_model_answers_from_the_approved_entry(
 ) -> None:
     phrased = f"Se paga entre 9 y 12 € brutos la hora, según la ciudad. {AGE_QUESTION}"
     result = await ask(
-        agent, scripted, at_age(engine_config), "¿cuánto se paga?", Scripted(value=phrased)
+        agent, scripted, at_age(engine_config), "¿cuánto se paga?", grounded(phrased)
     )
     assert f"<faq_answer>{approved(faq, 'pay-es')}</faq_answer>" in scripted.calls[-1].user
     assert result.trace.phrasing.outcome == "ok"
+    assert result.trace.phrasing.faq_relevant is True
     assert result.reply is not None
     assert result.reply.text == phrased
 
@@ -221,7 +227,7 @@ async def test_an_invented_amount_fails_the_guard_and_the_approved_text_is_sent(
     invented: str,
 ) -> None:
     result = await ask(
-        agent, scripted, at_age(engine_config), "¿cuánto se paga?", Scripted(value=invented)
+        agent, scripted, at_age(engine_config), "¿cuánto se paga?", grounded(invented)
     )
     assert Violation.pay_or_currency in result.trace.phrasing.violations
     assert result.trace.phrasing.outcome == "fallback"
@@ -253,7 +259,7 @@ async def test_an_unrelated_question_gets_the_holding_message_and_is_flagged(
     assert "<faq_answer>" not in scripted.calls[-1].user
     faq = result.trace.faq
     assert faq is not None
-    assert faq.outcome == "unanswered"
+    assert (faq.outcome, faq.reason) == ("unanswered", "no_match")
     assert (faq.question, faq.entry_ids, faq.country) == (question, [], Country.ES)
 
 
@@ -312,3 +318,72 @@ async def test_no_question_no_faq_trace(
     assert result.trace.faq is None
     assert result.trace.action is not None
     assert AnswerFaq() not in result.trace.action.prefaces
+
+
+# --- AC-8: retrieved by a shared word, but not an answer ----------------------------------
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("009:AC-8")
+@pytest.mark.parametrize(
+    ("question", "retrieved"),
+    [
+        ("¿El contrato incluye un perro de compañía?", "contract-es"),
+        ("¿dan seguro dental?", "insurance"),
+    ],
+    ids=["contract-dog", "dental"],
+)
+async def test_entries_that_do_not_answer_get_the_holding_message_and_are_flagged(
+    agent: ScreeningAgent,
+    scripted: FakeLLMClient,
+    engine_config: EngineConfig,
+    catalog: MessageCatalog,
+    faq: FaqBase,
+    question: str,
+    retrieved: str,
+) -> None:
+    """BM25 matches the word; the phrasing model says no entry answers; code holds."""
+    leaked = f"{approved(faq, retrieved)} {AGE_QUESTION}"  # what must NOT be sent
+    result = await ask(
+        agent, scripted, at_age(engine_config), question, grounded(leaked, answers=False)
+    )
+    assert "<faq_answer>" in scripted.calls[-1].user  # retrieval did pass the threshold
+    holding = catalog.for_register(Register.es_ES).templates.prefaces.faq_holding
+    assert result.reply is not None
+    assert result.reply.text == f"{holding} {AGE_QUESTION}"
+    assert result.trace.phrasing.faq_relevant is False
+    assert result.trace.phrasing.outcome == "ok"  # a decision, not a failure
+    trace = result.trace.faq
+    assert trace is not None
+    assert (trace.outcome, trace.reason) == ("unanswered", "not_relevant")
+    assert trace.entry_ids[:1] == [retrieved]  # what was retrieved stays for the recruiter
+    assert result.state.stage is Stage.age
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("009:AC-8")
+async def test_entries_that_answer_are_used_and_traced_as_answered(
+    agent: ScreeningAgent, scripted: FakeLLMClient, engine_config: EngineConfig
+) -> None:
+    phrased = f"Se paga entre 9 y 12 € brutos la hora, según la ciudad. {AGE_QUESTION}"
+    result = await ask(
+        agent, scripted, at_age(engine_config), "¿cuánto se paga?", grounded(phrased)
+    )
+    assert result.reply is not None
+    assert result.reply.text == phrased
+    trace = result.trace.faq
+    assert trace is not None
+    assert (trace.outcome, trace.reason, trace.entry_ids[:1]) == ("answered", None, ["pay-es"])
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("009:AC-8")
+async def test_fake_mode_trusts_retrieval(rules_agent: ScreeningAgent) -> None:
+    """Fake mode stays retrieval only: the approved entry is answered verbatim."""
+    results = await converse(
+        rules_agent, SPAIN, ["sí, acepto", "Me llamo Ana López", "¿dan seguro dental?"], Language.es
+    )
+    trace = results[-1].trace
+    assert trace.faq is not None
+    assert trace.faq.outcome == "answered"
+    assert trace.phrasing.faq_relevant is True

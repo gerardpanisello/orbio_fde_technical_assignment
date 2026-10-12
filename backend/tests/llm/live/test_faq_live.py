@@ -48,3 +48,16 @@ async def test_the_real_model_answers_pay_from_the_approved_entry() -> None:
         assert all(figure in text for figure in figures), text
         assert text.rstrip().endswith("?"), text  # the pending question is asked again
         assert len(text) <= 600
+
+
+@pytest.mark.live
+@pytest.mark.anyio
+async def test_the_real_model_holds_when_the_entries_do_not_answer() -> None:
+    """009 FR-8: retrieved by a shared word, but not an answer -> holding + not_relevant."""
+    for question in ("¿El contrato incluye un perro de compañía?", "¿dan seguro dental?"):
+        last = (await chat(Country.ES, ["sí", "Me llamo Ana López", question]))[-1]
+        assert last.trace.faq is not None
+        assert (last.trace.faq.outcome, last.trace.faq.reason) == ("unanswered", "not_relevant")
+        assert last.reply is not None
+        assert "consulto con el equipo" in last.reply.text, last.reply.text
+        assert last.reply.text.rstrip().endswith("?"), last.reply.text

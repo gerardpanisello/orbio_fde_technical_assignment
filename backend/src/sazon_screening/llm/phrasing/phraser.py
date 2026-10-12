@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import EngineAction
-from sazon_screening.llm.client.base import FailureKind, LLMClient, LLMRequest, Role
+from sazon_screening.llm.client.base import FailureKind, LLMClient, LLMRequest, LLMResult, Role
 from sazon_screening.llm.client.retry import Deadline, call_with_retry
 from sazon_screening.llm.delimit import tagged
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
@@ -60,12 +60,31 @@ class PhrasingTrace(_Frozen):
     violations: list[str] = []
     failure: FailureKind | None = None
     template_key: str = ""
+    # 009 FR-8: only on turns with approved FAQ entries. False: the model said none of
+    # them answers the question, so the holding template was sent (outcome stays "ok").
+    faq_relevant: bool | None = None
+
+
+class FaqReply(_Frozen):
+    """Phrasing output when approved FAQ entries are attached (009 FR-8).
+
+    Why a flag in the phrasing call and not a separate relevance call: the phrasing
+    model already reads the question and the entries, so one structured field costs no
+    extra round trip, and structured output makes the decision mandatory and typed (a
+    sentinel in free text could be forgotten or half-written). The decision comes
+    first, so the model judges relevance before it writes. Code acts on the flag: on
+    `false` the model's text is discarded and the holding template is sent.
+    """
+
+    answers_question: bool
+    message: str
 
 
 class PhrasingPayload(_Frozen):
     """Structured input for the rule-based fake (never sent): it simply returns the template."""
 
     reference_message: str
+    faq: bool = False  # approved entries attached: the reply is a `FaqReply`
 
 
 PhraseResult = tuple[OutboundMessage | None, PhrasingTrace, list[CallTelemetry]]
@@ -117,22 +136,23 @@ class Phraser:
             return apology, trace, []
 
         request = self._request(action, ctx, reference, buttons)
-        result = await call_with_retry(
-            lambda timeout_s: self._client.text(
-                request.model_copy(update={"timeout_s": timeout_s})
-            ),
-            role_timeout_s=self._role.timeout_s,
-            deadline=deadline,
-            policy=self._config.retry,
-            sleep=self._sleep,
-        )
-        telemetry = telemetry_from(request, result, self._config.prices)
+        grounded = bool(ctx.faq_answer)  # approved entries attached (009)
+        result, telemetry = await self._call(request, deadline, grounded)
         log_call(telemetry, conversation_id=conversation_id)
 
         if result.value is None or result.failure is not None:
             trace = PhrasingTrace(outcome="fallback", failure=result.failure, template_key=key)
             return self._message(reference, buttons, action), trace, [telemetry]
-        text = result.value.strip()
+        relevant: bool | None = None
+        if isinstance(result.value, FaqReply):
+            relevant = result.value.answers_question
+            if not relevant:  # FR-8: nothing approved answers it -> hold, never answer
+                holding = self._holding(action, ctx, conversation_id)
+                trace = PhrasingTrace(outcome="ok", template_key=key, faq_relevant=False)
+                return self._message(holding, buttons, action), trace, [telemetry]
+            text = result.value.message.strip()
+        else:
+            text = result.value.strip()
         violations = check(
             text,
             action,
@@ -142,12 +162,55 @@ class Phraser:
             reference=reference,
         )
         if violations:
-            trace = PhrasingTrace(outcome="fallback", violations=violations, template_key=key)
+            trace = PhrasingTrace(
+                outcome="fallback", violations=violations, template_key=key, faq_relevant=relevant
+            )
             return self._message(reference, buttons, action), trace, [telemetry]
-        trace = PhrasingTrace(outcome="ok", template_key=key)
+        trace = PhrasingTrace(outcome="ok", template_key=key, faq_relevant=relevant)
         return self._message(text, buttons, action), trace, [telemetry]
 
     # --- steps ---------------------------------------------------------------------------
+
+    async def _call(
+        self, request: LLMRequest, deadline: Deadline, grounded: bool
+    ) -> tuple[LLMResult[str] | LLMResult[FaqReply], CallTelemetry]:
+        """Plain text, or a `FaqReply` when approved FAQ entries are attached (FR-8)."""
+
+        def timed(timeout_s: float) -> LLMRequest:
+            return request.model_copy(update={"timeout_s": timeout_s})
+
+        if grounded:
+            parsed = await call_with_retry(
+                lambda timeout_s: self._client.parse(timed(timeout_s), FaqReply),
+                role_timeout_s=self._role.timeout_s,
+                deadline=deadline,
+                policy=self._config.retry,
+                sleep=self._sleep,
+            )
+            return parsed, telemetry_from(request, parsed, self._config.prices)
+        text = await call_with_retry(
+            lambda timeout_s: self._client.text(timed(timeout_s)),
+            role_timeout_s=self._role.timeout_s,
+            deadline=deadline,
+            policy=self._config.retry,
+            sleep=self._sleep,
+        )
+        return text, telemetry_from(request, text, self._config.prices)
+
+    def _holding(
+        self, action: EngineAction, ctx: RenderContext, conversation_id: str | None
+    ) -> str:
+        """The template without the FAQ: the holding phrase, then the pending question."""
+        ungrounded = ctx.model_copy(update={"faq_answer": None, "faq_approved": ()})
+        try:
+            return render_template(action, ungrounded, self._catalog, self._engine_config)
+        except Exception as error:  # a bug; the same template just rendered with the FAQ
+            logger.exception(
+                "holding template failed: %s",
+                type(error).__name__,
+                extra={"conversation_id": conversation_id},
+            )
+            return LAST_RESORT[action.language]
 
     def _request(
         self, action: EngineAction, ctx: RenderContext, reference: str, buttons: list[QuickReply]
@@ -177,7 +240,7 @@ class Phraser:
             max_tokens=self._role.max_tokens,
             effort=self._role.effort,
             timeout_s=self._role.timeout_s,
-            payload=PhrasingPayload(reference_message=reference),
+            payload=PhrasingPayload(reference_message=reference, faq=bool(ctx.faq_answer)),
         )
 
     @staticmethod
