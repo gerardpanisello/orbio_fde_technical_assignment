@@ -803,6 +803,8 @@ export interface components {
             /** Reactivated After Step */
             reactivated_after_step: number | null;
             next: components["schemas"]["NextStepOut"] | null;
+            /** Total Steps */
+            total_steps: number;
         };
         /** ReengagementStepCount */
         ReengagementStepCount: {

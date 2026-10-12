@@ -10,7 +10,10 @@ describe('followUpLabel', () => {
 })
 
 describe('followUpTotal', () => {
-  const reengagement = { follow_ups_sent: 1, waiting_steps: 1, last_follow_up_at: null, reactivated_after_step: null }
+  const reengagement = { follow_ups_sent: 1, waiting_steps: 1, last_follow_up_at: null, reactivated_after_step: null, total_steps: 0 }
+  it('uses total_steps from the API when present', () => {
+    expect(followUpTotal({ traces: [], reengagement: { ...reengagement, total_steps: 3, next: null } })).toBe(3)
+  })
   it('reads the last_call step from the traces', () => {
     const traces = [{ trace: { follow_up: { step: 3, kind: 'last_call' } } }] as never
     expect(followUpTotal({ traces, reengagement: { ...reengagement, next: null } })).toBe(3)

@@ -292,6 +292,7 @@ class ReengagementOut(BaseModel):
     last_follow_up_at: datetime | None
     reactivated_after_step: int | None  # the candidate came back after this reminder
     next: NextStepOut | None  # only while in progress and waiting for the candidate
+    total_steps: int  # reminders in the configured schedule (0: re-engagement disabled)
 
 
 class CandidateDetail(BaseModel):

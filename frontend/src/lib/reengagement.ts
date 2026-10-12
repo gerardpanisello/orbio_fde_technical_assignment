@@ -5,8 +5,7 @@ type Reengagement = CandidateDetail['reengagement']
 type Next = NonNullable<Reengagement['next']>
 
 /**
- * "Recordatorio 1/3", or "Recordatorio 1" while the total is unknown: the API does not
- * expose how many reminders config/reengagement.yaml has (see `followUpTotal`).
+ * "Recordatorio 1/3", or "Recordatorio 1" while the total is unknown (see `followUpTotal`).
  */
 export function followUpLabel(step: number, total: number | null = null, lang: 'es' | 'en' = 'es'): string {
   const word = lang === 'en' ? 'Reminder' : 'Recordatorio'
@@ -14,11 +13,13 @@ export function followUpLabel(step: number, total: number | null = null, lang: '
 }
 
 /**
- * The number of reminders in the schedule, when the data reveals it: the step whose trace
- * says `last_call`, or the reminders already sent when only the abandon is left.
+ * The number of reminders in the schedule: `total_steps` from the API (config/reengagement.yaml).
+ * Older responses without it fall back to what the data reveals: the step whose trace says
+ * `last_call`, or the reminders already sent when only the abandon is left.
  */
 export function followUpTotal(detail: Pick<CandidateDetail, 'traces' | 'reengagement'> | undefined): number | null {
   if (!detail) return null
+  if (detail.reengagement.total_steps > 0) return detail.reengagement.total_steps
   for (const trace of detail.traces) {
     const followUp = (trace.trace as { follow_up?: { step?: unknown; kind?: unknown } } | null)?.follow_up
     if (followUp?.kind === 'last_call' && typeof followUp.step === 'number') return followUp.step

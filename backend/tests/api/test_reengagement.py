@@ -357,6 +357,7 @@ async def test_the_candidate_detail_shows_the_reminders(client: AsyncClient) -> 
         "last_follow_up_at": None,
         "reactivated_after_step": None,
         "next": None,
+        "total_steps": 3,  # the shipped schedule: 2 h, 23 h, 72 h
     }
     assert detail["reengagement"]["next"]["step"] == 2
     assert detail["transcript"][-1]["kind"] == "follow_up"

@@ -136,6 +136,7 @@ async def get_candidate(
             last_follow_up_at=row.last_follow_up_at,
             reactivated_after_step=row.reactivated_after_step,
             next=NextStepOut.of(planned) if planned else None,
+            total_steps=len(service.reengagement.follow_ups) if service.reengagement else 0,
         ),
     )
 
