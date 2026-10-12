@@ -77,6 +77,9 @@ class ScreeningService:
         # (several instances need a DB row lock or a queue; deployment design, 014).
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
+    def now(self) -> datetime:
+        return self._clock()
+
     # --- candidate side ------------------------------------------------------------------
 
     async def start_conversation(

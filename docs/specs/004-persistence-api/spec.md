@@ -67,5 +67,5 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 - [x] T4 Conversation routes (AC-1..AC-4).
 - [x] T5 Candidate list/detail/summary/actions/export (AC-5..AC-7, AC-10).
 - [x] T6 Analytics (AC-8).
-- [ ] T7 Seed + dev routes (AC-9).
+- [x] T7 Seed + dev routes (AC-9).
 - [ ] T8 README (how to run the API: `uv run fastapi dev src/sazon_screening/api/app.py`), CLAUDE.md commands, ROADMAP.

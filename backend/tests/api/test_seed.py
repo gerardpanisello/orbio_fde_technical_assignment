@@ -1,0 +1,140 @@
+"""T7: demo seed and dev routes (AC-8 on seeded data, AC-9)."""
+
+from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from sazon_screening.api import repo
+from sazon_screening.api.app import create_app
+from sazon_screening.api.db import create_tables, make_engine, make_sessions
+from sazon_screening.api.seed import PERSONAS, seed
+from sazon_screening.api.service import ScreeningService
+from sazon_screening.api.settings import AppSettings
+from sazon_screening.api.slots import load_slot_provider
+from sazon_screening.llm.pipeline import ScreeningAgent
+from tests.api.conftest import START, TickingClock
+from tests.paths import SHIPPED_CONFIG_DIR
+
+EXPECTED_STATUS = {
+    "booked_es": "interview_scheduled",
+    "booked_mx": "interview_scheduled",
+    "booked_en": "interview_scheduled",
+    "unscheduled": "qualified_unscheduled",
+    "unscheduled_silent": "qualified_unscheduled",
+    "under_age": "disqualified",
+    "no_license": "disqualified",
+    "out_of_area_es": "disqualified",
+    "out_of_area_mx": "disqualified",
+    "abandoned_at_consent": "abandoned",
+    "abandoned_at_vehicle": "abandoned",
+    "abandoned_at_availability": "abandoned",
+    "abandoned_at_start_date": "abandoned",
+    "needs_review": "needs_review",
+    "opted_out": "opted_out",
+}
+
+Seeder = Callable[[int, int], Awaitable[list[tuple[Any, ...]]]]
+
+
+@pytest.fixture
+async def seeded_snapshot(tmp_path: Path, agent: ScreeningAgent) -> AsyncIterator[Seeder]:
+    """Seed a fresh database and return what the dashboard would see, oldest first."""
+    engines = []
+
+    async def run(n: int, seed_value: int) -> list[tuple[Any, ...]]:
+        url = f"sqlite+aiosqlite:///{(tmp_path / f'seed{len(engines)}.db').as_posix()}"
+        engine = make_engine(url)
+        engines.append(engine)
+        await create_tables(engine)
+        sessions = make_sessions(engine)
+        service = ScreeningService(
+            agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), TickingClock()
+        )
+        ids = await seed(service, n, seed=seed_value, now=START)
+        snapshot = []
+        async with sessions() as session:
+            for conversation_id in ids:
+                row = await repo.get_conversation(session, conversation_id)
+                assert row is not None
+                texts = [m.text for m in await repo.list_messages(session, conversation_id)]
+                summary = await repo.get_summary(session, conversation_id, "es")
+                snapshot.append(
+                    (row.created_at, row.status, row.full_name, row.city, texts, summary is None)
+                )
+        return snapshot
+
+    yield run
+    for engine in engines:
+        await engine.dispose()
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-9")
+async def test_every_persona_reaches_its_outcome(seeded_snapshot: Seeder) -> None:
+    snapshot = await seeded_snapshot(len(PERSONAS), 1)
+    assert {p.key: s[1] for p, s in zip(PERSONAS, snapshot, strict=True)} == EXPECTED_STATUS
+    assert all(not no_summary for *_, no_summary in snapshot)  # every one is finished
+    assert any("Hello" in " ".join(s[4]) or "Hi" in " ".join(s[4]) for s in snapshot)  # EN
+    times = [s[0] for s in snapshot]
+    assert all(START - timedelta(days=14) <= t < START for t in times)
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-9")
+async def test_same_seed_same_data(seeded_snapshot: Seeder) -> None:
+    first = await seeded_snapshot(18, 7)  # every persona, then a few weighted repeats
+    assert await seeded_snapshot(18, 7) == first
+    assert await seeded_snapshot(18, 8) != first
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-9")
+async def test_dev_routes_refuse_outside_dev(settings: AppSettings, agent: ScreeningAgent) -> None:
+    app = create_app(settings.model_copy(update={"app_env": "prod"}), agent=agent)
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            assert (await client.post("/api/dev/seed")).status_code == 403
+            silence = await client.post("/api/dev/conversations/x/silence")
+            assert silence.status_code == 403
+            assert (await client.get("/api/candidates")).json() == []
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-8")
+async def test_analytics_on_seeded_data_add_up(client: AsyncClient) -> None:
+    response = await client.post("/api/dev/seed", params={"n": 30, "seed": 3})
+    assert response.status_code == 201
+    assert response.json()["created"] == 30
+    analytics = (await client.get("/api/analytics")).json()
+    by_status = analytics["by_status"]
+    assert analytics["total"] == 30
+    assert sum(by_status.values()) == 30
+    assert sum(sum(c.values()) for c in analytics["by_country"].values()) == 30
+    assert sum(analytics["drop_off_by_stage"].values()) == by_status["abandoned"]
+    assert sum(analytics["disqualification_reasons"].values()) == by_status["disqualified"]
+    finished = sum(
+        by_status.get(s, 0)
+        for s in ("interview_scheduled", "qualified_unscheduled", "disqualified", "needs_review")
+    )
+    assert analytics["finished"] == finished
+    assert analytics["completion_rate"] == round(finished / 30, 4)
+    assert analytics["median_duration_s"] > 0
+    rows = (await client.get("/api/candidates")).json()
+    assert len(rows) == 30
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-4")
+async def test_silence_route_abandons_and_summarises(client: AsyncClient) -> None:
+    created = (await client.post("/api/conversations", json={})).json()
+    response = await client.post(f"/api/dev/conversations/{created['id']}/silence")
+    assert response.status_code == 200
+    assert response.json() == {"reply": None, "status": "abandoned"}
+    summary = await client.get(f"/api/candidates/{created['id']}/summary")
+    assert summary.json()["status"] == "abandoned"
+    assert (await client.post("/api/dev/conversations/nope/silence")).status_code == 404
