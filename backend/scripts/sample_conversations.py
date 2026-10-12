@@ -197,8 +197,9 @@ SCENARIOS = [
     Scenario(
         "h-questions-mid-flow",
         "Questions mid-flow",
-        "The candidate asks about pay and whether they need their own bike; the agent "
-        "answers what it can without making promises and gets back to the screening.",
+        "The candidate asks about pay (before and after giving their city) and whether they "
+        "need their own bike; the agent answers only from the client's approved FAQ (spec "
+        "009), with the Spain figures once the city is known, and resumes the screening.",
         [
             "sí acepto",
             "Raúl Jiménez",
@@ -208,6 +209,7 @@ SCENARIOS = [
             "ok pues tengo una scooter de 125",
             "sí tengo carnet",
             "Triana, Sevilla",
+            "¿y entonces en Sevilla cuánto se paga la hora?",
             "media jornada",
             "mañanas",
             "nada de experiencia",

@@ -32,21 +32,19 @@ async def chat(country: Country, messages: list[str]) -> list[TurnResult]:
     return results
 
 
+# One test, one event loop: the SDK's HTTP client must not outlive the loop it was made on.
+CASES = [(Country.ES, "pay-es", ("9", "12", "€")), (Country.MX, "pay-mx", ("70", "95", "MXN"))]
+
+
 @pytest.mark.live
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    ("country", "entry", "figures"),
-    [(Country.ES, "pay-es", ("9", "12", "€")), (Country.MX, "pay-mx", ("70", "95", "MXN"))],
-    ids=["ES", "MX"],
-)
-async def test_the_real_model_answers_pay_from_the_approved_entry(
-    country: Country, entry: str, figures: tuple[str, ...]
-) -> None:
-    last = (await chat(country, ["sí", "Me llamo Ana López", "¿cuánto se paga?"]))[-1]
-    assert last.trace.faq is not None
-    assert last.trace.faq.entry_ids[:1] == [entry]
-    assert last.reply is not None
-    text = last.reply.text
-    assert all(figure in text for figure in figures), text
-    assert text.rstrip().endswith("?"), text  # the pending question is asked again
-    assert len(text) <= 600
+async def test_the_real_model_answers_pay_from_the_approved_entry() -> None:
+    for country, entry, figures in CASES:
+        last = (await chat(country, ["sí", "Me llamo Ana López", "¿cuánto se paga?"]))[-1]
+        assert last.trace.faq is not None
+        assert last.trace.faq.entry_ids[:1] == [entry]
+        assert last.reply is not None
+        text = last.reply.text
+        assert all(figure in text for figure in figures), text
+        assert text.rstrip().endswith("?"), text  # the pending question is asked again
+        assert len(text) <= 600
