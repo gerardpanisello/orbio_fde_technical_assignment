@@ -21,7 +21,7 @@ export function Home() {
           entrevista. El equipo ve a quién llamar primero y por qué.
         </p>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
           <EntryCard
             to="/chat"
             icon="chat"
@@ -29,6 +29,14 @@ export function Home() {
             title="Soy candidato"
             text="Chat estilo WhatsApp con Sofi: requisitos, datos y hora de entrevista en unos 3 minutos."
             cta="Abrir el chat"
+          />
+          <EntryCard
+            to="/voz"
+            icon="mic"
+            tone="bg-brand-500"
+            title="Hablar con Sofi"
+            text="La misma entrevista por voz: hablas, Sofi te contesta en voz alta. Chrome o Edge con micrófono."
+            cta="Empezar por voz"
           />
           <EntryCard
             to="/recruiter"

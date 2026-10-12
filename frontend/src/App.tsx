@@ -7,6 +7,7 @@ import { InterviewsPage } from './recruiter/InterviewsPage'
 import { Loading } from './components/States'
 import { RecruiterLayout } from './recruiter/RecruiterLayout'
 import { ZonesPage } from './recruiter/ZonesPage'
+import { VoicePage } from './voice/VoicePage'
 
 // Charts (Recharts) are the heaviest dependency: load them only when Analytics opens.
 const AnalyticsPage = lazy(() =>
@@ -18,6 +19,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/chat" element={<ChatPage />} />
+      <Route path="/voz" element={<VoicePage />} />
       <Route path="/recruiter" element={<RecruiterLayout />}>
         <Route index element={<CandidatesPage />} />
         <Route path="entrevistas" element={<InterviewsPage />} />

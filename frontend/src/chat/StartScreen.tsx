@@ -26,19 +26,35 @@ const COPY = {
   },
 }
 
+/** Spec 013: the same screen starts a voice conversation on /voz. */
+const VOICE_COPY = {
+  es: {
+    text: 'Habla con Sofi: te hará unas preguntas rápidas y podrás agendar tu entrevista en unos 3 minutos.',
+    start: 'Empezar a hablar con Sofi',
+    demo: 'Necesitas micrófono y Chrome o Edge. El país elige el acento (España o México).',
+  },
+  en: {
+    text: 'Talk to Sofi: she will ask a few quick questions and book your interview in about 3 minutes.',
+    start: 'Start talking to Sofi',
+    demo: 'You need a microphone and Chrome or Edge. The country simulates the phone prefix.',
+  },
+}
+
 /** FR-3: pick language and country (stands in for the phone number's prefix). */
 export function StartScreen({
   onStart,
   starting,
   failed,
+  mode = 'chat',
 }: {
   onStart: (language: Language, country: Country) => void
   starting: boolean
   failed: boolean
+  mode?: 'chat' | 'voice'
 }) {
   const [language, setLanguage] = useState<Language>('es')
   const [country, setCountry] = useState<Country>('ES')
-  const t = COPY[language]
+  const t = mode === 'voice' ? { ...COPY[language], ...VOICE_COPY[language] } : COPY[language]
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -96,7 +112,7 @@ export function StartScreen({
             onClick={() => onStart(language, country)}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-wa-green text-[15px] font-semibold text-white shadow-sm transition hover:brightness-95 disabled:opacity-70"
           >
-            {starting ? <Spinner /> : <Icon name="chat" className="size-5" />}
+            {starting ? <Spinner /> : <Icon name={mode === 'voice' ? 'mic' : 'chat'} className="size-5" />}
             {t.start}
           </button>
           <p className="mt-3 text-center text-[11px] leading-snug text-wa-meta">{t.demo}</p>

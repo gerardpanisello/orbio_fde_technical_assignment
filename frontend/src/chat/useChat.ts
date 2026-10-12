@@ -50,18 +50,18 @@ function hidden(): boolean {
   return typeof document !== 'undefined' && document.visibilityState === 'hidden'
 }
 
-function readStoredId(): string | null {
+function readStoredId(key: string): string | null {
   try {
-    return sessionStorage.getItem(STORAGE_KEY)
+    return sessionStorage.getItem(key)
   } catch {
     return null
   }
 }
 
-function storeId(id: string | null) {
+function storeId(key: string, id: string | null) {
   try {
-    if (id) sessionStorage.setItem(STORAGE_KEY, id)
-    else sessionStorage.removeItem(STORAGE_KEY)
+    if (id) sessionStorage.setItem(key, id)
+    else sessionStorage.removeItem(key)
   } catch {
     // storage blocked (private mode): the chat still works, it just won't survive a reload
   }
@@ -73,9 +73,15 @@ let localCounter = 0
 /**
  * The candidate chat's state (FR-1..6): start, send, retry, restore from sessionStorage.
  * The backend is the source of truth; this only keeps what the screen needs.
+ * `storageKey`: the voice page (spec 013) keeps its own conversation apart from /chat.
  */
-export function useChat(onTurn?: (conversationId: string) => void) {
-  const [conversationId, setConversationId] = useState<string | null>(readStoredId)
+export function useChat(
+  onTurn?: (conversationId: string) => void,
+  { storageKey = STORAGE_KEY }: { storageKey?: string } = {},
+) {
+  const [conversationId, setConversationId] = useState<string | null>(() =>
+    readStoredId(storageKey),
+  )
   const [phase, setPhase] = useState<Phase>(conversationId ? 'restoring' : 'start')
   const [messages, setMessages] = useState<UiMessage[]>([])
   const [status, setStatus] = useState<Status>('in_progress')
@@ -96,14 +102,14 @@ export function useChat(onTurn?: (conversationId: string) => void) {
       setPhase('chat')
     } catch (e) {
       if (e instanceof ApiError && e.status === 404) {
-        storeId(null)
+        storeId(storageKey, null)
         setConversationId(null)
         setPhase('start')
       } else {
         setError('restore')
       }
     }
-  }, [])
+  }, [storageKey])
 
   useEffect(() => {
     if (conversationId && !restored.current) {
@@ -117,7 +123,7 @@ export function useChat(onTurn?: (conversationId: string) => void) {
     setError(null)
     try {
       const conversation = await api.startConversation(lang, country)
-      storeId(conversation.id)
+      storeId(storageKey, conversation.id)
       restored.current = true
       setConversationId(conversation.id)
       setLanguage(conversation.language)
@@ -132,7 +138,7 @@ export function useChat(onTurn?: (conversationId: string) => void) {
       setError('start')
       setPhase('start')
     }
-  }, [])
+  }, [storageKey])
 
   const deliver = useCallback(
     async (key: string, text: string) => {
@@ -244,14 +250,14 @@ export function useChat(onTurn?: (conversationId: string) => void) {
   }, [polling, sync])
 
   const reset = useCallback(() => {
-    storeId(null)
+    storeId(storageKey, null)
     setConversationId(null)
     setMessages([])
     setStatus('in_progress')
     setTyping(false)
     setError(null)
     setPhase('start')
-  }, [])
+  }, [storageKey])
 
   /** Dev helper: the silence timer fired (spec 004 FR-13); show whatever the agent sent. */
   const applyTurn = useCallback(

@@ -38,6 +38,10 @@
   from { transform: translateY(4px) scale(0.98); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+@keyframes sound { /* spec 013: Sofi's speaking bars */
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
 @keyframes slide-in {
   from { transform: translateX(24px); opacity: 0; }
   to { transform: none; opacity: 1; }
