@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-12.1"
+version: "2026-10-12.2"
 register: en
 
 labels:
@@ -40,7 +40,7 @@ templates:
     zone: "And which area or neighbourhood of the city?"
     availability: "What availability works for you: full-time, part-time or weekends?"
     schedule: "When do you prefer to deliver: mornings, afternoons, evenings or flexible?"
-    experience: "How many years of delivery experience do you have, and with which apps?"
+    experience: "How much delivery experience do you have? (for example: \"2 years with Deliveroo\")"
     start_date: "When could you start?"
     slot: "Which time works best for your interview?"
   reask_field:
@@ -50,7 +50,7 @@ templates:
     invalid_characters: "I need letters only. Could you write your first name and surname?"
     implausible_value: "I think there's a typo. Could you confirm your {field}?{options}"
     negative_value: "That number doesn't look right. What's your {field}?"
-    missing_years: "How many years of delivery experience do you have?"
+    missing_years: "How long have you been doing deliveries? (for example: \"2 years\" or \"6 months\")"
     empty_selection: "Please pick at least one option. What's your {field}?{options}"
     consent_required: "To continue I need a yes or a no. Do you agree that we use your data for this process?"
     slot_not_offered: "That time isn't one of the options. Which one works for you?{options}"
@@ -65,9 +65,9 @@ templates:
   close_disqualified:
     under_age: "Thanks for your interest. This job requires being of legal age, so we can't continue with your application for now. We wish you the best of luck."
     no_license: "Thanks for your interest. This job requires a valid driving licence, so we can't continue for now. If you get one, write to us and we'll pick up your application again."
-    out_of_area: "Thanks for your interest. We don't deliver in your area yet, so we can't continue with your application. We wish you the best of luck."
+    out_of_area: "Thanks for your interest. We don't deliver in your area for now, so we can't continue with your application. If you move to an area we cover, you're welcome to write to us again. We wish you the best of luck."
   close_needs_review: "Thank you. Someone from the team will review your application and write to you here."
-  close_opted_out: "Understood, we won't write to you again. Best of luck!"
+  close_opted_out: "Understood. I've deleted your details and we won't write to you again. Best of luck!"
   close_qualified_unscheduled: "Thank you! Your application is complete. The team will write to you to book the interview."
   handoff_to_human: "Of course, someone from the team will write to you here."
   closed_ack: "Thanks for your message. The team already has your application."

@@ -176,3 +176,39 @@ def test_recap_years_of_experience_agree_in_number(
     labels = catalog.for_register(register).labels
     values = field_values(profile, engine_config, language_of(register), labels)
     assert values[FieldName.experience] == expected
+
+
+@pytest.mark.parametrize("register", list(Register))
+def test_experience_is_one_question_with_an_example(
+    catalog: MessageCatalog, register: Register
+) -> None:
+    """Eval 2026-10-12: "how many years, and with which apps?" read as two questions."""
+    templates = catalog.for_register(register).templates
+    for text in (
+        templates.ask_field[FieldName.experience],
+        templates.reask_field[ReaskReason.missing_years],
+    ):
+        assert text.count("?") == 1
+        assert re.search(r"«[^»]+»|\"[^\"]+\"", text), text  # the example, quoted
+        assert " y con qué" not in text
+        assert ", and with which" not in text
+
+
+@pytest.mark.parametrize("register", list(Register))
+def test_opt_out_close_confirms_the_data_is_deleted(
+    catalog: MessageCatalog, register: Register
+) -> None:
+    """The engine purges the profile on opt-out, so the close says so (eval: laura-opt-out)."""
+    text = catalog.for_register(register).templates.close_opted_out
+    assert re.search(r"(?:borrado|borré) tus datos|deleted your (?:details|data)", text), text
+
+
+@pytest.mark.parametrize("register", list(Register))
+def test_out_of_area_close_makes_no_promise(catalog: MessageCatalog, register: Register) -> None:
+    text = (
+        catalog.for_register(register)
+        .templates.close_disqualified[DisqualificationReason.out_of_area]
+        .lower()
+    )
+    for promise in ("te avisaremos", "te escribiremos", "we'll let you know", "we will contact"):
+        assert promise not in text

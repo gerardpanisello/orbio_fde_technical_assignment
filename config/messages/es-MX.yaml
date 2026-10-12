@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-12.1"
+version: "2026-10-12.2"
 register: es-MX
 
 labels:
@@ -40,7 +40,7 @@ templates:
     zone: "¿Y en qué colonia o zona de la ciudad?"
     availability: "¿Qué disponibilidad tienes: tiempo completo, medio tiempo o fines de semana?"
     schedule: "¿En qué horario prefieres repartir: mañanas, tardes, noches o flexible?"
-    experience: "¿Cuántos años de experiencia tienes como repartidor/a y con qué apps?"
+    experience: "¿Cuánta experiencia tienes repartiendo? (por ejemplo: «2 años en Rappi»)"
     start_date: "¿Cuándo podrías empezar?"
     slot: "¿Qué hora te queda mejor para la entrevista?"
   reask_field:
@@ -50,7 +50,7 @@ templates:
     invalid_characters: "Necesito solo letras. ¿Me escribes tu nombre y apellido?"
     implausible_value: "Creo que se coló un error. ¿Me confirmas tu {field}?{options}"
     negative_value: "Ese número no me cuadra. ¿Me dices tu {field} otra vez?"
-    missing_years: "¿Cuántos años de experiencia tienes como repartidor/a?"
+    missing_years: "¿Cuánto tiempo llevas repartiendo? (por ejemplo: «2 años» o «6 meses»)"
     empty_selection: "Elige al menos una opción, porfa. ¿Cuál es tu {field}?{options}"
     consent_required: "Para seguir necesito un sí o un no. ¿Aceptas que usemos tus datos para este proceso?"
     slot_not_offered: "Esa hora no está entre las opciones. ¿Cuál te queda bien?{options}"
@@ -65,9 +65,9 @@ templates:
   close_disqualified:
     under_age: "Gracias por tu interés. Para este puesto hay que ser mayor de edad, así que por ahora no podemos seguir con tu solicitud. Te deseamos mucha suerte."
     no_license: "Gracias por tu interés. Para este puesto se necesita licencia de manejo vigente, así que por ahora no podemos seguir. Si la sacas, escríbenos y retomamos tu solicitud."
-    out_of_area: "Gracias por tu interés. Por ahora no repartimos en tu zona, así que no podemos seguir con tu solicitud. Te deseamos mucha suerte."
+    out_of_area: "Gracias por tu interés. Por ahora no repartimos en tu zona, así que no podemos seguir con tu solicitud. Si te cambias a una zona donde estemos, puedes volver a escribirnos. Te deseamos mucha suerte."
   close_needs_review: "Gracias. Una persona del equipo revisará tu solicitud y te escribirá por aquí."
-  close_opted_out: "Entendido, ya no te escribiremos. ¡Mucha suerte!"
+  close_opted_out: "Entendido. Ya borré tus datos y no te volveremos a escribir. ¡Mucha suerte!"
   close_qualified_unscheduled: "¡Gracias! Completaste la solicitud. El equipo te escribirá para agendar la entrevista."
   handoff_to_human: "Claro, una persona del equipo te escribirá por aquí."
   closed_ack: "Gracias por tu mensaje. El equipo ya tiene tu solicitud."
