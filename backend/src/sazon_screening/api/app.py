@@ -8,6 +8,8 @@ A factory, not a module-level `app`, so importing this module never reads the
 environment or opens a database (tests build their own app with a temp DB).
 """
 
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -29,6 +31,8 @@ from sazon_screening.api.settings import AppSettings, load_app_settings
 from sazon_screening.api.slots import load_slot_provider
 from sazon_screening.config import load_zone_staffing
 from sazon_screening.llm.pipeline import ScreeningAgent, build_agent
+from sazon_screening.reengagement import load_reengagement
+from sazon_screening.reengagement.scheduler import ReengagementScheduler
 
 logger = logging.getLogger("sazon_screening.api")
 
@@ -49,17 +53,29 @@ def create_app(
         await create_tables(engine)
         app.state.sessions = make_sessions(engine)
         screening_agent = agent or build_agent(settings.llm)
+        areas = screening_agent.engine_config.service_areas
+        reengagement = load_reengagement(settings.llm.config_dir, areas)
         app.state.service = ScreeningService(
             screening_agent,
             app.state.sessions,
             load_slot_provider(settings.llm.config_dir),
             clock,
-            load_zone_staffing(
-                settings.llm.config_dir, screening_agent.engine_config.service_areas
-            ),
+            load_zone_staffing(settings.llm.config_dir, areas),
+            reengagement.scaled(settings.reengagement_time_scale),
         )
         await app.state.service.init_zone_staffing()  # spec 015: only into an empty table
+        # Spec 008: the follow-up loop. Tests leave it off and call `tick()` themselves.
+        app.state.scheduler = ReengagementScheduler(
+            app.state.service, tick_seconds=reengagement.tick_seconds
+        )
+        loop = None
+        if settings.reengagement_scheduler and reengagement.enabled:
+            loop = asyncio.create_task(app.state.scheduler.run(), name="reengagement")
         yield
+        if loop is not None:
+            loop.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await loop
         await engine.dispose()
 
     app = FastAPI(title="Grupo Sazón screening API", version="0.1.0", lifespan=lifespan)

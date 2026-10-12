@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,11 +26,25 @@ from sazon_screening.api.slots import SlotProvider
 from sazon_screening.api.staffing import Staffing, area_of_row, area_of_state, load_staffing
 from sazon_screening.api.staffing import seed_staffing as insert_seed
 from sazon_screening.config import EngineConfig, ZoneStaffingConfig
-from sazon_screening.engine import CandidateRecord, ConversationState, build_record
+from sazon_screening.engine import (
+    CandidateRecord,
+    ConversationState,
+    SilenceExpired,
+    build_record,
+)
 from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
+from sazon_screening.llm.phrasing.phraser import OutboundMessage
 from sazon_screening.llm.pipeline import Event, ScreeningAgent
 from sazon_screening.llm.summary.summarizer import Summary
 from sazon_screening.llm.trace import TurnContextIn, TurnResult
+from sazon_screening.reengagement import (
+    Abandon,
+    Planned,
+    ReengagementConfig,
+    Silence,
+    next_step,
+    timezone_for,
+)
 from sazon_screening.vocab import Country, Language, Status
 
 logger = logging.getLogger("sazon_screening.api")
@@ -64,6 +79,23 @@ class TurnOutcome:
     status: Status
 
 
+SkipReason = Literal["disabled", "closed", "candidate_last", "not_due", "already_sent"]
+
+
+@dataclass(frozen=True)
+class Reengaged:
+    """What one re-engagement step did (spec 008): a reminder, the abandon, or nothing."""
+
+    action: Literal["follow_up", "abandon", "none"]
+    status: Status
+    step: int | None = None  # the reminder sent (follow_up)
+    reply: OutboundMessage | None = None  # the reminder, or the engine's close (abandon)
+    requires_template: bool = False
+    summary_due: bool = False  # abandon closed the conversation: write the summary
+    reason: SkipReason | None = None  # why nothing was done
+    planned: Planned | None = None  # the next step, when it is not due yet
+
+
 class ScreeningService:
     def __init__(
         self,
@@ -72,12 +104,14 @@ class ScreeningService:
         slots: SlotProvider,
         clock: Clock = utc_now,
         staffing_seed: ZoneStaffingConfig | None = None,
+        reengagement: ReengagementConfig | None = None,
     ) -> None:
         self._agent = agent
         self._sessions = sessions
         self._slots = slots
         self._clock = clock
         self._staffing_seed = staffing_seed  # spec 015: written to an empty table at startup
+        self._reengagement = reengagement  # spec 008, already time-scaled; None: no reminders
         # FR-4: one turn at a time per conversation. Per process: enough for one instance
         # (several instances need a DB row lock or a queue; deployment design, 014).
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -88,7 +122,12 @@ class ScreeningService:
     def with_agent(self, agent: ScreeningAgent) -> "ScreeningService":
         """The same database, slots and clock behind another agent (the offline demo seed)."""
         return ScreeningService(
-            agent, self._sessions, self._slots, self._clock, self._staffing_seed
+            agent,
+            self._sessions,
+            self._slots,
+            self._clock,
+            self._staffing_seed,
+            self._reengagement,
         )
 
     async def init_zone_staffing(self) -> bool:
@@ -147,19 +186,146 @@ class ScreeningService:
     async def send_event(
         self, conversation_id: str, event: Event, *, at: datetime | None = None
     ) -> TurnOutcome:
-        """FR-13: timer and calendar events (silence_expired until 008 adds timers)."""
+        """FR-13: timer and calendar events (008's scheduler sends silence_expired itself)."""
         async with self._locks[conversation_id]:
-            now = at or self._clock()
-            state, _ = await self._load(conversation_id)
-            zone_full = await self._zone_full(state, conversation_id)
-            result = await self._agent.handle_event(
-                state,
-                event,
-                today=now.date(),
-                context=self._context(state.country_hint, now, zone_full=zone_full),
-                conversation_id=conversation_id,
+            return await self._event(conversation_id, event, at or self._clock())
+
+    async def _event(self, conversation_id: str, event: Event, now: datetime) -> TurnOutcome:
+        """`send_event` without the lock: the caller holds it."""
+        state, _ = await self._load(conversation_id)
+        zone_full = await self._zone_full(state, conversation_id)
+        result = await self._agent.handle_event(
+            state,
+            event,
+            today=now.date(),
+            context=self._context(state.country_hint, now, zone_full=zone_full),
+            conversation_id=conversation_id,
+        )
+        return await self._save_turn(conversation_id, None, result, now)
+
+    # --- re-engagement (spec 008) --------------------------------------------------------
+
+    @property
+    def reengagement(self) -> ReengagementConfig | None:
+        """The schedule in force (time-scaled), or None when reminders are off."""
+        cfg = self._reengagement
+        return cfg if cfg is not None and cfg.enabled else None
+
+    async def due_for_reengagement(self, now: datetime) -> list[str]:
+        """Conversations whose next step is due. A cheap pre-check without the lock: each
+        one is checked again under its lock by `reengage`."""
+        cfg = self.reengagement
+        if cfg is None:
+            return []
+        async with self._sessions() as session:
+            rows = await repo.waiting_conversations(session, Status.in_progress.value)
+        return [row.id for row in rows if self._plan(row, cfg).at <= now]
+
+    async def next_reengagement(self, conversation_id: str) -> Planned | None:
+        """The next step for a conversation waiting for the candidate, due or not."""
+        cfg = self.reengagement
+        async with self._sessions() as session:
+            row = await self._get(session, conversation_id)
+        if cfg is None or row.status != Status.in_progress:
+            return None
+        return self._plan(row, cfg)
+
+    async def reengage(
+        self, conversation_id: str, *, force: bool = False, at: datetime | None = None
+    ) -> Reengaged:
+        """Run the next step if it is due (`force`: now, whatever the schedule says).
+
+        Under the conversation's lock, so a candidate's message and a reminder never
+        race, and with a compare-and-set on the step, so it is sent at most once.
+        """
+        async with self._locks[conversation_id]:
+            return await self._reengage(conversation_id, force=force, now=at or self._clock())
+
+    async def _reengage(self, conversation_id: str, *, force: bool, now: datetime) -> Reengaged:
+        async with self._sessions() as session:
+            row = await self._get(session, conversation_id)
+            messages = await repo.list_messages(session, conversation_id)
+        status = Status(row.status)
+        cfg = self.reengagement
+        if cfg is None:
+            return Reengaged(action="none", status=status, reason="disabled")
+        if status is not Status.in_progress:  # closed, abandoned or opted out (FR-2)
+            return Reengaged(action="none", status=status, reason="closed")
+        if not messages or messages[-1].role != "agent":  # their turn is being answered
+            return Reengaged(action="none", status=status, reason="candidate_last")
+        planned = self._plan(row, cfg)
+        if not force and planned.at > now:
+            return Reengaged(action="none", status=status, reason="not_due", planned=planned)
+        if isinstance(planned, Abandon):  # FR-5: the engine closes it, records the stage
+            outcome = await self._event(conversation_id, SilenceExpired(), now)
+            return Reengaged(
+                action="abandon",
+                status=outcome.status,
+                reply=outcome.result.reply,
+                summary_due=outcome.result.summary_due,
             )
-            return await self._save_turn(conversation_id, None, result, now)
+        state = ConversationState.model_validate(row.state_json)
+        result = await self._agent.follow_up(
+            state,
+            step=planned.step,
+            kind=planned.kind,
+            requires_template=planned.requires_template,
+            recent_agent=tuple(m.text for m in messages if m.role == "agent"),
+            conversation_id=conversation_id,
+        )
+        trace = result.trace
+        async with self._sessions.begin() as session:
+            claimed = await repo.claim_follow_up(
+                session,
+                conversation_id,
+                expected_sent=row.follow_ups_sent,
+                expected_last_candidate_at=row.last_candidate_at,
+                at=now,
+            )
+            if claimed:
+                message = Message(
+                    conversation_id=conversation_id,
+                    role="agent",
+                    kind="follow_up",
+                    follow_up_step=planned.step,
+                    text=result.reply.text,
+                    quick_replies_json=[],
+                    created_at=now,
+                    trace_json=trace.model_dump(mode="json"),
+                    cost_usd=trace.cost_usd,
+                    latency_ms=trace.latency_ms,
+                    fallback=trace.phrasing.outcome == "fallback",
+                )
+                repo.add(session, message)
+        if not claimed:
+            logger.warning("follow-up %s already sent (conversation %s)", planned.step, row.id)
+            return Reengaged(action="none", status=status, reason="already_sent")
+        return Reengaged(
+            action="follow_up",
+            status=status,
+            step=planned.step,
+            reply=result.reply,
+            requires_template=planned.requires_template,
+        )
+
+    def _plan(self, row: Conversation, cfg: ReengagementConfig) -> Planned:
+        silence = Silence(
+            started_at=row.created_at,
+            last_candidate_at=row.last_candidate_at,
+            steps_sent=row.follow_ups_sent or 0,
+            last_follow_up_at=row.last_follow_up_at,
+        )
+        return next_step(cfg, silence, self._timezone(row, cfg))
+
+    def _timezone(self, row: Conversation, cfg: ReengagementConfig) -> ZoneInfo:
+        config = self._agent.engine_config
+        return timezone_for(
+            cfg,
+            config.service_areas,
+            city_id=row.city,
+            country=Country(row.country) if row.country else None,
+            default_country=config.screening.default_country,
+        )
 
     # --- summaries (FR-8, FR-14) ---------------------------------------------------------
 
@@ -294,6 +460,8 @@ class ScreeningService:
             conversation = await self._get(session, conversation_id)
             previous = conversation.status
             self._add_messages(session, conversation_id, text, result, now)
+            if text is not None:
+                self._candidate_wrote(conversation, now)
             staffing = await load_staffing(session)
             self._copy_state(conversation, result.state, now, staffing)
             if conversation.status != previous:
@@ -305,6 +473,16 @@ class ScreeningService:
                 "engine error %s (conversation %s)", result.state.last_error, conversation_id
             )
         return TurnOutcome(result=result, status=result.state.status)
+
+    @staticmethod
+    def _candidate_wrote(conversation: Conversation, now: datetime) -> None:
+        """Spec 008 FR-2, FR-6: any message resets the silence; note the reminder (if
+        any) the candidate came back after."""
+        if conversation.follow_ups_sent:
+            conversation.reactivated_after_step = conversation.follow_ups_sent
+        conversation.follow_ups_sent = 0
+        conversation.last_follow_up_at = None
+        conversation.last_candidate_at = now
 
     def _add_messages(
         self,

@@ -8,7 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
 from sazon_screening.api.models import Conversation
-from sazon_screening.api.schemas import Analytics, FaqAnalytics, FaqQuestionCount
+from sazon_screening.api.schemas import (
+    Analytics,
+    FaqAnalytics,
+    FaqQuestionCount,
+    ReengagementAnalytics,
+    ReengagementStepCount,
+)
 from sazon_screening.vocab import DisqualificationReason, Status
 
 TOP_QUESTIONS = 10  # the analytics card lists this many
@@ -57,6 +63,28 @@ async def build_analytics(session: AsyncSession) -> Analytics:
         avg_cost_usd=round(cost / total, 6) if total else 0.0,
         by_country=by_country,
         faq=_faq(await repo.faq_traces(session)),
+        reengagement=_reengagement(
+            await repo.follow_up_steps(session), await repo.reactivation_steps(session)
+        ),
+    )
+
+
+def _reengagement(sent: list[tuple[str, int]], reactivated: list[int]) -> ReengagementAnalytics:
+    """Spec 008 FR-9: reminders per step, and after which one candidates came back."""
+    sent_by_step = Counter(step for _, step in sent)
+    back_by_step = Counter(reactivated)
+    nudged = len({conversation_id for conversation_id, _ in sent})
+    return ReengagementAnalytics(
+        follow_ups_sent=len(sent),
+        conversations_nudged=nudged,
+        reactivated=len(reactivated),
+        reactivation_rate=_ratio(len(reactivated), nudged),
+        by_step=[
+            ReengagementStepCount(
+                step=step, sent=sent_by_step[step], reactivated=back_by_step[step]
+            )
+            for step in sorted(set(sent_by_step) | set(back_by_step))
+        ],
     )
 
 

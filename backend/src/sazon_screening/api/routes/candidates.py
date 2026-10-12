@@ -21,7 +21,9 @@ from sazon_screening.api.schemas import (
     CandidateDetail,
     CandidateRow,
     MessageOut,
+    NextStepOut,
     RecruiterStatus,
+    ReengagementOut,
     SummaryOut,
     TraceOut,
 )
@@ -113,6 +115,8 @@ async def get_candidate(
     language = service.default_summary_language.value
     summary = await repo.get_summary(session, conversation_id, language)
     traces = [TraceOut.of(m) for m in messages]
+    waiting = bool(messages) and messages[-1].role == "agent"
+    planned = await service.next_reengagement(conversation_id) if waiting else None
     record = CandidateRecord.model_validate(row.record_json)
     staffing = await load_staffing(session)
     candidate, live = CandidateRow.from_record(
@@ -126,6 +130,13 @@ async def get_candidate(
         transcript=[MessageOut.of(m) for m in messages],
         traces=[t for t in traces if t is not None],
         actions=[ActionOut.of(a) for a in await repo.list_actions(session, conversation_id)],
+        reengagement=ReengagementOut(
+            follow_ups_sent=sum(m.kind == "follow_up" for m in messages),
+            waiting_steps=row.follow_ups_sent or 0,
+            last_follow_up_at=row.last_follow_up_at,
+            reactivated_after_step=row.reactivated_after_step,
+            next=NextStepOut.of(planned) if planned else None,
+        ),
     )
 
 

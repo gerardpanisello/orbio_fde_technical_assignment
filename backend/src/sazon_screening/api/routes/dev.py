@@ -1,4 +1,4 @@
-"""Dev-only routes (FR-12, FR-13): demo data and a stand-in for the silence timer (008).
+"""Dev-only routes (FR-12, FR-13): demo data and demo controls for re-engagement (008).
 
 They answer 403 unless APP_ENV=dev, so a deployed API never exposes them.
 """
@@ -9,8 +9,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 
 from sazon_screening.api import seed as demo
 from sazon_screening.api.deps import ServiceDep
-from sazon_screening.api.schemas import SeedOut, TurnOut
-from sazon_screening.api.service import ScreeningService
+from sazon_screening.api.schemas import AdvanceOut, SeedOut, TurnOut
+from sazon_screening.api.service import NotAllowed, ScreeningService
 from sazon_screening.engine import SilenceExpired
 from sazon_screening.llm.pipeline import build_agent
 
@@ -50,10 +50,28 @@ def _offline(request: Request, service: ScreeningService) -> ScreeningService:
     return offline
 
 
+@router.post("/conversations/{conversation_id}/advance")
+async def advance(
+    conversation_id: str, service: ServiceDep, background: BackgroundTasks
+) -> AdvanceOut:
+    """Spec 008 FR-8: run the NEXT re-engagement step now (the next reminder, or the
+    abandon after the last one), as if its time had come. Exactly one step per call.
+    409 when there is nothing to advance (closed, opted out, the candidate wrote last,
+    or re-engagement is disabled)."""
+    outcome = await service.reengage(conversation_id, force=True)
+    if outcome.action == "none":
+        raise NotAllowed(f"nothing to advance: {outcome.reason}")
+    if outcome.summary_due:
+        background.add_task(service.write_summary, conversation_id)
+    return AdvanceOut.of(outcome, await service.next_reengagement(conversation_id))
+
+
 @router.post("/conversations/{conversation_id}/silence")
 async def silence(
     conversation_id: str, service: ServiceDep, background: BackgroundTasks
 ) -> TurnOut:
+    """Kept from 004: `silence_expired` at once, skipping the reminders (straight to
+    `abandoned`). Use `/advance` to walk through the reminders first."""
     outcome = await service.send_event(conversation_id, SilenceExpired())
     if outcome.result.summary_due:
         background.add_task(service.write_summary, conversation_id)

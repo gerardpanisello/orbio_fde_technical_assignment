@@ -48,6 +48,11 @@ class Conversation(Base):
     disqualification_reason: Mapped[str | None] = mapped_column(String(32))
     drop_off_stage: Mapped[str | None] = mapped_column(String(32))
     interview_slot: Mapped[str | None] = mapped_column(String(64))
+    # Re-engagement (spec 008). Reset when the candidate writes; analytics count messages.
+    last_candidate_at: Mapped[datetime | None] = mapped_column(UTCDateTime)  # None: never wrote
+    follow_ups_sent: Mapped[int] = mapped_column(default=0)  # in the current silence
+    last_follow_up_at: Mapped[datetime | None] = mapped_column(UTCDateTime)
+    reactivated_after_step: Mapped[int | None]  # the reminder the candidate came back after
     # Recruiter side (FR-9):
     recruiter_status: Mapped[str] = mapped_column(String(16), default="new", index=True)
     recruiter_override: Mapped[bool] = mapped_column(default=False)
@@ -63,6 +68,8 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # transcript order
     conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True)
     role: Mapped[str] = mapped_column(String(16))  # "candidate" | "agent"
+    kind: Mapped[str] = mapped_column(String(16), default="reply")  # "reply" | "follow_up" (008)
+    follow_up_step: Mapped[int | None]  # 1-based, follow-ups only
     text: Mapped[str] = mapped_column(Text)
     quick_replies_json: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)

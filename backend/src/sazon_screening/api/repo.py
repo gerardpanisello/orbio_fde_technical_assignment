@@ -7,9 +7,9 @@ The caller owns the transaction (`async with sessions.begin()`), so one turn's w
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from sqlalchemy import ColumnElement, Integer, Select, delete, func, select, update
+from sqlalchemy import ColumnElement, CursorResult, Integer, Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api.models import (
@@ -33,6 +33,57 @@ def add(
     session: AsyncSession, row: Conversation | Message | RecruiterAction | ZoneStaffing
 ) -> None:
     session.add(row)
+
+
+# --- re-engagement (spec 008) ----------------------------------------------------------
+
+
+async def waiting_conversations(session: AsyncSession, status: str) -> Sequence[Conversation]:
+    """Conversations the scheduler looks at (`in_progress`); the policy decides the rest."""
+    return (await session.scalars(select(Conversation).where(Conversation.status == status))).all()
+
+
+async def claim_follow_up(
+    session: AsyncSession,
+    conversation_id: str,
+    *,
+    expected_sent: int,
+    expected_last_candidate_at: datetime | None,
+    at: datetime,
+) -> bool:
+    """Compare-and-set: count one more reminder only if nothing changed since we read the
+    row (no reminder sent, no candidate message). False: someone else got there first, so
+    a step is never sent twice, even by two processes (008 FR-7)."""
+    last = Conversation.last_candidate_at
+    query = (
+        update(Conversation)
+        .where(
+            Conversation.id == conversation_id,
+            Conversation.follow_ups_sent == expected_sent,
+            last.is_(None)
+            if expected_last_candidate_at is None
+            else last == expected_last_candidate_at,
+        )
+        .values(follow_ups_sent=expected_sent + 1, last_follow_up_at=at)
+    )
+    result = cast(CursorResult[Any], await session.execute(query))
+    return result.rowcount == 1
+
+
+async def follow_up_steps(session: AsyncSession) -> list[tuple[str, int]]:
+    """(conversation id, step) of every reminder sent, for analytics."""
+    query = select(Message.conversation_id, Message.follow_up_step).where(
+        Message.kind == "follow_up"
+    )
+    return [(cid, step or 0) for cid, step in await session.execute(query)]
+
+
+async def reactivation_steps(session: AsyncSession) -> list[int]:
+    """`reactivated_after_step` of every conversation whose candidate came back."""
+    query = select(Conversation.reactivated_after_step).where(
+        Conversation.reactivated_after_step.is_not(None)
+    )
+    return [step for step in (await session.scalars(query)).all() if step is not None]
 
 
 # --- messages --------------------------------------------------------------------------

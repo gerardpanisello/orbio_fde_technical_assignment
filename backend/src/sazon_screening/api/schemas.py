@@ -6,12 +6,13 @@ from typing import Annotated, Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
-from sazon_screening.api.service import ActionName, TurnOutcome
+from sazon_screening.api.service import ActionName, Reengaged, TurnOutcome
 from sazon_screening.api.staffing import Staffing, area_of_row, live_score
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord, ScoreResult
 from sazon_screening.llm.summary.facts import SummaryFact
 from sazon_screening.llm.summary.summarizer import NarrativeOutput
+from sazon_screening.reengagement import Planned, SendFollowUp
 from sazon_screening.vocab import (
     Availability,
     Bucket,
@@ -48,21 +49,32 @@ class QuickReplyOut(BaseModel):
     label: str
 
 
+MessageKind = Literal["reply", "follow_up"]
+
+
 class MessageOut(BaseModel):
     id: int
     role: Literal["candidate", "agent"]
     text: str
     quick_replies: list[QuickReplyOut]
     created_at: datetime
+    # Spec 008: "follow_up" is a reminder Sofi sent after a silence (agent messages only).
+    kind: MessageKind = "reply"
+    follow_up_step: int | None = None  # 1-based within that silence; None for replies
+    requires_template: bool = False  # past WhatsApp's 24 h window: an approved template
 
     @classmethod
     def of(cls, row: Message) -> Self:
+        follow_up = (row.trace_json or {}).get("follow_up") or {}
         return cls(
             id=row.id,
             role="candidate" if row.role == "candidate" else "agent",
             text=row.text,
             quick_replies=[QuickReplyOut(**q) for q in row.quick_replies_json],
             created_at=row.created_at,
+            kind="follow_up" if row.kind == "follow_up" else "reply",
+            follow_up_step=row.follow_up_step,
+            requires_template=bool(follow_up.get("requires_template", False)),
         )
 
 
@@ -192,7 +204,8 @@ class TraceOut(BaseModel):
 
     message_id: int
     created_at: datetime
-    action: str | None  # the engine's primary action, e.g. "ask_field"
+    kind: MessageKind = "reply"  # spec 008: a reminder has a trace too (no engine action)
+    action: str | None  # the engine's primary action, e.g. "ask_field"; "follow_up" (008)
     client: str  # "anthropic" | "fake-rules" | ...
     models: dict[str, str]
     latency_ms: int
@@ -210,16 +223,18 @@ class TraceOut(BaseModel):
         if trace is None:
             return None
         action = trace.get("action")
+        follow_up = "follow_up" in trace
         return cls(
             message_id=row.id,
             created_at=row.created_at,
-            action=action["primary"]["type"] if action else None,
+            kind="follow_up" if follow_up else "reply",
+            action="follow_up" if follow_up else action["primary"]["type"] if action else None,
             client=trace["client"],
             models=trace["models"],
             latency_ms=row.latency_ms or 0,
             cost_usd=row.cost_usd,
             fallback=row.fallback,
-            extraction=trace["extraction"]["outcome"],
+            extraction=(trace.get("extraction") or {}).get("outcome", "skipped"),
             faq=(trace.get("faq") or {}).get("outcome"),
             trace=trace,
         )
@@ -249,6 +264,36 @@ class ActionOut(BaseModel):
         )
 
 
+class NextStepOut(BaseModel):
+    """Spec 008: what re-engagement does next if the candidate stays quiet."""
+
+    action: Literal["follow_up", "abandon"]
+    step: int | None  # the reminder number; None for the abandon
+    at: datetime  # when (time-scaled in a demo); may be in the past until the next tick
+    requires_template: bool
+
+    @classmethod
+    def of(cls, planned: Planned) -> Self:
+        if isinstance(planned, SendFollowUp):
+            return cls(
+                action="follow_up",
+                step=planned.step,
+                at=planned.at,
+                requires_template=planned.requires_template,
+            )
+        return cls(action="abandon", step=None, at=planned.at, requires_template=False)
+
+
+class ReengagementOut(BaseModel):
+    """Spec 008 FR-9: the reminders a candidate got and whether they came back."""
+
+    follow_ups_sent: int  # reminders in this conversation, over every silence
+    waiting_steps: int  # reminders since the candidate last wrote
+    last_follow_up_at: datetime | None
+    reactivated_after_step: int | None  # the candidate came back after this reminder
+    next: NextStepOut | None  # only while in progress and waiting for the candidate
+
+
 class CandidateDetail(BaseModel):
     candidate: CandidateRow
     record: CandidateRecord  # spec 002 schema; `record.score` is the score at close
@@ -257,6 +302,7 @@ class CandidateDetail(BaseModel):
     transcript: list[MessageOut]
     traces: list[TraceOut]
     actions: list[ActionOut]  # oldest first
+    reengagement: ReengagementOut
 
 
 # --- analytics (FR-11) -----------------------------------------------------------------
@@ -277,6 +323,23 @@ class FaqAnalytics(BaseModel):
     top_questions: list[FaqQuestionCount]  # most asked first
 
 
+class ReengagementStepCount(BaseModel):
+    step: int
+    sent: int  # reminders with this number
+    reactivated: int  # conversations whose candidate came back after this one
+
+
+class ReengagementAnalytics(BaseModel):
+    """Spec 008 FR-9. `sum(by_step.sent) == follow_ups_sent` and
+    `sum(by_step.reactivated) == reactivated`."""
+
+    follow_ups_sent: int
+    conversations_nudged: int  # got at least one reminder
+    reactivated: int  # came back after a reminder
+    reactivation_rate: float  # reactivated / conversations_nudged
+    by_step: list[ReengagementStepCount]
+
+
 class Analytics(BaseModel):
     total: int
     by_status: dict[Status, int]
@@ -290,6 +353,36 @@ class Analytics(BaseModel):
     avg_cost_usd: float  # LLM cost per conversation, including summaries
     by_country: dict[str, dict[Status, int]]  # "unknown" when no country is known yet
     faq: FaqAnalytics
+    reengagement: ReengagementAnalytics
+
+
+class AdvanceOut(BaseModel):
+    """`POST /api/dev/conversations/{id}/advance`: the step that just ran (spec 008 FR-8)."""
+
+    action: Literal["follow_up", "abandon"]
+    status: Status
+    step: int | None  # the reminder sent; None for the abandon
+    reply: ReplyOut | None  # the reminder; on abandon, the engine's close message (if any)
+    requires_template: bool
+    next: NextStepOut | None  # what would come after, if the candidate stays quiet
+
+    @classmethod
+    def of(cls, outcome: Reengaged, planned: Planned | None) -> Self:
+        assert outcome.action != "none"
+        reply = outcome.reply
+        return cls(
+            action=outcome.action,
+            status=outcome.status,
+            step=outcome.step,
+            reply=ReplyOut(
+                text=reply.text,
+                quick_replies=[QuickReplyOut(**q.model_dump()) for q in reply.quick_replies],
+            )
+            if reply
+            else None,
+            requires_template=outcome.requires_template,
+            next=NextStepOut.of(planned) if planned else None,
+        )
 
 
 class SeedOut(BaseModel):

@@ -38,7 +38,7 @@
 ## 5. Tasks
 - [x] T1 Config + pure policy + tests (AC-1..AC-4).
 - [x] T2 Templates + follow-up phrasing (AC-7).
-- [ ] T3 DB fields + scheduler loop + lock + idempotency + resume tracking (AC-5, AC-6).
+- [x] T3 DB fields + scheduler loop + lock + idempotency + resume tracking (AC-5, AC-6).
 - [ ] T4 Dev `advance` endpoint, time scale, analytics (AC-8); seed a few nudged/reactivated conversations.
 - [ ] T5 Frontend (AC-9) — separate agent.
 - [ ] T6 README/ROADMAP/process-design note.

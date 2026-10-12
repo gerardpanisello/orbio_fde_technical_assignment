@@ -24,6 +24,7 @@ from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import Settings, load_llm_config
+from sazon_screening.reengagement import ReengagementConfig, load_reengagement
 from tests.paths import SHIPPED_CONFIG_DIR
 
 START = datetime(2026, 10, 12, 9, 0, tzinfo=UTC)  # a Monday
@@ -76,6 +77,12 @@ def staffing_seed(shipped_config: EngineConfig) -> ZoneStaffingConfig:
     return load_zone_staffing(SHIPPED_CONFIG_DIR, shipped_config.service_areas)
 
 
+@pytest.fixture(scope="session")
+def reengagement(shipped_config: EngineConfig) -> ReengagementConfig:
+    """Spec 008: the shipped schedule (2 h, 23 h, 72 h; abandon 24 h after the last)."""
+    return load_reengagement(SHIPPED_CONFIG_DIR, shipped_config.service_areas)
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> AppSettings:
     return AppSettings(
@@ -117,9 +124,15 @@ async def service(
     sessions: Sessions,
     clock: TickingClock,
     staffing_seed: ZoneStaffingConfig,
+    reengagement: ReengagementConfig,
 ) -> ScreeningService:
     service = ScreeningService(
-        agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), clock, staffing_seed
+        agent,
+        sessions,
+        load_slot_provider(SHIPPED_CONFIG_DIR),
+        clock,
+        staffing_seed,
+        reengagement,
     )
     await service.init_zone_staffing()  # as the app does at startup
     return service
