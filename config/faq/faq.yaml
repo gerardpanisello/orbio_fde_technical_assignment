@@ -1,0 +1,500 @@
+# Grupo Sazón: approved answers to candidates' frequent questions (spec 009).
+#
+# FICTIONAL DEMO DATA. Every figure, rule and process below is invented for the demo
+# and is plausible, not real. Grupo Sazón replaces this file with its own approved
+# answers before going live. Sofi only ever answers from this file: a question it does
+# not cover gets "lo consulto con el equipo" and is flagged for a recruiter.
+#
+# What you can change:
+#   - retrieval: how sure the search must be before Sofi answers.
+#       min_score:    below this, the question counts as unanswered (raise it if Sofi
+#                     answers the wrong question, lower it if she says "lo consulto"
+#                     too often). Check the dashboard's unanswered list after a change.
+#       top_k:        how many entries are considered for one question.
+#       relative_min: an extra entry is shown to the AI only if it scores at least this
+#                     share of the best one.
+#       country_boost: preference for the entry of the candidate's country.
+#   - max_answer_chars: an answer plus the next question must fit in one message.
+#   - entries: one per topic.
+#       id:        short, unique, never reused (analytics count by id).
+#       country:   ES, MX or all. When the candidate's country is not known yet, only
+#                  "all" entries are used, so a topic that differs by country also
+#                  needs a general entry ("depends on the city").
+#       updated:   when the client last approved the text.
+#       tags:      extra search words, any language.
+#       questions: 3-5 ways candidates ask it, in Spanish (es) and English (en).
+#       answer:    the approved text per register: es-ES and en are required; es-MX
+#                  is optional and replaces es-ES for Mexico.
+#
+# Rules (checked at startup): unique ids; every entry has es and en questions and an
+# es-ES and en answer; answers ask nothing (no question marks) and are not longer
+# than max_answer_chars. Ranges, never promises: "entre X y Y", "depende de...".
+
+version: "2026-10-12.1"
+
+retrieval:
+  top_k: 3
+  min_score: 3.0
+  relative_min: 0.85
+  country_boost: 1.25
+  k1: 1.2
+  b: 0.5
+
+max_answer_chars: 330
+
+entries:
+  # --- pay and contract: differ by country --------------------------------------------
+  - id: pay-es
+    country: ES
+    updated: 2026-10-01
+    tags: [pago, sueldo, salario, cobrar, dinero, euros, tarifa, pay, salary, wage, money, rate]
+    questions:
+      es:
+        - "¿Cuánto se paga?"
+        - "¿Cuánto se cobra por hora?"
+        - "¿Cuál es el sueldo?"
+        - "¿Cuánto pagan la hora?"
+        - "¿Cuánto voy a ganar?"
+      en:
+        - "How much do you pay?"
+        - "What is the hourly rate?"
+        - "What's the salary?"
+        - "How much will I earn?"
+    answer:
+      es-ES: "En España se paga entre 9 y 12 € brutos la hora, según la ciudad y la franja, más un extra por pedido en noches y fines de semana. El importe exacto te lo confirma el equipo en la entrevista."
+      en: "In Spain the pay is between 9 and 12 € gross per hour, depending on the city and the shift, plus an extra per order at nights and weekends. The team confirms the exact amount at the interview."
+
+  - id: pay-mx
+    country: MX
+    updated: 2026-10-01
+    tags: [pago, sueldo, salario, cobrar, dinero, pesos, mxn, tarifa, pay, salary, wage, money, rate]
+    questions:
+      es:
+        - "¿Cuánto se paga?"
+        - "¿Cuánto se cobra por hora?"
+        - "¿Cuál es el sueldo?"
+        - "¿Cuánto pagan la hora?"
+        - "¿Cuánto voy a ganar?"
+      en:
+        - "How much do you pay?"
+        - "What is the hourly rate?"
+        - "What's the salary?"
+        - "How much will I earn?"
+    answer:
+      es-ES: "En México se paga entre 70 y 95 MXN la hora, según la ciudad y el turno, más un extra por entrega en horas pico. El monto exacto te lo confirma el equipo en la entrevista."
+      es-MX: "En México se paga entre 70 y 95 MXN la hora, según la ciudad y el turno, más un extra por entrega en horas pico. El monto exacto te lo confirma el equipo en la entrevista."
+      en: "In Mexico the pay is between 70 and 95 MXN per hour, depending on the city and the shift, plus an extra per delivery at peak times. The team confirms the exact amount at the interview."
+
+  - id: pay-general
+    country: all
+    updated: 2026-10-01
+    tags: [pago, sueldo, salario, cobrar, dinero, tarifa, pay, salary, wage, money, rate]
+    questions:
+      es:
+        - "¿Cuánto se paga?"
+        - "¿Cuánto se cobra por hora?"
+        - "¿Cuál es el sueldo?"
+        - "¿Cuánto pagan la hora?"
+        - "¿Cuánto voy a ganar?"
+      en:
+        - "How much do you pay?"
+        - "What is the hourly rate?"
+        - "What's the salary?"
+        - "How much will I earn?"
+    answer:
+      es-ES: "Depende del país y de la ciudad: se paga por hora, más un extra por pedido en las horas de más trabajo. En cuanto sepa dónde quieres repartir, el equipo te da el rango exacto."
+      es-MX: "Depende del país y de la ciudad: se paga por hora, más un extra por entrega en horas pico. En cuanto sepa dónde quieres repartir, el equipo te da el rango exacto."
+      en: "It depends on the country and the city: the pay is per hour, plus an extra per order at the busiest times. Once I know where you'd like to deliver, the team gives you the exact range."
+
+  - id: contract-es
+    country: ES
+    updated: 2026-10-01
+    tags: [contrato, alta, seguridad social, autonomo, laboral, contract, employee, freelance]
+    questions:
+      es:
+        - "¿Qué tipo de contrato es?"
+        - "¿Me dais de alta en la Seguridad Social?"
+        - "¿Tengo que ser autónomo?"
+        - "¿Es con contrato?"
+      en:
+        - "What kind of contract is it?"
+        - "Do I have to be self-employed?"
+        - "Is it a proper employment contract?"
+    answer:
+      es-ES: "En España es un contrato laboral con alta en la Seguridad Social desde el primer día, no tienes que ser autónomo. Hay contratos de jornada completa y de media jornada."
+      en: "In Spain it's an employment contract, registered with Social Security from day one; you don't need to be self-employed. There are full-time and part-time contracts."
+
+  - id: contract-mx
+    country: MX
+    updated: 2026-10-01
+    tags: [contrato, imss, prestaciones, nomina, contract, employee, benefits]
+    questions:
+      es:
+        - "¿Qué tipo de contrato es?"
+        - "¿Tiene prestaciones de ley?"
+        - "¿Me dan de alta en el IMSS?"
+        - "¿Es con contrato?"
+      en:
+        - "What kind of contract is it?"
+        - "Do I get benefits?"
+        - "Is it a formal job with IMSS?"
+    answer:
+      es-ES: "En México es un contrato por nómina con alta en el IMSS y prestaciones de ley desde el primer día. Hay turnos de tiempo completo y de medio tiempo."
+      es-MX: "En México es un contrato por nómina con alta en el IMSS y prestaciones de ley desde el primer día. Hay turnos de tiempo completo y de medio tiempo."
+      en: "In Mexico it's a payroll contract registered with IMSS, with statutory benefits from day one. There are full-time and part-time shifts."
+
+  - id: contract-general
+    country: all
+    updated: 2026-10-01
+    tags: [contrato, alta, autonomo, contract, employee, freelance, benefits]
+    questions:
+      es:
+        - "¿Qué tipo de contrato es?"
+        - "¿Tengo que ser autónomo?"
+        - "¿Es con contrato?"
+      en:
+        - "What kind of contract is it?"
+        - "Do I have to be self-employed?"
+        - "Is it a proper employment contract?"
+    answer:
+      es-ES: "Es un contrato laboral con Grupo Sazón, con alta desde el primer día; no tienes que ser autónomo. Los detalles dependen del país y te los explica el equipo en la entrevista."
+      en: "It's an employment contract with Grupo Sazón, registered from day one; you don't need to be self-employed. The details depend on the country and the team explains them at the interview."
+
+  # --- vehicle and equipment -----------------------------------------------------------
+  - id: vehicle-own
+    country: all
+    updated: 2026-10-01
+    tags: [vehiculo, moto, bici, bicicleta, coche, carro, propio, propia, vehicle, bike, motorbike, scooter, car, own]
+    questions:
+      es:
+        - "¿Necesito moto propia?"
+        - "¿Tengo que tener vehículo propio?"
+        - "¿Vosotros ponéis la moto?"
+        - "¿Puedo repartir en bici?"
+      en:
+        - "Do I need my own bike?"
+        - "Do I need my own vehicle?"
+        - "Do you provide the motorbike?"
+        - "Can I deliver by bicycle?"
+    answer:
+      es-ES: "Puedes repartir con tu propio vehículo (moto, bici, bici eléctrica o coche) y en algunos locales hay motos de empresa para turnos completos. Si usas el tuyo, se compensa el desgaste por kilómetro."
+      es-MX: "Puedes repartir con tu propio vehículo (moto, bici, bici eléctrica o carro) y en algunas sucursales hay motos de la empresa para turnos completos. Si usas el tuyo, se compensa el desgaste por kilómetro."
+      en: "You can deliver with your own vehicle (motorbike, bicycle, e-bike or car), and some restaurants have company motorbikes for full shifts. If you use your own, wear and tear is compensated per kilometre."
+
+  - id: fuel-maintenance
+    country: all
+    updated: 2026-10-01
+    tags: [gasolina, combustible, mantenimiento, taller, averia, fuel, petrol, gas, maintenance, repair]
+    questions:
+      es:
+        - "¿Quién paga la gasolina?"
+        - "¿Me pagáis el combustible?"
+        - "¿Y el mantenimiento de la moto?"
+        - "Si se me estropea la moto, ¿qué pasa?"
+      en:
+        - "Who pays for fuel?"
+        - "Do you cover petrol?"
+        - "Who pays for maintenance?"
+    answer:
+      es-ES: "Con moto de empresa, la gasolina y el mantenimiento los cubre Grupo Sazón. Con vehículo propio se paga una compensación por kilómetro que cubre combustible y desgaste."
+      es-MX: "Con moto de la empresa, la gasolina y el mantenimiento los cubre Grupo Sazón. Con vehículo propio se paga una compensación por kilómetro que cubre gasolina y desgaste."
+      en: "With a company motorbike, Grupo Sazón covers fuel and maintenance. With your own vehicle you get a per-kilometre allowance that covers fuel and wear."
+
+  - id: insurance
+    country: all
+    updated: 2026-10-01
+    tags: [seguro, accidente, cobertura, insurance, accident, cover]
+    questions:
+      es:
+        - "¿Tengo seguro?"
+        - "¿Qué pasa si tengo un accidente?"
+        - "¿Estoy cubierto mientras reparto?"
+      en:
+        - "Am I insured?"
+        - "What if I have an accident?"
+        - "Is there insurance while delivering?"
+    answer:
+      es-ES: "Sí: mientras repartes tienes un seguro de accidentes contratado por Grupo Sazón, también si usas tu propio vehículo. El equipo te da los detalles al empezar."
+      en: "Yes: while delivering you are covered by an accident insurance taken out by Grupo Sazón, also if you use your own vehicle. The team gives you the details when you start."
+
+  - id: uniform-equipment
+    country: all
+    updated: 2026-10-01
+    tags: [uniforme, mochila, caja, casco, equipo, chaqueta, uniform, backpack, helmet, equipment, bag]
+    questions:
+      es:
+        - "¿Me dais uniforme?"
+        - "¿La mochila la pongo yo?"
+        - "¿Tengo que llevar mi propio casco?"
+      en:
+        - "Do you give me a uniform?"
+        - "Do I need my own delivery bag?"
+        - "Do I need a helmet?"
+    answer:
+      es-ES: "Grupo Sazón te da el uniforme, la chaqueta impermeable y la mochila térmica sin coste. El casco lo pones tú si repartes con tu moto; con moto de empresa también va incluido."
+      en: "Grupo Sazón gives you the uniform, a waterproof jacket and the thermal bag at no cost. You bring your own helmet if you ride your own motorbike; with a company one it is included."
+
+  # --- time --------------------------------------------------------------------------
+  - id: schedule-shifts
+    country: all
+    updated: 2026-10-01
+    tags: [horario, turno, turnos, franja, comidas, cenas, schedule, shift, shifts, hours, lunch, dinner]
+    questions:
+      es:
+        - "¿Qué horario hay?"
+        - "¿Cuáles son los turnos?"
+        - "¿Se trabaja de noche?"
+        - "¿Puedo elegir horario?"
+      en:
+        - "What are the hours?"
+        - "What shifts are there?"
+        - "Can I choose my schedule?"
+        - "Do you work nights?"
+    answer:
+      es-ES: "Hay turnos de comidas (12:00 a 16:30) y de cenas (19:30 a 23:30), y en algunas ciudades también de mañana. Eliges tus franjas cada semana según la disponibilidad que nos des."
+      en: "There are lunch shifts (12:00 to 16:30) and dinner shifts (19:30 to 23:30), and in some cities morning shifts too. You pick your slots each week based on the availability you give us."
+
+  - id: minimum-hours
+    country: all
+    updated: 2026-10-01
+    tags: [minimo, horas, semana, jornada, parcial, minimum, hours, week, part]
+    questions:
+      es:
+        - "¿Cuántas horas tengo que hacer?"
+        - "¿Hay un mínimo de horas a la semana?"
+        - "¿Puedo trabajar solo unas horas?"
+      en:
+        - "How many hours do I have to work?"
+        - "Is there a minimum number of hours per week?"
+        - "Can I work just a few hours?"
+    answer:
+      es-ES: "El mínimo es de 12 horas a la semana (media jornada desde 20 y jornada completa 40). Dentro de eso eliges las franjas que mejor te vengan."
+      en: "The minimum is 12 hours a week (part-time from 20, full-time 40). Within that, you choose the slots that suit you best."
+
+  - id: weekends
+    country: all
+    updated: 2026-10-01
+    tags: [fines de semana, finde, sabado, domingo, festivos, weekend, weekends, saturday, sunday, holidays]
+    questions:
+      es:
+        - "¿Hay que trabajar los fines de semana?"
+        - "¿Se trabaja sábados y domingos?"
+        - "¿Puedo trabajar solo los findes?"
+      en:
+        - "Do I have to work weekends?"
+        - "Can I work only on weekends?"
+        - "Do you work on Sundays?"
+    answer:
+      es-ES: "Los fines de semana son los días con más pedidos, así que pedimos al menos un día de fin de semana al mes. También hay contratos solo de fin de semana."
+      en: "Weekends are the busiest days, so we ask for at least one weekend day a month. There are also weekend-only contracts."
+
+  - id: payment-frequency
+    country: all
+    updated: 2026-10-01
+    tags: [nomina, cuando, cobro, quincena, mensual, semanal, payday, paid, monthly, weekly]
+    questions:
+      es:
+        - "¿Cuándo se cobra?"
+        - "¿Pagáis cada mes o cada semana?"
+        - "¿Cada cuánto me pagan?"
+      en:
+        - "When do I get paid?"
+        - "How often do you pay?"
+        - "Is it weekly or monthly pay?"
+    answer:
+      es-ES: "En España la nómina se cobra cada mes, a final de mes, por transferencia. En México el pago es semanal, cada viernes."
+      es-MX: "En México el pago es semanal, cada viernes, por transferencia. En España la nómina es mensual."
+      en: "In Spain you are paid monthly, at the end of the month, by bank transfer. In Mexico pay is weekly, every Friday."
+
+  - id: tips
+    country: all
+    updated: 2026-10-01
+    tags: [propina, propinas, tips, tip, gratuity]
+    questions:
+      es:
+        - "¿Las propinas son para mí?"
+        - "¿Me quedo las propinas?"
+        - "¿Hay propinas?"
+      en:
+        - "Do I keep the tips?"
+        - "Are tips for the driver?"
+        - "Do customers tip?"
+    answer:
+      es-ES: "Sí, las propinas son íntegras para quien reparte, tanto las de la app como las que te den en mano."
+      en: "Yes, tips go entirely to the driver, both in-app tips and the ones given to you in person."
+
+  # --- process -----------------------------------------------------------------------
+  - id: training
+    country: all
+    updated: 2026-10-01
+    tags: [formacion, curso, aprender, experiencia, training, course, learn, onboarding]
+    questions:
+      es:
+        - "¿Hay formación?"
+        - "¿Me enseñáis cómo funciona?"
+        - "No tengo experiencia, ¿me formáis?"
+      en:
+        - "Is there training?"
+        - "Will you teach me how it works?"
+        - "I have no experience, do you train?"
+    answer:
+      es-ES: "Sí: el primer día tienes una formación pagada de unas 3 horas sobre la app, seguridad vial y atención al cliente, y tus primeros turnos los haces con un compañero."
+      en: "Yes: on your first day there is a paid training of about 3 hours on the app, road safety and customer service, and your first shifts are with a colleague."
+
+  - id: start-process
+    country: all
+    updated: 2026-10-01
+    tags: [empezar, siguiente, paso, proceso, start, next, steps, process]
+    questions:
+      es:
+        - "¿Qué pasa después?"
+        - "¿Cuáles son los siguientes pasos?"
+        - "¿Cuándo empezaría?"
+      en:
+        - "What happens next?"
+        - "What are the next steps?"
+        - "When would I start?"
+    answer:
+      es-ES: "Después de estas preguntas tienes una entrevista corta con el equipo. Si todo va bien, firmas el contrato, haces la formación y empiezas, normalmente en una o dos semanas."
+      en: "After these questions there is a short interview with the team. If it goes well, you sign the contract, do the training and start, usually within one or two weeks."
+
+  - id: process-duration
+    country: all
+    updated: 2026-10-01
+    tags: [tarda, tiempo, rapido, dias, respuesta, how long, long, quick, days, answer]
+    questions:
+      es:
+        - "¿Cuánto tarda el proceso?"
+        - "¿Cuándo me decís algo?"
+        - "¿En cuánto tiempo sabré si me cogen?"
+      en:
+        - "How long does the process take?"
+        - "When will I hear back?"
+        - "How quickly do you decide?"
+    answer:
+      es-ES: "El proceso suele durar menos de una semana: esta conversación, una entrevista corta y, si encaja, la firma del contrato."
+      en: "The process usually takes less than a week: this chat, a short interview and, if it's a fit, signing the contract."
+
+  - id: documents
+    country: all
+    updated: 2026-10-01
+    tags: [documentos, papeles, dni, nie, permiso, curp, rfc, documents, papers, id, permit]
+    questions:
+      es:
+        - "¿Qué documentos necesito?"
+        - "¿Qué papeles hay que llevar?"
+        - "¿Necesito permiso de trabajo?"
+      en:
+        - "What documents do I need?"
+        - "What paperwork do I bring?"
+        - "Do I need a work permit?"
+    answer:
+      es-ES: "Para firmar necesitarás tu DNI o NIE con permiso de trabajo, el número de la Seguridad Social, una cuenta bancaria y, si conduces, el carné. Te lo pedimos después de la entrevista."
+      es-MX: "Para firmar necesitarás tu INE, CURP, RFC, comprobante de domicilio, una cuenta bancaria y, si manejas, tu licencia. Te los pedimos después de la entrevista."
+      en: "To sign you'll need your ID with a valid work permit, your social security or tax number, a bank account and, if you drive, your licence. We ask for them after the interview."
+
+  - id: interview-format
+    country: all
+    updated: 2026-10-01
+    tags: [entrevista, presencial, videollamada, llamada, interview, video, call, in person]
+    questions:
+      es:
+        - "¿Cómo es la entrevista?"
+        - "¿La entrevista es presencial?"
+        - "¿Cuánto dura la entrevista?"
+      en:
+        - "What is the interview like?"
+        - "Is the interview in person?"
+        - "How long is the interview?"
+    answer:
+      es-ES: "La entrevista es corta, de unos 15 minutos, en el restaurante o por videollamada, con alguien del equipo de tu zona. No hay que preparar nada."
+      en: "The interview is short, about 15 minutes, at the restaurant or by video call, with someone from the team in your area. There's nothing to prepare."
+
+  - id: locations
+    country: all
+    updated: 2026-10-01
+    tags: [ciudades, donde, locales, restaurantes, sucursales, zonas, cities, where, locations, restaurants]
+    questions:
+      es:
+        - "¿En qué ciudades estáis?"
+        - "¿Dónde tenéis restaurantes?"
+        - "¿En qué zonas se reparte?"
+      en:
+        - "Which cities are you in?"
+        - "Where are your restaurants?"
+        - "Which areas do you deliver in?"
+    answer:
+      es-ES: "Grupo Sazón tiene 45 restaurantes en España y México. Te pregunto tu ciudad y tu barrio durante el proceso y así vemos si repartimos allí."
+      es-MX: "Grupo Sazón tiene 45 restaurantes en España y México. Te pregunto tu ciudad y tu colonia durante el proceso y así vemos si repartimos ahí."
+      en: "Grupo Sazón has 45 restaurants in Spain and Mexico. I'll ask for your city and area during the process so we can see whether we deliver there."
+
+  # --- requirements --------------------------------------------------------------------
+  - id: age
+    country: all
+    updated: 2026-10-01
+    tags: [edad, anos, menor, mayor, age, old, minimum age, years]
+    questions:
+      es:
+        - "¿Qué edad hay que tener?"
+        - "¿Puedo trabajar si tengo 17 años?"
+        - "¿Hay edad mínima?"
+      en:
+        - "How old do I have to be?"
+        - "Is there a minimum age?"
+        - "Can I apply at 17?"
+    answer:
+      es-ES: "Hay que tener al menos 18 años para trabajar como repartidor en Grupo Sazón."
+      en: "You need to be at least 18 to work as a delivery driver at Grupo Sazón."
+
+  - id: license
+    country: all
+    updated: 2026-10-01
+    tags: [carne, licencia, permiso, conducir, manejo, license, licence, driving, permit]
+    questions:
+      es:
+        - "¿Qué carné necesito?"
+        - "¿Hace falta carné para la bici?"
+        - "¿Necesito licencia de manejo?"
+      en:
+        - "What licence do I need?"
+        - "Do I need a driving licence for a bike?"
+        - "Which driving license is required?"
+    answer:
+      es-ES: "Para moto o coche necesitas el carné en vigor que corresponda al vehículo (AM, A1, A2 o B). Con bici o bici eléctrica no hace falta carné."
+      es-MX: "Para moto o carro necesitas licencia de manejo vigente para ese vehículo. Con bici o bici eléctrica no hace falta licencia."
+      en: "For a motorbike or car you need a valid driving licence for that vehicle. With a bicycle or e-bike no licence is needed."
+
+  - id: multiple-apps
+    country: all
+    updated: 2026-10-01
+    tags: [otras, apps, glovo, uber, rappi, didi, compatibilizar, exclusividad, other, apps, exclusive, side]
+    questions:
+      es:
+        - "¿Puedo trabajar también en Glovo?"
+        - "¿Puedo compaginarlo con otras apps?"
+        - "¿Hay exclusividad?"
+      en:
+        - "Can I also work for other apps?"
+        - "Can I keep working for Uber Eats?"
+        - "Is it exclusive?"
+    answer:
+      es-ES: "Sí, fuera de tus turnos con Grupo Sazón puedes trabajar con otras apps. Durante el turno repartes solo nuestros pedidos."
+      es-MX: "Sí, fuera de tus turnos con Grupo Sazón puedes trabajar con otras apps. Durante el turno entregas solo nuestros pedidos."
+      en: "Yes, outside your Grupo Sazón shifts you can work for other apps. During a shift you deliver only our orders."
+
+  - id: contact-human
+    country: all
+    updated: 2026-10-01
+    tags: [persona, telefono, email, contacto, recruiter, reclutador, human, person, phone, contact]
+    questions:
+      es:
+        - "¿Puedo hablar con alguien del equipo?"
+        - "¿Hay un teléfono de contacto?"
+        - "¿Cómo contacto con recursos humanos?"
+      en:
+        - "Can I talk to someone from the team?"
+        - "Is there a phone number I can call?"
+        - "How do I contact HR?"
+    answer:
+      es-ES: "Claro: si en cualquier momento escribes «hablar con una persona», alguien del equipo de selección te contesta por este mismo chat en horario de oficina."
+      en: "Sure: if at any time you write \"talk to a person\", someone from the recruiting team replies in this same chat during office hours."
