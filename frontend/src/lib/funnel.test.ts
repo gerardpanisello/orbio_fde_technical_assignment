@@ -20,6 +20,7 @@ const base: Analytics = {
   fallback_rate: 0,
   avg_cost_usd: 0,
   by_country: {},
+  faq: { asked: 0, answered: 0, unanswered_rate: 0, top_questions: [] },
 }
 
 describe('buildFunnel', () => {

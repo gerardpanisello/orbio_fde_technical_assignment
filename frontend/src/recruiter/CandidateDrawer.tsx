@@ -152,7 +152,7 @@ function DrawerBody({
             </div>
           </div>
         )}
-        {tab === 'transcript' && <Transcript messages={detail.transcript} />}
+        {tab === 'transcript' && <Transcript messages={detail.transcript} traces={detail.traces} />}
         {tab === 'technical' && <TechnicalTab detail={detail} />}
       </div>
     </>

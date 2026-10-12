@@ -354,6 +354,7 @@ export interface components {
                     [key: string]: number;
                 };
             };
+            faq: components["schemas"]["FaqAnalytics"];
         };
         /** AreaLabels */
         AreaLabels: {
@@ -505,6 +506,29 @@ export interface components {
          * @enum {string}
          */
         FactorReason: "years_of_experience" | "known_platforms" | "availability_breadth" | "schedule_flexibility" | "start_date_proximity" | "zone_demand" | "unknown";
+        /**
+         * FaqAnalytics
+         * @description Spec 009: what candidates ask and how often Sofi had no approved answer.
+         */
+        FaqAnalytics: {
+            /** Asked */
+            asked: number;
+            /** Answered */
+            answered: number;
+            /** Unanswered Rate */
+            unanswered_rate: number;
+            /** Top Questions */
+            top_questions: components["schemas"]["FaqQuestionCount"][];
+        };
+        /** FaqQuestionCount */
+        FaqQuestionCount: {
+            /** Entry Id */
+            entry_id: string | null;
+            /** Question */
+            question: string;
+            /** Count */
+            count: number;
+        };
         /**
          * FieldName
          * @description Things the engine can ask for. `zone` and `slot` are ask targets only, not stored fields.
@@ -784,6 +808,8 @@ export interface components {
             fallback: boolean;
             /** Extraction */
             extraction: string;
+            /** Faq */
+            faq?: ("answered" | "unanswered") | null;
             /** Trace */
             trace: {
                 [key: string]: unknown;

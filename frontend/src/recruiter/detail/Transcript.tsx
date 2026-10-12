@@ -1,14 +1,23 @@
-import type { ChatMessage } from '../../api/client'
+import type { ChatMessage, Trace } from '../../api/client'
+import { FaqChip } from '../../components/FaqChip'
 import { EmptyState } from '../../components/States'
+import { faqTurn, type FaqTurn } from '../../lib/faq'
 import { formatTime } from '../../lib/format'
 
 /** The stored conversation, read-only, in the same left/right layout as the chat. */
-export function Transcript({ messages }: { messages: ChatMessage[] }) {
+export function Transcript({ messages, traces = [] }: { messages: ChatMessage[]; traces?: Trace[] }) {
   if (!messages.length) return <EmptyState icon="chat" title="Sin mensajes" />
+  // A trace belongs to the agent message it produced (same id).
+  const faqByMessage = new Map<number, FaqTurn>()
+  for (const trace of traces) {
+    const turn = faqTurn(trace)
+    if (turn) faqByMessage.set(trace.message_id, turn)
+  }
   return (
     <ol className="space-y-1.5" aria-label="Transcripción">
       {messages.map((m) => {
         const agent = m.role === 'agent'
+        const faq = agent ? faqByMessage.get(m.id) : undefined
         return (
           <li key={m.id} className={`flex ${agent ? 'justify-start' : 'justify-end'}`}>
             <div
@@ -19,7 +28,10 @@ export function Transcript({ messages }: { messages: ChatMessage[] }) {
               }`}
             >
               <div className="mb-0.5 flex items-center justify-between gap-3 text-[10.5px] font-medium tracking-wide text-stone-400 uppercase">
-                <span>{agent ? 'Sofi' : 'Candidato'}</span>
+                <span className="flex items-center gap-1.5">
+                  {agent ? 'Sofi' : 'Candidato'}
+                  {faq && <FaqChip turn={faq} />}
+                </span>
                 <span className="normal-case">{formatTime(m.created_at)}</span>
               </div>
               <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.text}</p>

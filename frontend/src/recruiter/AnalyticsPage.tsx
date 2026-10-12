@@ -14,6 +14,7 @@ import { useAnalytics } from '../api/queries'
 import { Kpi } from '../components/Kpi'
 import { EmptyState, ErrorState, Loading } from '../components/States'
 import { formatDuration, formatPercent, formatUsd } from '../lib/format'
+import { rankQuestions } from '../lib/faq'
 import { buildFunnel } from '../lib/funnel'
 import { COUNTRY, DISQUALIFICATION, STAGE } from '../lib/labels'
 import { STATUS_META, STATUS_ORDER } from '../lib/status'
@@ -25,6 +26,8 @@ import { PageHeader, SeedButton } from './common'
  * - everything about a status uses that status's colour from lib/status.ts.
  */
 const FUNNEL_RAMP = ['#e98a5f', '#dc6a3a', '#c2531f', '#9c4019', '#753012']
+/** FAQ questions: answered = blue, unanswered = the warning amber (always with its label). */
+const FAQ_COLOR = { answered: '#2a78d6', unanswered: '#eda100' }
 const INK = '#44403c'
 const MUTED = '#78716c'
 const BAR = 22 // px, thin marks with air between them
@@ -145,7 +148,93 @@ function Dashboard({ a, refreshing }: { a: Analytics; refreshing: boolean }) {
         </ChartCard>
 
         <ByCountry a={a} />
+
+        <FaqCard faq={a.faq} />
       </div>
+    </div>
+  )
+}
+
+/** Spec 009 AC-7: what candidates ask, and which questions the approved FAQ can't answer yet. */
+function FaqCard({ faq }: { faq: Analytics['faq'] }) {
+  const ranked = rankQuestions(faq)
+  const max = Math.max(1, ...ranked.map((q) => q.count))
+  const unanswered = faq.asked - faq.answered
+  return (
+    <ChartCard
+      title="Preguntas de candidatos"
+      note="Respondidas solo con la FAQ aprobada (config/faq/). Las que no tienen respuesta indican qué añadir a la FAQ."
+      className="lg:col-span-2"
+      table={{
+        head: ['Pregunta', 'Veces', 'Estado'],
+        rows: ranked.map((q) => [
+          q.question,
+          String(q.count),
+          q.answered ? `Respondida (${q.entryId})` : 'Sin respuesta en la FAQ',
+        ]),
+      }}
+    >
+      <dl className="mb-4 grid grid-cols-3 gap-3">
+        <FaqStat label="Preguntas" value={String(faq.asked)} />
+        <FaqStat label="Respondidas" value={String(faq.answered)} dot={FAQ_COLOR.answered} />
+        <FaqStat
+          label="Sin respuesta"
+          value={faq.asked ? formatPercent(faq.unanswered_rate) : '—'}
+          hint={faq.asked ? `${unanswered} de ${faq.asked}` : undefined}
+          dot={FAQ_COLOR.unanswered}
+        />
+      </dl>
+      {ranked.length === 0 ? (
+        <NoData text="Aún no hay preguntas. Cuando un candidato pregunte por el sueldo, el vehículo o los horarios, aparecerá aquí." />
+      ) : (
+        <ol className="space-y-1.5" aria-label="Preguntas más frecuentes">
+          {ranked.map((q, i) => {
+            const color = q.answered ? FAQ_COLOR.answered : FAQ_COLOR.unanswered
+            return (
+              <li
+                key={q.key}
+                className="grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(80px,30%)_2rem] items-center gap-3 text-[13px]"
+                title={q.answered ? `Entrada de la FAQ: ${q.entryId}` : 'Sin respuesta en la FAQ: candidata a añadir'}
+              >
+                <span className="text-right text-xs text-stone-400 tabular-nums">{i + 1}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-stone-800">{q.question}</span>
+                  {q.answered ? (
+                    <span className="font-mono text-[11px] text-stone-400">{q.entryId}</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-px text-[11px] font-medium text-amber-900">
+                      <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+                      Sin respuesta en la FAQ
+                    </span>
+                  )}
+                </span>
+                <span className="h-2.5 overflow-hidden rounded-r bg-stone-100">
+                  <span
+                    className="block h-full rounded-r"
+                    style={{ width: `${(q.count / max) * 100}%`, backgroundColor: color }}
+                  />
+                </span>
+                <span className="font-semibold text-stone-900 tabular-nums">{q.count}</span>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </ChartCard>
+  )
+}
+
+function FaqStat({ label, value, hint, dot }: { label: string; value: string; hint?: string; dot?: string }) {
+  return (
+    <div className="rounded-lg bg-stone-50 px-3 py-2">
+      <dt className="flex items-center gap-1.5 text-[11px] text-stone-500">
+        {dot && <span className="size-2 rounded-full" style={{ backgroundColor: dot }} />}
+        {label}
+      </dt>
+      <dd className="text-lg font-semibold text-stone-900 tabular-nums">
+        {value}
+        {hint && <span className="ml-1.5 text-xs font-normal text-stone-500">{hint}</span>}
+      </dd>
     </div>
   )
 }

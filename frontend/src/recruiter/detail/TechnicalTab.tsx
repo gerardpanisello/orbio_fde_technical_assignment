@@ -1,6 +1,8 @@
 import { Fragment, useState } from 'react'
 import type { CandidateDetail } from '../../api/client'
+import { FaqChip } from '../../components/FaqChip'
 import { Icon } from '../../components/Icon'
+import { faqTurn } from '../../lib/faq'
 import { formatTime } from '../../lib/format'
 
 /**
@@ -49,7 +51,9 @@ export function TechnicalTab({ detail }: { detail: CandidateDetail }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {detail.traces.map((t) => (
+              {detail.traces.map((t) => {
+                const faq = faqTurn(t)
+                return (
                 <Fragment key={t.message_id}>
                   <tr
                     className="cursor-pointer hover:bg-stone-50"
@@ -57,7 +61,12 @@ export function TechnicalTab({ detail }: { detail: CandidateDetail }) {
                     aria-expanded={open === t.message_id}
                   >
                     <td className="px-3 py-1.5 text-stone-500 tabular-nums">{formatTime(t.created_at)}</td>
-                    <td className="px-3 py-1.5 font-mono text-stone-800">{t.action ?? '—'}</td>
+                    <td className="px-3 py-1.5 font-mono text-stone-800">
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        {t.action ?? '—'}
+                        {faq && <FaqChip turn={faq} />}
+                      </span>
+                    </td>
                     <td className="px-3 py-1.5">
                       <span
                         className={`rounded px-1 py-px font-mono ${
@@ -91,7 +100,8 @@ export function TechnicalTab({ detail }: { detail: CandidateDetail }) {
                     </tr>
                   )}
                 </Fragment>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
