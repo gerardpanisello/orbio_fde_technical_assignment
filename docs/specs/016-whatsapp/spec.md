@@ -35,4 +35,14 @@ Meta **WhatsApp Cloud API** (test phone number, up to 5 verified recipients, fre
 - [x] T2 DB: `conversations.channel`, phone column (lookup), processed WhatsApp message ids, do-not-contact; service: find-or-create by phone; outbound delivery hook used by turns and re-engagement.
 - [x] T3 Webhook routes (verify, signature, background processing, dedupe) + inbound mapping (FR-4).
 - [x] T4 Analytics/list: channel field + filter; frontend: channel badge + filter (small; coordinate — the voice agent also touches frontend, keep changes to `src/lib/status.ts`-like shared files minimal).
-- [ ] T5 `docs/whatsapp-setup.md`, README/ROADMAP; live test with Gerard's credentials when available.
+- [x] T5 `docs/whatsapp-setup.md`, README/ROADMAP.
+- [ ] T5b Live test with Gerard's credentials (follow `docs/whatsapp-setup.md`); then ROADMAP row 16 → ✅.
+
+## 6. Implementation notes (2026-10-13)
+- Code: `backend/src/sazon_screening/whatsapp/` (settings, payloads, client + fake, inbound, channel), `api/routes/whatsapp.py`; business values in `config/whatsapp.yaml` (follow-up template, list button text, country prefixes).
+- Payload limits checked against Meta's Cloud API reference: buttons ≤ 3, title ≤ 20, body ≤ 1024; list ≤ 10 rows, row title ≤ 24, description ≤ 72, button ≤ 20; read receipt + `typing_indicator` in one call. Buttons whose titles collide after truncation, or a body > 1024, fall back to a list; > 10 options → text with numbered options.
+- A tapped button/row sends its **full label** (looked up by id in Sofi's last offer), so a shortened title never changes what the pipeline sees (AC-4).
+- Dedupe = message id inserted in `whatsapp_inbound_seen` before the background task (at-most-once: a crash mid-task loses that one reply; a queue is the production fix).
+- Phone: `conversations.phone` (wa_id, indexed) only; erased on opt-out; `do_not_contact` keeps a SHA-256 (pseudonymisation, not anonymisation). Logs show `wa:<hash prefix>`.
+- Outside the 24 h window: follow-ups → configured template; the abandon close (the shipped engine sends none) would not be sent. Video/document are treated as media too (FR-4 lists audio/image/sticker).
+- Open questions: a real approved Spanish reminder template (name, language, variables); whether an opted-out number may re-apply later (today: ignored for good); language of the greeting for non-ES/MX numbers (today: Spanish, the engine switches on the reply).

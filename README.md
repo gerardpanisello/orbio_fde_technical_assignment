@@ -34,6 +34,8 @@ Open http://localhost:5173:
 
 **Fake vs real LLM.** By default everything runs **offline** (`LLM_MODE=fake`): rule-based extraction and template replies, no API key needed. To use Claude, copy `.env.example` to `.env`, set `LLM_MODE=anthropic` and `ANTHROPIC_API_KEY`, then start the API with `uv run --env-file ../.env uvicorn sazon_screening.api.app:create_app --factory --port 8000`.
 
+**Real WhatsApp (optional).** Off by default. With a free Meta developer app and its test number, Sofi answers on WhatsApp from your own phone: reply buttons, lists, voice-note handling, reminders through WhatsApp, and a WhatsApp badge and filter in the dashboard. Step-by-step for Windows (Meta app, tunnel, webhook, troubleshooting): [docs/whatsapp-setup.md](docs/whatsapp-setup.md).
+
 Terminal-only demo: `cd backend && uv run python -m sazon_screening.llm.demo --lang es --debug`.
 
 Checks: `cd backend && uv run ruff check . && uv run mypy && uv run pytest -q` (1,100+ tests, no network) · `cd frontend && npm run lint && npm test && npm run build`.
@@ -132,7 +134,7 @@ From one full Spanish screening, 9 turns from consent to booked interview. Detai
 ## What I'd improve with more time
 
 - **Latency.** Stream the reply; phrase simple asks with Haiku; run the FAQ answer in parallel with extraction. Target p50 < 2.5 s.
-- **Real channel.** A WhatsApp Business API webhook, with template messages for follow-ups after the 24 h window.
+- **Real channel in production.** The WhatsApp channel ([setup](docs/whatsapp-setup.md)) runs on Meta's test number with `hello_world` as the after-24 h template; production needs a verified business number, an approved Spanish reminder template and a queue in front of the webhook.
 - **Re-engagement at scale.** The reminder loop runs inside the API process (fine for one instance); production wants a scheduler service or a delayed queue with a DB lock.
 - **FAQ recall.** Embeddings for paraphrases once the knowledge base grows past a few hundred entries; feed the "Sin respuesta" list back into the FAQ.
 - **Evals.** Simulated candidate personas plus an LLM judge on every prompt change, run in CI.

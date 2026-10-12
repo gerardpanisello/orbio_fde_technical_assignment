@@ -22,7 +22,8 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 13 | `013-voice-agent` | Browser voice agent reusing the same engine | ⬜ |
 | 14 | Design docs | [ATS integration](design/ats-integration.md), [deployment & scaling](design/deployment.md) (10K/week) | ✅ |
 | 15 | `015-zone-occupancy` | Staffing per zone (Zonas page), zone-demand score factor with live priority, waitlist when the zone is full, hire → +1 — spec: [015](specs/015-zone-occupancy/spec.md) | ✅ |
-| 16 | Delivery | README, sample conversations, demo video script, presentation | ⬜ |
+| 16 | `016-whatsapp` | Real WhatsApp channel (Meta Cloud API): signed webhook, dedupe, reply buttons/lists, media, do-not-contact, reminders via WhatsApp (template after 24 h), channel badge/filter/analytics — spec: [016](specs/016-whatsapp/spec.md), setup: [whatsapp-setup.md](whatsapp-setup.md); built and tested with a fake Graph client, live test pending credentials | 🟨 |
+| 17 | Delivery | README, sample conversations, demo video script, presentation | ⬜ |
 
 ## Suggested week plan
 - **Day 1:** Phases 0–1 (design doc reviewed with you before any code).
