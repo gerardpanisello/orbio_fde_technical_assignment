@@ -1,0 +1,31 @@
+# Grupo Sazón: the real WhatsApp channel (spec 016, Meta WhatsApp Cloud API).
+#
+# Secrets (token, app secret, ...) are NOT here: they are environment variables
+# (WHATSAPP_*, see .env.example and docs/whatsapp-setup.md). This file holds what the
+# client can change without touching code. It is only read when WHATSAPP_ENABLED=true.
+# Bump `version` on every change.
+#
+# What you can change:
+#   - follow_up_template: the Meta-APPROVED template sent for a reminder when the
+#     candidate's last message is older than WhatsApp's 24 h window (free text is
+#     rejected by WhatsApp there). `name` and `language` exactly as approved in
+#     WhatsApp Manager. `hello_world` (en_US) is the template every test number has:
+#     fine to see the flow work, NOT a real reminder. Keep `placeholder: true` while it
+#     is in use, so every send logs a warning; set it to false with a real template.
+#   - list_button: the button that opens a list of more than 3 options (max 20 chars).
+#   - country_prefixes: international dialling prefix -> country hint for a new
+#     conversation (the candidate can still say they live elsewhere).
+version: "2026-10-13.1"
+
+follow_up_template:
+  name: hello_world
+  language: en_US
+  placeholder: true
+
+list_button:
+  es: "Ver opciones"
+  en: "See options"
+
+country_prefixes:
+  "34": ES
+  "52": MX
