@@ -18,7 +18,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from sazon_screening.api.db import create_tables, make_engine, make_sessions
+from sazon_screening.api.db import make_sessions, prepare_database
 from sazon_screening.api.routes import (
     analytics,
     candidates,
@@ -62,8 +62,9 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Everything that can fail on bad config fails here, at startup.
-        engine = make_engine(settings.database_url)
-        await create_tables(engine)
+        engine = await prepare_database(
+            settings.database_url, reset_stale_sqlite=settings.app_env == "dev"
+        )
         app.state.sessions = make_sessions(engine)
         screening_agent = agent or build_agent(settings.llm)
         areas = screening_agent.engine_config.service_areas
