@@ -25,6 +25,7 @@ class SlotConfig(BaseModel):
     version: str
     working_days: int = Field(gt=0, le=10)
     times: list[Time] = Field(min_length=1)
+    max_slots: int | None = Field(default=None, gt=0, le=20)  # None: every day x every time
 
 
 class SlotProvider:
@@ -32,7 +33,17 @@ class SlotProvider:
         self._config = config
 
     def slots(self, today: date) -> list[SlotDisplay]:
-        return [_slot(day, time) for day in self._days(today) for time in self._config.times]
+        """Every day x every time, or `max_slots` of them: one per day first, rotating the
+        times so the short list still covers mornings and afternoons, then the rest in order.
+        """
+        times, days = self._config.times, self._days(today)
+        every = [(day, time) for day in days for time in times]
+        limit = self._config.max_slots
+        if limit is None:
+            return [_slot(day, time) for day, time in every]
+        spread = [(day, times[index % len(times)]) for index, day in enumerate(days)]
+        chosen = (spread + [pair for pair in every if pair not in spread])[:limit]
+        return [_slot(day, time) for day, time in sorted(chosen)]
 
     def _days(self, today: date) -> list[date]:
         days: list[date] = []

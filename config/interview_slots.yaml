@@ -6,7 +6,11 @@
 # What you can change:
 #   - working_days: how many working days (Monday to Friday) ahead to offer, from tomorrow.
 #   - times: interview times offered on each of those days (24 h, local time of the city).
-#     Every day x every time is one slot, so keep the total small: it is a chat list.
-version: "2026-10-12.1"
+#     Every day x every time is one possible slot.
+#   - max_slots: how many slots one message offers (spec 001: 2-3, it is a chat list).
+#     The agent offers one per day first, rotating the times, so the list mixes days
+#     and times. Leave it out to offer every day x every time.
+version: "2026-10-12.2"
 working_days: 3
 times: ["10:00", "17:00"]
+max_slots: 3

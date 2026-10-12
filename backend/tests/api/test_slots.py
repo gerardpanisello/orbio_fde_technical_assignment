@@ -24,3 +24,20 @@ def test_next_working_days_at_each_time_skipping_the_weekend() -> None:
 
 def test_shipped_config_loads() -> None:
     assert load_slot_provider(SHIPPED_CONFIG_DIR).slots(date(2026, 10, 12))
+
+
+def test_max_slots_spreads_the_offer_over_days_and_times() -> None:
+    """Spec 001 §6: offer 2-3 slots. One per day first, rotating the times."""
+    config = SlotConfig(version="t", working_days=3, times=["10:00", "17:00"], max_slots=3)
+    slots = SlotProvider(config).slots(date(2026, 10, 13))  # a Tuesday
+    assert [s.id for s in slots] == ["2026-10-14T10:00", "2026-10-15T17:00", "2026-10-16T10:00"]
+
+
+def test_max_slots_above_one_per_day_fills_in_order() -> None:
+    config = SlotConfig(version="t", working_days=2, times=["10:00", "17:00"], max_slots=3)
+    slots = SlotProvider(config).slots(date(2026, 10, 13))
+    assert [s.id for s in slots] == ["2026-10-14T10:00", "2026-10-14T17:00", "2026-10-15T17:00"]
+
+
+def test_shipped_config_offers_three_slots() -> None:
+    assert len(load_slot_provider(SHIPPED_CONFIG_DIR).slots(date(2026, 10, 13))) == 3
