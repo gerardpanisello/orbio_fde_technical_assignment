@@ -7,6 +7,8 @@ normal re-ask policy applies. The engine then validates everything again: nothin
 can approve or reject a candidate (ADR 0002).
 """
 
+import re
+
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from sazon_screening.engine import (
@@ -43,10 +45,28 @@ class Mapped(BaseModel):
     sentiment: Sentiment = "neutral"  # trace only: a hook for the summary and 007
 
 
-def to_turn_input(out: ExtractionOutput, pending: PendingView, context: TurnContext) -> Mapped:
-    """`context` comes from the caller (phone prefix, offered slots), never from the model."""
+def to_turn_input(
+    out: ExtractionOutput,
+    pending: PendingView,
+    context: TurnContext,
+    *,
+    text: str | None = None,
+) -> Mapped:
+    """`context` comes from the caller (phone prefix, offered slots), never from the model.
+
+    `text` is the candidate's message: when it has no real language content (a name, a
+    number, a place, a button), the language signal is dropped and the engine keeps the
+    conversation's language, whatever the model said (eval 2026-10-12).
+    """
     proposals, dropped = field_proposals(out, pending)
-    turn = CandidateTurn(proposals=proposals, signals=signals(out), context=context)
+    found = signals(out)
+    if (
+        text is not None
+        and found.language is not None
+        and not has_language_content(text, out, pending)
+    ):
+        found = found.model_copy(update={"language": None})
+    turn = CandidateTurn(proposals=proposals, signals=found, context=context)
     slot_pick = _slot_pick(out, pending, turn, dropped)
     faq = out.faq_question.strip() if out.faq_question else None
     return Mapped(
@@ -103,6 +123,27 @@ def signals(out: ExtractionOutput) -> Signals:
         abuse=out.abuse,
         language=Language(out.language) if out.language else None,
     )
+
+
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def has_language_content(text: str, out: ExtractionOutput, pending: PendingView) -> bool:
+    """False when every word is a name, a place, an app or a button label: those read the
+    same in any language, so they must not switch it. Digits, emoji and punctuation
+    are not words.
+    """
+    words = _words(text)
+    if not words:
+        return False
+    neutral = [out.full_name, out.location_city, out.location_zone, *(out.platforms or [])]
+    neutral_words = {word for value in neutral if value for word in _words(value)}
+    neutral_words |= {word for option in pending.options for word in _words(option.label)}
+    return not set(words) <= neutral_words
+
+
+def _words(text: str) -> list[str]:
+    return _WORD.findall(text.casefold())
 
 
 def _slot_pick(

@@ -36,6 +36,7 @@ from sazon_screening.engine import (
     VehicleProposal,
 )
 from sazon_screening.llm.extraction.mapping import DroppedProposal, Mapped, to_turn_input
+from sazon_screening.llm.extraction.pending import PendingView
 from sazon_screening.vocab import (
     Availability,
     Country,
@@ -403,3 +404,58 @@ class TestSignals:
         turn = turn_of(to_turn_input(out(faq_question="  "), AT_AGE, TurnContext()))
         assert turn.signals.faq_question is False
         assert to_turn_input(out(faq_question="  "), AT_AGE, TurnContext()).faq_question is None
+
+
+class TestLanguageKeeping:
+    """Eval 2026-10-12: "Daniel Okafor" alone switched the conversation to English.
+
+    A message with no real language content (a name, a number, a place, an app, a button)
+    sends no language signal, whatever the model said, so the engine keeps the language.
+    """
+
+    @pytest.mark.parametrize(
+        ("text", "fields", "at"),
+        [
+            ("Daniel Okafor", {"full_name": "Daniel Okafor"}, asking(FieldName.full_name)),
+            ("27", {"age": 27}, AT_AGE),
+            ("Madrid, Chamberí.", {"location_city": "Madrid", "location_zone": "Chamberí"}, AT_AGE),
+            ("Glovo 👍", {"platforms": ["Glovo"]}, AT_AGE),
+            ("motorbike", {"vehicle_type": "motorbike"}, pending(options=("motorbike", "car"))),
+            ("🙌", {}, AT_AGE),
+        ],
+    )
+    def test_no_language_content_keeps_the_language(
+        self, text: str, fields: dict[str, object], at: PendingView
+    ) -> None:
+        mapped = to_turn_input(out(language="en", **fields), at, TurnContext(), text=text)
+        assert turn_of(mapped).signals.language is None
+
+    @pytest.mark.parametrize(
+        "text",
+        ["Tengo 27. Sorry, can we continue in English?", "My name is Daniel Okafor"],
+    )
+    def test_real_words_still_switch(self, text: str) -> None:
+        extracted = out(language="en", full_name="Daniel Okafor", age=27)
+        mapped = to_turn_input(extracted, AT_AGE, TurnContext(), text=text)
+        assert turn_of(mapped).signals.language is Language.en
+
+
+class TestUnsolicitedAsap:
+    """Eval 2026-10-12: "Ya quiero empezar" at the name question became start = asap."""
+
+    def test_asap_while_asking_something_else_is_dropped(self) -> None:
+        mapped = to_turn_input(out(start_kind="asap"), asking(FieldName.full_name), TurnContext())
+        assert turn_of(mapped).proposals == []
+        assert mapped.dropped == [DroppedProposal(field="start_date", reason="unsolicited_asap")]
+
+    @pytest.mark.parametrize(
+        "at", [AT_START, pending(PendingKind.recap), pending(PendingKind.correction_field)]
+    )
+    def test_asap_is_kept_when_the_start_date_is_in_question(self, at: PendingView) -> None:
+        turn = turn_of(to_turn_input(out(start_kind="asap"), at, TurnContext()))
+        assert turn.proposals == [StartDateProposal(value=Asap())]
+
+    def test_an_explicit_date_volunteered_early_is_kept(self) -> None:
+        extracted = out(start_kind="offset", start_offset_amount=1, start_offset_unit="days")
+        turn = turn_of(to_turn_input(extracted, AT_AGE, TurnContext()))
+        assert turn.proposals == [StartDateProposal(value=Offset(amount=1, unit="days"))]

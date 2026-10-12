@@ -179,7 +179,8 @@ async def test_abandoned_then_resumed_then_booked(
         schedule=["flexible"],
         experience_years=2,
         platforms=["Rappi"],
-        start_kind="asap",
+        start_kind="next_weekday",  # an explicit date: a volunteered "asap" is dropped
+        start_weekday="mon",
     )
     resumed = await say(agent, scripted, silence.state, "sigo aquí...", everything)
     assert (resumed.state.status, resumed.summary_due) == (Status.in_progress, False)

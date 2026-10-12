@@ -129,10 +129,21 @@ def experience(out: ExtractionOutput, _: PendingView) -> Proposal | None:
     return ExperienceProposal(value=answer)
 
 
-def start_date(out: ExtractionOutput, _: PendingView) -> Proposal | None:
+def start_date(out: ExtractionOutput, pending: PendingView) -> Proposal | None:
+    """An "asap" volunteered while we ask something else is dropped: "ya quiero empezar"
+    is eagerness, not a start date (eval 2026-10-12). Explicit dates are kept.
+    """
     if out.start_kind is None:
         return None
+    if out.start_kind == "asap" and not _start_date_in_question(pending):
+        raise DropError("unsolicited_asap")
     return StartDateProposal(value=_start_expression(out))
+
+
+def _start_date_in_question(pending: PendingView) -> bool:
+    if pending.kind in (PendingKind.recap, PendingKind.correction_field):
+        return True
+    return pending.kind is PendingKind.ask and pending.field is FieldName.start_date
 
 
 def _start_expression(out: ExtractionOutput) -> StartDateExpr:

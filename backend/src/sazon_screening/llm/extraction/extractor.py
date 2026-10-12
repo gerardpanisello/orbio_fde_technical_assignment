@@ -114,7 +114,7 @@ class Extractor:
         if result.value is None or result.failure is not None:
             return _failed(context, result.failure or FailureKind.empty, truncated, telemetry)
         try:
-            mapped = to_turn_input(result.value, pending, context)
+            mapped = to_turn_input(result.value, pending, context, text=text)
         except Exception as error:  # a bug in our mapping must not crash the conversation
             logger.exception(
                 "extraction mapping failed: %s",
