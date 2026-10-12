@@ -41,6 +41,9 @@ labels:
   years: years
   less_than_a_year: less than a year
   no_experience: no experience
+  weekdays: {mon: lunes, tue: martes, wed: miércoles, thu: jueves, fri: viernes, sat: sábado, sun: domingo}
+  today: hoy
+  tomorrow: mañana
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
   ask_field:

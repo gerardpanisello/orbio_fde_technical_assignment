@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-12.2"
+version: "2026-10-12.3"
 register: es-MX
 
 labels:
@@ -29,6 +29,9 @@ labels:
   years: años
   less_than_a_year: menos de 1 año
   no_experience: Sin experiencia
+  weekdays: {mon: lunes, tue: martes, wed: miércoles, thu: jueves, fri: viernes, sat: sábado, sun: domingo}
+  today: hoy
+  tomorrow: mañana
 
 templates:
   greeting: "¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón 👋 Te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Aviso de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"

@@ -191,3 +191,13 @@ def test_name_inside_another_word_is_not_the_name() -> None:
     context = ctx(first_name="Ana", recent_agent_messages=RECENT)
     text = "Vale. ¿Tienes alguna semana libre?"  # "semana" contains "ana"
     assert Violation.name_overused not in check(text, action(ASK_AGE), context, CAPS)
+
+
+def test_the_name_inside_the_reference_message_is_allowed() -> None:
+    """The recap's "Nombre completo: Ana López" line is not the name used as address."""
+    context = ctx(first_name="Ana", recent_agent_messages=RECENT)
+    recap = "Repasemos tus datos:\n• Nombre completo: Ana López\n¿Está todo bien?"
+    act = action(ShowRecap(profile=Profile()))
+    assert Violation.name_overused not in check(recap, act, context, CAPS, reference=recap)
+    again = "Vale, Ana. " + recap
+    assert Violation.name_overused in check(again, act, context, CAPS, reference=recap)

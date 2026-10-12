@@ -6,6 +6,7 @@ so the model copies an id instead of inventing one.
 """
 
 from collections.abc import Mapping
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
@@ -42,11 +43,17 @@ def pending_view(
     config: EngineConfig,
     catalog: MessageCatalog,
     slots: Mapping[str, SlotDisplay],
+    *,
+    today: date | None = None,
 ) -> PendingView:
     pending = state.pending
     labels = catalog.for_language(state.language).labels
     reviewing = pending.kind in (PendingKind.recap, PendingKind.correction_field)
-    current = field_values(state.profile, config, state.language, labels) if reviewing else {}
+    current = (
+        field_values(state.profile, config, state.language, labels, today=today)
+        if reviewing
+        else {}
+    )
     return PendingView(
         kind=pending.kind,
         field=pending.field,

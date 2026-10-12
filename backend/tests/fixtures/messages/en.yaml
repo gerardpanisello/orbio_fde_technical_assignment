@@ -41,6 +41,9 @@ labels:
   years: years
   less_than_a_year: less than a year
   no_experience: no experience
+  weekdays: {mon: Monday, tue: Tuesday, wed: Wednesday, thu: Thursday, fri: Friday, sat: Saturday, sun: Sunday}
+  today: today
+  tomorrow: tomorrow
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
   ask_field:

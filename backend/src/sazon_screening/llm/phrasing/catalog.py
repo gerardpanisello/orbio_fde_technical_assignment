@@ -38,6 +38,7 @@ from sazon_screening.vocab import (
     Stage,
     Status,
     VehicleType,
+    Weekday,
 )
 
 # Template group -> the placeholders it may use. Anything else is a typo or a leak.
@@ -95,6 +96,9 @@ class Labels(_Strict):
     years: str  # "años", after any other number of years of experience
     less_than_a_year: str  # "menos de 1 año": some experience, but under a year
     no_experience: str  # "Sin experiencia": no delivery experience at all
+    weekdays: dict[Weekday, str]  # "miércoles": the recap names the start day
+    today: str  # "hoy", before a start date that is today
+    tomorrow: str  # "mañana", before a start date that is tomorrow
 
     @model_validator(mode="after")
     def _every_value(self) -> Self:
@@ -103,6 +107,7 @@ class Labels(_Strict):
             ("availability", Availability),
             ("schedule", ScheduleSlot),
             ("fields", FieldName),
+            ("weekdays", Weekday),
         ):
             try:
                 _complete(getattr(self, name), enum)

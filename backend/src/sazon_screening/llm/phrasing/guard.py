@@ -61,6 +61,7 @@ def check(
     caps: LengthCaps,
     *,
     language_check: bool = True,
+    reference: str = "",
 ) -> list[Violation]:
     """All rules the reply breaks; an empty list means it can be sent."""
     if not text.strip():
@@ -79,11 +80,19 @@ def check(
         found.append(Violation.repeated_greeting)
     if action.language is Language.es and _MASCULINE_SELF.search(text):
         found.append(Violation.masculine_form)
-    if ctx.first_name and ctx.name_to_use is None and mentions(text, ctx.first_name):
-        found.append(Violation.name_overused)  # the name rests after each use
+    if _name_overused(text, ctx, reference):
+        found.append(Violation.name_overused)
     if language_check and dominant_language(text) not in (None, action.language):
         found.append(Violation.wrong_language)
     return found
+
+
+def _name_overused(text: str, ctx: RenderContext, reference: str) -> bool:
+    """The name rests after each use; names the reference itself contains (the recap's
+    "Nombre completo" line) do not count."""
+    if not ctx.first_name or ctx.name_to_use is not None:
+        return False
+    return mentions(text, ctx.first_name) > mentions(reference, ctx.first_name)
 
 
 def _invented_pay(text: str, faq_answer: str | None) -> bool:

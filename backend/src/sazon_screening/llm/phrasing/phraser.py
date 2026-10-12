@@ -139,6 +139,7 @@ class Phraser:
             ctx,
             self._config.length_caps,
             language_check=self._config.guard.language_check,
+            reference=reference,
         )
         if violations:
             trace = PhrasingTrace(outcome="fallback", violations=violations, template_key=key)

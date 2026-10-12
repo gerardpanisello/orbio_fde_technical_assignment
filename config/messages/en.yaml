@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-12.2"
+version: "2026-10-12.3"
 register: en
 
 labels:
@@ -29,6 +29,9 @@ labels:
   years: years
   less_than_a_year: less than 1 year
   no_experience: No experience
+  weekdays: {mon: Monday, tue: Tuesday, wed: Wednesday, thu: Thursday, fri: Friday, sat: Saturday, sun: Sunday}
+  today: today
+  tomorrow: tomorrow
 
 templates:
   greeting: "Hi! I'm Sofi, Grupo Sazón's automated virtual assistant 👋 I'll ask you a few quick questions (3 min) about the delivery driver job. Privacy notice: {privacy_url} Do you agree that we use your data for this process?"

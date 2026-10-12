@@ -106,7 +106,7 @@ def test_recap_shows_the_current_values(
     assert values[FieldName.vehicle_type] == "Moto"
     assert values[FieldName.availability] == "Jornada completa, Fines de semana"
     assert values[FieldName.experience] == "3 años (Glovo)"
-    assert values[FieldName.start_date] == "12/10/2026"
+    assert values[FieldName.start_date] == "lunes 12/10/2026"  # no today here: weekday only
 
 
 def test_correction_field_also_shows_the_values(

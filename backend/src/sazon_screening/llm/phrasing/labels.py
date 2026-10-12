@@ -7,12 +7,13 @@ the extractor's pending view and the phrasing request.
 """
 
 from collections.abc import Mapping
+from datetime import date, timedelta
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import AgeAnswer, Profile
 from sazon_screening.llm.phrasing.catalog import Labels
 from sazon_screening.llm.slots import SlotDisplay
-from sazon_screening.vocab import FieldName, FieldStatus, Language
+from sazon_screening.vocab import FieldName, FieldStatus, Language, Weekday
 
 # Fields whose values are enum ids, and the catalog label group for them.
 ENUM_GROUPS: dict[FieldName, str] = {
@@ -68,6 +69,8 @@ def field_values(
     config: EngineConfig,
     language: Language,
     labels: Labels,
+    *,
+    today: date | None = None,
 ) -> dict[FieldName, str]:
     """Stored values as short text, in profile order. Missing or unclear fields are left out.
 
@@ -97,7 +100,7 @@ def field_values(
             experience.years, experience.platforms, labels
         )
     if (start := profile.start_date.value) is not None:
-        values[FieldName.start_date] = start.strftime("%d/%m/%Y")
+        values[FieldName.start_date] = _start_text(start, today, labels)
     return values
 
 
@@ -136,6 +139,18 @@ def _experience_text(years_done: int, platform_ids: list[str], labels: Labels) -
         unit = labels.year if years_done == 1 else labels.years
         years = f"{years_done} {unit}"
     return f"{years} ({platforms})" if platforms else years
+
+
+def _start_text(start: date, today: date | None, labels: Labels) -> str:
+    """ "mañana, miércoles 14/10/2026": candidates who said "mañana" must recognise it
+    (eval 2026-10-12: a bare "14/10/2026" was corrected again and again).
+    """
+    text = f"{labels.weekdays[list(Weekday)[start.weekday()]]} {start:%d/%m/%Y}"
+    if today is not None and start == today:
+        return f"{labels.today}, {text}"
+    if today is not None and start == today + timedelta(days=1):
+        return f"{labels.tomorrow}, {text}"
+    return text
 
 
 def _yes_no(value: bool) -> str:

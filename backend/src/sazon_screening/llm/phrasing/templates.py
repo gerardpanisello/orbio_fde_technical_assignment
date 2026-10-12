@@ -8,6 +8,7 @@ engine's order), then the primary action, as one message.
 
 import re
 from collections.abc import Mapping
+from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
@@ -48,6 +49,7 @@ class RenderContext(BaseModel):
     # Sofi's last messages, oldest first: the model varies its opener against them, and
     # the name rests for NAME_REST messages after each use (eval 2026-10-12).
     recent_agent_messages: tuple[str, ...] = ()
+    today: date | None = None  # the recap says "mañana" for tomorrow's date
 
     @property
     def name_to_use(self) -> str | None:
@@ -61,9 +63,9 @@ class RenderContext(BaseModel):
 NAME_REST = 3  # at most one message in four uses the candidate's name
 
 
-def mentions(text: str, name: str) -> bool:
-    """`name` as a whole word: "Ana" is in "¡Gracias, Ana!", not in "semana"."""
-    return re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.IGNORECASE) is not None
+def mentions(text: str, name: str) -> int:
+    """How often `name` appears as a whole word: in "¡Gracias, Ana!", not in "semana"."""
+    return len(re.findall(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.IGNORECASE))
 
 
 def render_template(
@@ -126,7 +128,7 @@ def _primary(
         case ConfirmValue(value=value):
             return templates.confirm_value.format(years=value.years)
         case ShowRecap(profile=profile):
-            values = field_values(profile, config, language, entry.labels)
+            values = field_values(profile, config, language, entry.labels, today=ctx.today)
             lines = [
                 f"• {entry.labels.fields[name].capitalize()}: {v}" for name, v in values.items()
             ]

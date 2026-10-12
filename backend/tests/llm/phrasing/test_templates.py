@@ -1,6 +1,7 @@
 """T16/T17: the shipped template text and its rendering (FR-2, FR-12, FR-13, FR-16)."""
 
 import re
+from datetime import timedelta
 
 import pytest
 
@@ -262,3 +263,39 @@ def test_recap_title_cases_a_lowercase_name(
     values = field_values(profile, engine_config, language_of(Register.es_ES), labels)
     assert values[FieldName.full_name] == shown
     assert profile.full_name.value == written
+
+
+@pytest.mark.parametrize(
+    ("register", "offset_days", "expected"),
+    [
+        (Register.es_ES, 1, "mañana, martes 13/10/2026"),
+        (Register.es_MX, 0, "hoy, lunes 12/10/2026"),
+        (Register.en, 1, "tomorrow, Tuesday 13/10/2026"),
+        (Register.es_ES, 7, "lunes 19/10/2026"),
+    ],
+)
+def test_recap_start_date_names_the_day(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    offset_days: int,
+    expected: str,
+) -> None:
+    """Eval 2026-10-12: candidates who said "mañana" did not recognise "14/10/2026" and
+    corrected it again and again until the recap loop handed them to a human."""
+    profile = Profile()
+    start = TODAY + timedelta(days=offset_days)
+    profile.start_date = Slot(status=FieldStatus.valid, value=start)
+    labels = catalog.for_register(register).labels
+    values = field_values(profile, engine_config, language_of(register), labels, today=TODAY)
+    assert values[FieldName.start_date] == expected
+
+
+def test_recap_start_date_without_today_still_names_the_weekday(
+    catalog: MessageCatalog, engine_config: EngineConfig
+) -> None:
+    profile = Profile()
+    profile.start_date = Slot(status=FieldStatus.valid, value=TODAY)
+    labels = catalog.for_register(Register.es_ES).labels
+    values = field_values(profile, engine_config, language_of(Register.es_ES), labels)
+    assert values[FieldName.start_date] == "lunes 12/10/2026"

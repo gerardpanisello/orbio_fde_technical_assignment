@@ -304,3 +304,16 @@ async def test_phrasing_sees_sofis_recent_messages(
     await agent.handle_message(state, InboundMessage(text="30"), history, today=TODAY)
     phrasing = next(call for call in scripted.calls if call.role is Role.phrasing)
     assert "<sofi>¡Gracias, Ana! ¿Cuántos años tienes?</sofi>" in phrasing.user
+
+
+@pytest.mark.anyio
+async def test_the_recap_calls_tomorrow_tomorrow(
+    agent: ScreeningAgent, scripted: FakeLLMClient, engine_config: EngineConfig
+) -> None:
+    tomorrow = ExtractionOutput(
+        start_kind="offset", start_offset_amount=1, start_offset_unit="days"
+    )
+    state = at(Stage.start_date, engine_config)
+    recap = await say(agent, scripted, state, "mañana", tomorrow)
+    assert recap.reply is not None
+    assert "mañana, martes 13/10/2026" in recap.reply.text

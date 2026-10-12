@@ -131,7 +131,9 @@ class ScreeningAgent:
         conversation_id: str | None = None,
     ) -> TurnResult:
         began, deadline = self._clock.monotonic(), self._deadline()
-        pending = pending_view(state, self._engine_config, self._catalog, context.slot_map())
+        pending = pending_view(
+            state, self._engine_config, self._catalog, context.slot_map(), today=today
+        )
         result, extraction, calls = await self._extractor.extract(
             message,
             history,
@@ -213,7 +215,7 @@ class ScreeningAgent:
     ) -> TurnResult:
         new_state, action = step(state, turn_input, self._engine_config, today)  # never raises
         ctx = self._render_context(
-            new_state, context, last_message=last_message, recent_agent=recent_agent
+            new_state, context, last_message=last_message, recent_agent=recent_agent, today=today
         )
         reply, phrasing, phrase_calls = await self._phraser.phrase(
             action, ctx, deadline, conversation_id=conversation_id
@@ -238,6 +240,7 @@ class ScreeningAgent:
         *,
         last_message: str | None,
         recent_agent: tuple[str, ...] = (),
+        today: date | None = None,
         is_greeting: bool = False,
     ) -> RenderContext:
         name = state.profile.full_name.value or ""
@@ -248,6 +251,7 @@ class ScreeningAgent:
             slots=context.slot_map(),
             is_greeting=is_greeting,
             recent_agent_messages=recent_agent,
+            today=today,
         )
 
     def _media_reply(self, state: ConversationState) -> tuple[OutboundMessage, PhrasingTrace]:
