@@ -12,7 +12,7 @@
 #   - never mention pay, conditions or promises;
 #   - only the {placeholders} already used in each message.
 # Spain vocabulary: carné de conducir, coche, barrio.
-version: "2026-10-12.4"
+version: "2026-10-12.5"
 register: es-ES
 
 labels:
@@ -93,6 +93,13 @@ templates:
     ack_correction: "Hecho, he actualizado: {fields}."
     faq_holding: "Buena pregunta: lo consulto con el equipo."
   media_not_supported: "Todavía no puedo escuchar audios ni ver archivos. ¿Me lo escribes?"
+  follow_up:
+    nudge: "Seguimos cuando quieras. {progress} {question}"
+    last_call: "Último recordatorio: si te sigue interesando el puesto, contesta cuando puedas y seguimos. {progress} {question}"
+    progress_many: "Solo nos faltan {remaining} preguntas."
+    progress_one: "Solo nos falta una pregunta."
+    progress_done: "Ya casi está."
+    recap_question: "¿Está todo bien en el resumen de tus datos?"
 
 # Recruiter-facing labels for the summary (Spanish recruiters).
 summary:

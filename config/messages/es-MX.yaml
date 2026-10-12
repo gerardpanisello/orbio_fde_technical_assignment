@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-12.4"
+version: "2026-10-12.5"
 register: es-MX
 
 labels:
@@ -83,3 +83,10 @@ templates:
     ack_correction: "Listo, actualicé: {fields}."
     faq_holding: "Buena pregunta: lo consulto con el equipo."
   media_not_supported: "Todavía no puedo escuchar audios ni ver archivos. ¿Me lo escribes?"
+  follow_up:
+    nudge: "Seguimos cuando quieras. {progress} {question}"
+    last_call: "Último recordatorio: si te sigue interesando el puesto, contesta cuando puedas y seguimos. {progress} {question}"
+    progress_many: "Solo nos faltan {remaining} preguntas."
+    progress_one: "Solo nos falta una pregunta."
+    progress_done: "Ya casi terminamos."
+    recap_question: "¿Está todo bien en el resumen de tus datos?"

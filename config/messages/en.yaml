@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-12.4"
+version: "2026-10-12.5"
 register: en
 
 labels:
@@ -83,6 +83,13 @@ templates:
     ack_correction: "Done, I've updated your {fields}."
     faq_holding: "Good question: I'll check with the team."
   media_not_supported: "I can't listen to audio or open files yet. Could you write it down?"
+  follow_up:
+    nudge: "Let's pick up where we left off whenever you're ready. {progress} {question}"
+    last_call: "Last reminder: if you're still interested in the job, reply whenever you can and we'll carry on. {progress} {question}"
+    progress_many: "Only {remaining} questions to go."
+    progress_one: "Only one question to go."
+    progress_done: "Almost done."
+    recap_question: "Is everything right in the summary of your details?"
 
 # Recruiter-facing labels for the summary (English).
 summary:

@@ -21,7 +21,8 @@ from sazon_screening.llm.client.base import FailureKind, LLMClient, LLMRequest, 
 from sazon_screening.llm.client.retry import Deadline, call_with_retry
 from sazon_screening.llm.delimit import tagged
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
-from sazon_screening.llm.phrasing.guard import check
+from sazon_screening.llm.phrasing.follow_up import FollowUpKind, FollowUpText
+from sazon_screening.llm.phrasing.guard import check, check_follow_up
 from sazon_screening.llm.phrasing.quick_replies import QuickReply, quick_replies_for
 from sazon_screening.llm.phrasing.templates import RenderContext, render_template
 from sazon_screening.llm.prompts import PromptRegistry
@@ -168,6 +169,75 @@ class Phraser:
             return self._message(reference, buttons, action), trace, [telemetry]
         trace = PhrasingTrace(outcome="ok", template_key=key, faq_relevant=relevant)
         return self._message(text, buttons, action), trace, [telemetry]
+
+    async def phrase_follow_up(
+        self,
+        follow_up: FollowUpText,
+        *,
+        step: int,
+        kind: FollowUpKind,
+        requires_template: bool,
+        ctx: RenderContext,
+        deadline: Deadline,
+        conversation_id: str | None = None,
+    ) -> tuple[OutboundMessage, PhrasingTrace, list[CallTelemetry]]:
+        """A reminder after a silence (spec 008 FR-3): the model's words if they pass the
+        follow-up guard, else the template. Past the WhatsApp window the text must be an
+        approved template, so the model is not called at all."""
+        key = f"follow_up.{kind}"
+        template = OutboundMessage(
+            text=follow_up.text,
+            quick_replies=[],
+            language=follow_up.language,
+            register=follow_up.register,
+        )
+        if requires_template:
+            return template, PhrasingTrace(outcome="skipped", template_key=key), []
+        instruction = {
+            "follow_up": {"step": step, "kind": kind, "is_last": kind == "last_call"},
+            "language": follow_up.language.value,
+            "register": follow_up.register.value,
+        }
+        request = LLMRequest(
+            role=Role.phrasing,
+            model=self._role.model,
+            prompt_id=self._prompt.id,
+            prompt_sha=self._prompt.sha,
+            system=self._prompt.text,
+            user="\n".join(
+                [
+                    tagged("instruction", json.dumps(instruction, ensure_ascii=False)),
+                    tagged("reference_message", follow_up.text),
+                    tagged("pending_question", follow_up.question),
+                    tagged("candidate_first_name", ctx.name_to_use or ""),
+                    _recent_messages(ctx.recent_agent_messages[-RECENT_SHOWN:]),
+                ]
+            ),
+            max_tokens=self._role.max_tokens,
+            effort=self._role.effort,
+            timeout_s=self._role.timeout_s,
+            payload=PhrasingPayload(reference_message=follow_up.text),
+        )
+        result, telemetry = await self._call(request, deadline, grounded=False)
+        log_call(telemetry, conversation_id=conversation_id)
+        if not isinstance(result.value, str) or result.failure is not None:
+            trace = PhrasingTrace(outcome="fallback", failure=result.failure, template_key=key)
+            return template, trace, [telemetry]
+        text = result.value.strip()
+        violations = check_follow_up(
+            text,
+            question=follow_up.question,
+            reference=follow_up.text,
+            language=follow_up.language,
+            ctx=ctx,
+            caps=self._config.length_caps,
+            language_check=self._config.guard.language_check,
+        )
+        if violations:
+            trace = PhrasingTrace(outcome="fallback", violations=violations, template_key=key)
+            return template, trace, [telemetry]
+        reply = template.model_copy(update={"text": text})
+        return reply, PhrasingTrace(outcome="ok", template_key=key), [telemetry]
 
     # --- steps ---------------------------------------------------------------------------
 

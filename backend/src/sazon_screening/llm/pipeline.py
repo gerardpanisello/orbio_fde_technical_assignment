@@ -49,6 +49,7 @@ from sazon_screening.llm.extraction.extractor import (
 )
 from sazon_screening.llm.extraction.pending import pending_view
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
+from sazon_screening.llm.phrasing.follow_up import FollowUpKind, render_follow_up
 from sazon_screening.llm.phrasing.labels import display_name
 from sazon_screening.llm.phrasing.phraser import OutboundMessage, Phraser, PhrasingTrace
 from sazon_screening.llm.phrasing.templates import NAME_REST, RenderContext
@@ -56,7 +57,14 @@ from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import LLMConfig, Settings, load_llm_config, load_settings
 from sazon_screening.llm.summary.summarizer import Summarizer, Summary, summary_due
 from sazon_screening.llm.telemetry import CallTelemetry
-from sazon_screening.llm.trace import TurnContextIn, TurnResult, TurnTrace
+from sazon_screening.llm.trace import (
+    FollowUpInfo,
+    FollowUpResult,
+    FollowUpTrace,
+    TurnContextIn,
+    TurnResult,
+    TurnTrace,
+)
 from sazon_screening.vocab import Country, Language
 
 logger = logging.getLogger("sazon_screening.llm")
@@ -199,6 +207,51 @@ class ScreeningAgent:
             deadline=self._deadline(),
             conversation_id=conversation_id,
         )
+
+    async def follow_up(
+        self,
+        state: ConversationState,
+        *,
+        step: int,
+        kind: FollowUpKind,
+        requires_template: bool,
+        recent_agent: tuple[str, ...] = (),
+        conversation_id: str | None = None,
+    ) -> FollowUpResult:
+        """A reminder after a silence (spec 008 FR-3). The state is only read: the engine
+        decides nothing here, and the scheduler (004 side) decides when."""
+        began = self._clock.monotonic()
+        ctx = self._render_context(
+            state, _NO_CONTEXT, last_message=None, recent_agent=recent_agent[-NAME_REST:]
+        )
+        text = render_follow_up(
+            state,
+            kind,
+            ctx,
+            self._catalog,
+            self._engine_config,
+            max_chars=self._config.length_caps.default,
+        )
+        reply, phrasing, calls = await self._phraser.phrase_follow_up(
+            text,
+            step=step,
+            kind=kind,
+            requires_template=requires_template,
+            ctx=ctx,
+            deadline=self._deadline(),
+            conversation_id=conversation_id,
+        )
+        trace = FollowUpTrace(
+            follow_up=FollowUpInfo(step=step, kind=kind, requires_template=requires_template),
+            phrasing=phrasing,
+            calls=calls,
+            prompts={Role.phrasing: self._prompt_version(Role.phrasing)},
+            models={Role.phrasing: self._config.roles[Role.phrasing].model},
+            client=self._client.name,
+            cost_usd=sum(call.cost_usd for call in calls),
+            latency_ms=round((self._clock.monotonic() - began) * 1000),
+        )
+        return FollowUpResult(reply=reply, trace=trace)
 
     async def summarise(
         self,

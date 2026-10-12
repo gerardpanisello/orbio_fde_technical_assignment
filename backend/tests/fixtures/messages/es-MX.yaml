@@ -102,3 +102,10 @@ templates:
     ack_correction: Updated {fields}.
     faq_holding: I will check with the team.
   media_not_supported: Please write it.
+  follow_up:
+    nudge: "Shall we continue? {progress} {question}"
+    last_call: "Last reminder. {progress} {question}"
+    progress_many: "{remaining} questions left."
+    progress_one: "One question left."
+    progress_done: "Almost done."
+    recap_question: "Is the summary right?"

@@ -37,6 +37,8 @@ from sazon_screening.engine.actions import (
     ShowRecap,
     register_for,
 )
+from sazon_screening.engine.collect import pending_action  # 008: the ask a reminder repeats
+from sazon_screening.engine.flow import FIELD_ORDER
 from sazon_screening.engine.inputs import (
     UNCLEAR,
     AbsoluteDate,
@@ -87,6 +89,7 @@ from sazon_screening.engine.state import ConversationState, PostCloseCorrection,
 from sazon_screening.engine.turn import start, step
 
 __all__ = [
+    "FIELD_ORDER",
     "UNCLEAR",
     "AbsoluteDate",
     "AckCorrection",
@@ -150,6 +153,7 @@ __all__ = [
     "Unclear",
     "VehicleProposal",
     "build_record",
+    "pending_action",
     "register_for",
     "score_candidate",
     "start",

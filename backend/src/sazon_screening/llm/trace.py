@@ -5,6 +5,8 @@ input and action, how extraction and phrasing went, every LLM call's telemetry, 
 prompt and model versions. It never contains the candidate's text in telemetry (NFR-5).
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict
 
 from sazon_screening.engine import ConversationState, EngineAction, TurnInput
@@ -53,3 +55,29 @@ class TurnResult(BaseModel):
     reply: OutboundMessage | None  # None: send nothing (no_message)
     trace: TurnTrace
     summary_due: bool  # the status became terminal (again): 004 calls summarise() (FR-18)
+
+
+class FollowUpInfo(_Frozen):
+    step: int  # 1-based, within the current silence
+    kind: Literal["nudge", "last_call"]
+    requires_template: bool  # past the WhatsApp 24 h window: an approved template (008 FR-3)
+
+
+class FollowUpTrace(_Frozen):
+    """Stored on a reminder message (spec 008), like `TurnTrace` on a reply."""
+
+    follow_up: FollowUpInfo
+    phrasing: PhrasingTrace
+    calls: list[CallTelemetry]
+    prompts: dict[Role, str]
+    models: dict[Role, str]
+    client: str
+    cost_usd: float
+    latency_ms: int
+
+
+class FollowUpResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    reply: OutboundMessage
+    trace: FollowUpTrace

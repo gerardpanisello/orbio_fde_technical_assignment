@@ -52,6 +52,7 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
     "confirm_interview": frozenset({"slot"}),
     "close_waitlisted": frozenset({"zone"}),
     "prefaces": frozenset({"fields"}),
+    "follow_up": frozenset({"progress", "question", "remaining"}),
 }
 # Facts the recruiter summary renders (T22); each needs a label in every summary section.
 FACT_KEYS = (
@@ -132,6 +133,21 @@ class Prefaces(_Strict):
     faq_holding: str  # "Lo consulto con el equipo." when 009 has no answer (FR-17)
 
 
+class FollowUps(_Strict):
+    """Reminders when the candidate goes quiet (spec 008 FR-3): `{progress} {question}`.
+
+    `question` is the pending ask; `progress` one of the three progress sentences. Also
+    the WhatsApp template text when a reminder lands past the 24 h window.
+    """
+
+    nudge: str
+    last_call: str  # says it is the last reminder
+    progress_many: str  # "{remaining}" questions left
+    progress_one: str
+    progress_done: str  # only the recap or the interview time is left
+    recap_question: str  # the recap itself is too long for a reminder
+
+
 class Templates(_Strict):
     greeting: str
     ask_field: dict[FieldName, str]
@@ -151,6 +167,7 @@ class Templates(_Strict):
     closed_ack: str
     prefaces: Prefaces
     media_not_supported: str
+    follow_up: FollowUps
 
     @field_validator("ask_field")
     @classmethod

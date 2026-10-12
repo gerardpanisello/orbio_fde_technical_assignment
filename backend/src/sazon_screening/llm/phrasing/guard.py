@@ -27,6 +27,7 @@ class Violation(StrEnum):
     repeated_greeting = "repeated_greeting"
     masculine_form = "masculine_form"
     name_overused = "name_overused"
+    pending_question = "pending_question"  # a follow-up must end with the pending ask (008)
 
 
 # A currency sign or name, or an amount per hour: what an invented pay promise looks like.
@@ -86,6 +87,44 @@ def check(
     if language_check and dominant_language(text) not in (None, action.language):
         found.append(Violation.wrong_language)
     return found
+
+
+def check_follow_up(
+    text: str,
+    *,
+    question: str,
+    reference: str,
+    language: Language,
+    ctx: RenderContext,
+    caps: LengthCaps,
+    language_check: bool = True,
+) -> list[Violation]:
+    """Spec 008 FR-3: a reminder is short, ends with the pending question word for word
+    (so the candidate knows exactly what to answer) and follows the usual rules."""
+    if not text.strip():
+        return [Violation.empty]
+    found: list[Violation] = []
+    if len(text) > caps.default:
+        found.append(Violation.too_long)
+    if not _squash(text).endswith(_squash(question)):
+        found.append(Violation.pending_question)
+    if _invented_pay(text, "", reference):
+        found.append(Violation.pay_or_currency)
+    if len(_EMOJI.findall(text)) > _MAX_EMOJI:
+        found.append(Violation.emoji)
+    if _GREETING.search(text):
+        found.append(Violation.repeated_greeting)
+    if language is Language.es and _MASCULINE_SELF.search(text):
+        found.append(Violation.masculine_form)
+    if _name_overused(text, ctx, reference):
+        found.append(Violation.name_overused)
+    if language_check and dominant_language(text) not in (None, language):
+        found.append(Violation.wrong_language)
+    return found
+
+
+def _squash(text: str) -> str:
+    return " ".join(text.split())
 
 
 def _name_overused(text: str, ctx: RenderContext, reference: str) -> bool:
