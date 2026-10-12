@@ -50,6 +50,7 @@ _MASCULINE_SELF = re.compile(
     r"\b(?:encantado|(?:estoy|quedo)\s+(?:contento|seguro|encantado|agradecido))\b",
     re.IGNORECASE,
 )
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 _EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿⭐⭕]")
 _MAX_EMOJI = 1
 
@@ -71,7 +72,7 @@ def check(
         found.append(Violation.too_long)
     if text.count("?") != (1 if expects_question(action) else 0):
         found.append(Violation.question_count)
-    if _invented_pay(text, ctx.faq_answer):
+    if _invented_pay(text, " ".join((ctx.faq_answer or "", *ctx.faq_approved)), reference):
         found.append(Violation.pay_or_currency)
     emoji = len(_EMOJI.findall(text))
     if emoji > _MAX_EMOJI or (emoji and action.primary.type in NO_EMOJI):
@@ -95,7 +96,18 @@ def _name_overused(text: str, ctx: RenderContext, reference: str) -> bool:
     return mentions(text, ctx.first_name) > mentions(reference, ctx.first_name)
 
 
-def _invented_pay(text: str, faq_answer: str | None) -> bool:
-    """Money talk is allowed only when it comes word for word from the approved FAQ answer."""
-    approved = (faq_answer or "").lower()
-    return any(match.group(0).lower() not in approved for match in _PAY.finditer(text))
+def _invented_pay(text: str, approved: str, reference: str = "") -> bool:
+    """Money talk is allowed only when it comes word for word from an approved FAQ answer.
+
+    The currency alone is not enough: "15 €" when the approved answer says "9 y 12 €"
+    is a promise nobody made (009 AC-5). So once a reply talks money, every number in
+    it must also be in the approved answer (or in the reference message, e.g. a time).
+    """
+    approved = approved.lower()
+    money = list(_PAY.finditer(text))
+    if any(match.group(0).lower() not in approved for match in money):
+        return True
+    if not money:
+        return False
+    allowed = set(_NUMBER.findall(approved)) | set(_NUMBER.findall(reference))
+    return any(number not in allowed for number in _NUMBER.findall(text))

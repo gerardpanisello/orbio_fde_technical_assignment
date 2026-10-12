@@ -44,7 +44,9 @@ class RenderContext(BaseModel):
     privacy_url: str
     first_name: str | None = None
     last_candidate_message: str | None = None
-    faq_answer: str | None = None  # FR-17 hook for 009: an approved answer text
+    faq_answer: str | None = None  # 009: the best approved answer, verbatim (template text)
+    # 009: every approved answer the search kept, best first: what the model may use.
+    faq_approved: tuple[str, ...] = ()
     slots: dict[str, SlotDisplay] = {}
     is_greeting: bool = False  # start(): the consent ask is phrased as the greeting
     # Sofi's last messages, oldest first: the model varies its opener against them, and

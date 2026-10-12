@@ -164,8 +164,9 @@ class Phraser:
             tagged("candidate_last_message", ctx.last_candidate_message or ""),
             _recent_messages(ctx.recent_agent_messages[-RECENT_SHOWN:]),
         ]
-        if ctx.faq_answer:
-            parts.append(tagged("faq_answer", ctx.faq_answer))
+        if ctx.faq_answer:  # 009: approved entries only, best first, blank line apart
+            approved = ctx.faq_approved or (ctx.faq_answer,)
+            parts.append(tagged("faq_answer", "\n\n".join(approved)))
         return LLMRequest(
             role=Role.phrasing,
             model=self._role.model,

@@ -46,7 +46,11 @@ INJECTION = phrases(
 # few real ones we do not serve, so the offline demo can show an out-of-area candidate.
 UNSERVED_PLACES = phrases("zaragoza|bilbao|vallecas|queretaro|tijuana")
 ABUSE = phrases("idiota|imbecil|estupida|estupido|pendejo|stupid|idiot")
-JOB_WORDS = phrases("sueldo|pago|paga|cobra|salario|uniforme|contrato|pay|salary|uniform|contract")
+JOB_WORDS = phrases(
+    "sueldo|pago|paga|cobra|salario|uniforme|contrato|horario|turnos|propina|seguro|gasolina"
+    "|moto propia|vehiculo propio|pay|salary|uniform|contract|schedule|shifts|tips|insurance"
+    "|own bike|own vehicle|own motorbike"
+)
 VEHICLES = [  # order matters: "bici electrica" before "bici"
     ("e_bike", phrases("bici electrica|bicicleta electrica|e-bike|ebike")),
     ("none", phrases("sin vehiculo|no tengo vehiculo|a pie|no vehicle|on foot")),

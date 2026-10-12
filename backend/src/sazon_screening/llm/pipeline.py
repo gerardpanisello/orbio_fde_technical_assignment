@@ -2,10 +2,12 @@
 
 Start here to follow a turn. The engine decides everything (ADR 0002): the model only
 turns the message into typed input and the engine's action into words, and both
-stages degrade on their own (FR-4). One deadline covers the whole turn (NFR-1), and
-nothing is persisted here (004 does that).
+stages degrade on their own (FR-4). A candidate's question is answered only from the
+approved FAQ (009): retrieval runs in code between the engine and phrasing. One
+deadline covers the whole turn (NFR-1), and nothing is persisted here (004 does that).
 """
 
+import logging
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import date
 
@@ -13,6 +15,7 @@ import anyio
 
 from sazon_screening.config import EngineConfig, load_config
 from sazon_screening.engine import (
+    AnswerFaq,
     CandidateRecord,
     ConversationState,
     EngineAction,
@@ -24,6 +27,15 @@ from sazon_screening.engine import (
     register_for,
     start,
     step,
+)
+from sazon_screening.faq import (
+    FaqBase,
+    FaqGrounding,
+    FaqRetriever,
+    FaqTrace,
+    answer_question,
+    load_faq,
+    unanswered,
 )
 from sazon_screening.llm.client.base import LLMClient, Role
 from sazon_screening.llm.client.factory import make_client
@@ -45,8 +57,9 @@ from sazon_screening.llm.settings import LLMConfig, Settings, load_llm_config, l
 from sazon_screening.llm.summary.summarizer import Summarizer, Summary, summary_due
 from sazon_screening.llm.telemetry import CallTelemetry
 from sazon_screening.llm.trace import TurnContextIn, TurnResult, TurnTrace
-from sazon_screening.vocab import Language
+from sazon_screening.vocab import Country, Language
 
+logger = logging.getLogger("sazon_screening.llm")
 Event = SilenceExpired | SlotSelected | NoSlotFits
 _NO_CONTEXT = TurnContextIn()
 
@@ -60,10 +73,13 @@ class ScreeningAgent:
         llm_config: LLMConfig,
         catalog: MessageCatalog,
         prompts: PromptRegistry,
+        faq: FaqBase | None = None,
         clock: Clock | None = None,
         sleep: Callable[[float], Awaitable[None]] = anyio.sleep,
     ) -> None:
         self._client = client
+        # No base: every question gets the holding message and is flagged (FR-4).
+        self._faq = FaqRetriever(faq) if faq is not None else None
         self._engine_config = engine_config
         self._config = llm_config
         self._catalog = catalog
@@ -214,15 +230,62 @@ class ScreeningAgent:
         conversation_id: str | None,
     ) -> TurnResult:
         new_state, action = step(state, turn_input, self._engine_config, today)  # never raises
+        faq_trace, grounding = self._answer_faq(
+            extraction.faq_question, action, new_state, context, conversation_id
+        )
         ctx = self._render_context(
-            new_state, context, last_message=last_message, recent_agent=recent_agent, today=today
+            new_state,
+            context,
+            last_message=last_message,
+            recent_agent=recent_agent,
+            today=today,
+            faq=grounding,
         )
         reply, phrasing, phrase_calls = await self._phraser.phrase(
             action, ctx, deadline, conversation_id=conversation_id
         )
-        trace = self._trace(turn_input, action, extraction, phrasing, calls + phrase_calls, began)
+        trace = self._trace(
+            turn_input, action, extraction, phrasing, calls + phrase_calls, began, faq=faq_trace
+        )
         due = summary_due(state.status, new_state.status)
         return TurnResult(state=new_state, reply=reply, trace=trace, summary_due=due)
+
+    def _answer_faq(
+        self,
+        question: str | None,
+        action: EngineAction,
+        state: ConversationState,
+        context: TurnContextIn,
+        conversation_id: str | None,
+    ) -> tuple[FaqTrace | None, FaqGrounding | None]:
+        """Search the approved FAQ when the engine chose to answer a question (009 FR-2..4).
+
+        Below the threshold, or with no base, there is no grounding: the template's
+        holding message is sent and the trace says `unanswered` for the recruiter.
+        """
+        if not question or not any(isinstance(p, AnswerFaq) for p in action.prefaces):
+            return None, None
+        location = state.profile.location.value
+        country: Country | None = (
+            location.country if location else state.country_hint or context.country_hint
+        )
+        if self._faq is None:
+            return unanswered(question, country), None
+        try:
+            return answer_question(
+                self._faq,
+                question,
+                country=country,
+                register=action.register,
+                language=action.language,
+            )
+        except Exception as error:  # a bug in retrieval must not cost the candidate a reply
+            logger.exception(
+                "faq retrieval failed: %s",
+                type(error).__name__,
+                extra={"conversation_id": conversation_id},
+            )
+            return unanswered(question, country, error=type(error).__name__), None
 
     # --- helpers -------------------------------------------------------------------------
 
@@ -244,6 +307,7 @@ class ScreeningAgent:
         recent_agent: tuple[str, ...] = (),
         today: date | None = None,
         is_greeting: bool = False,
+        faq: FaqGrounding | None = None,
     ) -> RenderContext:
         name = state.profile.full_name.value or ""
         return RenderContext(
@@ -254,6 +318,8 @@ class ScreeningAgent:
             is_greeting=is_greeting,
             recent_agent_messages=recent_agent,
             today=today,
+            faq_answer=faq.answer if faq else None,
+            faq_approved=faq.approved if faq else (),
         )
 
     def _media_reply(self, state: ConversationState) -> tuple[OutboundMessage, PhrasingTrace]:
@@ -278,6 +344,8 @@ class ScreeningAgent:
         phrasing: PhrasingTrace,
         calls: list[CallTelemetry],
         began: float,
+        *,
+        faq: FaqTrace | None = None,
     ) -> TurnTrace:
         roles = (Role.extraction, Role.phrasing)
         return TurnTrace(
@@ -285,6 +353,7 @@ class ScreeningAgent:
             action=action,
             extraction=extraction,
             phrasing=phrasing,
+            faq=faq,
             calls=calls,
             prompts={role: self._prompt_version(role) for role in roles},
             models={role: self._config.roles[role].model for role in roles},
@@ -308,4 +377,5 @@ def build_agent(settings: Settings | None = None) -> ScreeningAgent:
         llm_config=load_llm_config(settings.config_dir),
         catalog=load_catalog(settings.config_dir / "messages"),
         prompts=PromptRegistry(),
+        faq=load_faq(settings.config_dir),
     )

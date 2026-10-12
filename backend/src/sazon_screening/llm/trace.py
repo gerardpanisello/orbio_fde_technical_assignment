@@ -8,6 +8,7 @@ prompt and model versions. It never contains the candidate's text in telemetry (
 from pydantic import BaseModel, ConfigDict
 
 from sazon_screening.engine import ConversationState, EngineAction, TurnInput
+from sazon_screening.faq import FaqTrace
 from sazon_screening.llm.client.base import Role
 from sazon_screening.llm.extraction.extractor import ExtractionTrace
 from sazon_screening.llm.phrasing.phraser import OutboundMessage, PhrasingTrace
@@ -36,6 +37,7 @@ class TurnTrace(_Frozen):
     action: EngineAction | None
     extraction: ExtractionTrace
     phrasing: PhrasingTrace
+    faq: FaqTrace | None = None  # 009: the turn asked a question (None: it did not)
     calls: list[CallTelemetry]
     prompts: dict[Role, str]  # role -> "extraction.v1@<sha>"
     models: dict[Role, str]

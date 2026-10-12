@@ -201,3 +201,21 @@ def test_the_name_inside_the_reference_message_is_allowed() -> None:
     assert Violation.name_overused not in check(recap, act, context, CAPS, reference=recap)
     again = "Vale, Ana. " + recap
     assert Violation.name_overused in check(again, act, context, CAPS, reference=recap)
+
+
+@pytest.mark.ac("009:AC-5")
+def test_an_amount_the_approved_answer_never_says_is_caught() -> None:
+    """The currency sign is approved, but "15" is not: a promise nobody made."""
+    faq = "Se paga entre 9 y 12 € la hora."
+    assert violations("Se paga entre 9 y 12 € la hora. ¿Cuántos años tienes?", faq_answer=faq) == []
+    text = "Se paga hasta 15 € la hora. ¿Cuántos años tienes?"
+    assert Violation.pay_or_currency in violations(text, faq_answer=faq)
+
+
+def test_money_from_any_kept_faq_entry_is_allowed() -> None:
+    first, second = "Se paga entre 9 y 12 € la hora.", "La nómina se cobra a final de mes."
+    text = "Se paga entre 9 y 12 € la hora y se cobra a final de mes. ¿Cuántos años tienes?"
+    context = ctx(faq_answer=first, faq_approved=(first, second))
+    assert check(text, action(ASK_AGE, AnswerFaq()), context, CAPS) == []
+    lone = ctx(faq_approved=(second,))
+    assert Violation.pay_or_currency in check(text, action(ASK_AGE, AnswerFaq()), lone, CAPS)

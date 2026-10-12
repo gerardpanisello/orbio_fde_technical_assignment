@@ -8,8 +8,10 @@ import sazon_screening.llm as llm_package
 LLM_DIR = Path(llm_package.__file__).parent
 SOURCES = sorted(LLM_DIR.rglob("*.py"))
 # The engine is used only through its public API (ADR 0005), never its submodules.
+# The FAQ knowledge base (009) likewise, through `sazon_screening.faq`.
 ALLOWED_PROJECT_IMPORTS = (
     "sazon_screening.engine",
+    "sazon_screening.faq",
     "sazon_screening.config",
     "sazon_screening.vocab",
 )
