@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-11.1"
+version: "2026-10-12.1"
 register: en
 
 labels:
@@ -25,6 +25,7 @@ labels:
     slot: interview time
   adult: {"yes": Of legal age, "no": Under age}
   birth_year: year of birth
+  year: year
   years: years
 
 templates:

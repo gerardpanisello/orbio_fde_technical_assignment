@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-11.1"
+version: "2026-10-12.1"
 register: es-MX
 
 labels:
@@ -25,6 +25,7 @@ labels:
     slot: hora de entrevista
   adult: {"yes": Mayor de edad, "no": Menor de edad}
   birth_year: año de nacimiento
+  year: año
   years: años
 
 templates:

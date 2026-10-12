@@ -94,7 +94,8 @@ def field_values(
         values[FieldName.schedule] = ", ".join(labels.schedule[s] for s in schedule)
     if (experience := profile.experience.value) is not None:
         platforms = ", ".join(_platform_name(p) for p in experience.platforms)
-        years = f"{experience.years} {labels.years}"
+        unit = labels.year if experience.years == 1 else labels.years
+        years = f"{experience.years} {unit}"
         values[FieldName.experience] = f"{years} ({platforms})" if platforms else years
     if (start := profile.start_date.value) is not None:
         values[FieldName.start_date] = start.strftime("%d/%m/%Y")

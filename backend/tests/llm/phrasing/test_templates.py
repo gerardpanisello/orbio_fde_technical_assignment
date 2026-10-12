@@ -14,12 +14,20 @@ from sazon_screening.engine import (
     ReaskField,
     Redirect,
 )
+from sazon_screening.engine.state import Experience, Profile, Slot
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
+from sazon_screening.llm.phrasing.labels import field_values
 from sazon_screening.llm.phrasing.language import dominant_language
 from sazon_screening.llm.phrasing.policy import expects_question, length_cap
 from sazon_screening.llm.phrasing.templates import render_template
 from sazon_screening.llm.settings import LengthCaps
-from sazon_screening.vocab import DisqualificationReason, FieldName, ReaskReason, Register
+from sazon_screening.vocab import (
+    DisqualificationReason,
+    FieldName,
+    FieldStatus,
+    ReaskReason,
+    Register,
+)
 from tests.engine.conftest import TODAY
 from tests.llm.builders import PRIVACY_URL, action, ctx, language_of, sample_primaries
 from tests.paths import FIXTURE_CONFIG_DIR
@@ -141,3 +149,30 @@ def test_slots_are_numbered(catalog: MessageCatalog, engine_config: EngineConfig
     slots = next(p for p in PRIMARIES if p.type == "offer_slots")
     text = render_template(action(slots, register=Register.en), ctx(), catalog, engine_config)
     assert "1. Tue 14 Oct, 10am\n2. Wed 15 Oct, 4pm" in text
+
+
+@pytest.mark.parametrize(
+    ("register", "years", "expected"),
+    [
+        (Register.es_ES, 1, "1 año (Glovo)"),
+        (Register.es_ES, 3, "3 años (Glovo)"),
+        (Register.es_MX, 1, "1 año (Glovo)"),
+        (Register.en, 1, "1 year (Glovo)"),
+        (Register.en, 0, "0 years (Glovo)"),
+    ],
+)
+def test_recap_years_of_experience_agree_in_number(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    years: int,
+    expected: str,
+) -> None:
+    """Found by the sample conversations: the recap said "1 años"."""
+    profile = Profile()
+    profile.experience = Slot(
+        status=FieldStatus.valid, value=Experience(years=years, platforms=["glovo"])
+    )
+    labels = catalog.for_register(register).labels
+    values = field_values(profile, engine_config, language_of(register), labels)
+    assert values[FieldName.experience] == expected

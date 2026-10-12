@@ -37,6 +37,7 @@ labels:
     'yes': adult
     'no': minor
   birth_year: birth year
+  year: year
   years: years
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'

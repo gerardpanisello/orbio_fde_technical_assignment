@@ -91,7 +91,8 @@ class Labels(_Strict):
     fields: dict[FieldName, str]
     adult: dict[str, str]  # yes/no: "Mayor de edad" / "Menor de edad", for "I'm over 18"
     birth_year: str  # "año de nacimiento": shown next to a year instead of an age
-    years: str  # "años", after a number of years of experience
+    year: str  # "año", after exactly one year of experience
+    years: str  # "años", after any other number of years of experience
 
     @model_validator(mode="after")
     def _every_value(self) -> Self:
