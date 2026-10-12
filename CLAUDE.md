@@ -39,7 +39,10 @@ Backend (run inside `backend/`):
 - All checks: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -q`
 - API: `uv run uvicorn sazon_screening.api.app:create_app --factory --reload` (docs at `/docs`; demo data: `POST /api/dev/seed`)
 
-Frontend (from phase 5, inside `frontend/`): `npm run dev`
+Frontend (inside `frontend/`, Node 24; needs the API on :8000, see [frontend/README.md](frontend/README.md)):
+- Install: `npm install` · Dev server: `npm run dev` (http://localhost:5173, proxies `/api` to :8000)
+- Regenerate API types (API running): `npm run gen:api` → commit `src/api/schema.d.ts`
+- All checks: `npm run lint && npm test && npm run build`
 
 Layout: `backend/src/sazon_screening/` (package), `backend/tests/`, `config/` (client-editable YAML at repo root), `docs/`.
 
