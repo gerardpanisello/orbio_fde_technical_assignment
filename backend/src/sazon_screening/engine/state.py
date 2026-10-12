@@ -47,6 +47,11 @@ class LocationValue(_State):
     zone: str | None  # config zone id; None while the zone is still to be asked
     in_service_area: bool  # False only for a real place we do not serve
 
+    @property
+    def area_id(self) -> str | None:
+        """The served area: the zone, or the city when it is served as a whole (spec 015)."""
+        return self.zone or self.city
+
 
 class Experience(_State):
     years: int

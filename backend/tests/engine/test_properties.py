@@ -23,6 +23,7 @@ _FROM_IN_PROGRESS = {
     S.needs_review,
     S.abandoned,
     S.qualified_unscheduled,
+    S.waitlisted,  # spec 015: recap confirmed while the area is full
     S.interview_scheduled,
 }
 # Plan §4.2. A turn after silence resumes AND is evaluated in the same step, so an
@@ -34,6 +35,7 @@ ALLOWED = (
     | {(S.abandoned, S.in_progress)}
     | {(S.disqualified, S.needs_review)}  # post-close correction (AC-26b)
     | {(S.interview_scheduled, S.needs_review), (S.qualified_unscheduled, S.needs_review)}  # AC-26c
+    | {(S.waitlisted, S.needs_review)}  # AC-26c applies to waitlisted candidates too (spec 015)
     | {(closed, S.opted_out) for closed in Status if closed is not S.opted_out}
 )
 

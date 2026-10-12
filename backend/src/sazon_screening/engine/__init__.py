@@ -22,6 +22,7 @@ from sazon_screening.engine.actions import (
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
+    CloseWaitlisted,
     ConfirmAmbiguous,
     ConfirmInterview,
     ConfirmValue,
@@ -76,7 +77,12 @@ from sazon_screening.engine.record import (
     RecordFields,
     build_record,
 )
-from sazon_screening.engine.scoring import ScoreFactor, ScoreResult, score_candidate
+from sazon_screening.engine.scoring import (
+    ScoreFactor,
+    ScoreResult,
+    score_candidate,
+    with_zone_demand,
+)
 from sazon_screening.engine.state import ConversationState, PostCloseCorrection, Profile
 from sazon_screening.engine.turn import start, step
 
@@ -98,6 +104,7 @@ __all__ = [
     "CloseNeedsReview",
     "CloseOptedOut",
     "CloseQualifiedUnscheduled",
+    "CloseWaitlisted",
     "ClosedAck",
     "ConfirmAmbiguous",
     "ConfirmInterview",
@@ -147,4 +154,5 @@ __all__ = [
     "score_candidate",
     "start",
     "step",
+    "with_zone_demand",
 ]

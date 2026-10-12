@@ -93,6 +93,7 @@ templates:
   close_needs_review: A recruiter will review it.
   close_opted_out: Done, no more messages.
   close_qualified_unscheduled: We will contact you.
+  close_waitlisted: Waitlisted in {zone}.
   handoff_to_human: A person will write to you.
   closed_ack: Thanks.
   prefaces:
@@ -122,6 +123,7 @@ summary:
     in_progress: Status in_progress
     interview_scheduled: Status interview_scheduled
     qualified_unscheduled: Status qualified_unscheduled
+    waitlisted: Status waitlisted
     disqualified: Status disqualified
     needs_review: Status needs_review
     abandoned: Status abandoned
@@ -174,6 +176,7 @@ summary:
     availability_breadth: FactorReason availability_breadth
     schedule_flexibility: FactorReason schedule_flexibility
     start_date_proximity: FactorReason start_date_proximity
+    zone_demand: FactorReason zone_demand
     unknown: FactorReason unknown
   languages:
     es: Language es

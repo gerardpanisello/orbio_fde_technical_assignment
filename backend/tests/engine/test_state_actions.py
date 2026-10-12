@@ -17,6 +17,7 @@ from sazon_screening.engine.actions import (
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
+    CloseWaitlisted,
     ConfirmAmbiguous,
     ConfirmInterview,
     ConfirmValue,
@@ -129,6 +130,7 @@ ALL_PRIMARY: list[Any] = [
     CloseNeedsReview(reasons=[ReviewReason.location_unclear]),
     CloseOptedOut(),
     CloseQualifiedUnscheduled(),
+    CloseWaitlisted(area_id="cdmx-coyoacan"),
     HandoffToHuman(),
     ClosedAck(),
     NoMessage(),
@@ -156,6 +158,7 @@ class TestActions:
             "close_needs_review",
             "close_opted_out",
             "close_qualified_unscheduled",
+            "close_waitlisted",  # spec 015 (ADR 0005 amendment)
             "handoff_to_human",
             "closed_ack",
             "no_message",

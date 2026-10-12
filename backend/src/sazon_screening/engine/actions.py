@@ -91,6 +91,13 @@ class CloseQualifiedUnscheduled(_Action):
     type: Literal["close_qualified_unscheduled"] = "close_qualified_unscheduled"
 
 
+class CloseWaitlisted(_Action):
+    """Qualified, but the candidate's area is fully staffed: no slots, a waitlist (spec 015)."""
+
+    type: Literal["close_waitlisted"] = "close_waitlisted"
+    area_id: str  # zone id, or city id for a city served as a whole
+
+
 class HandoffToHuman(_Action):
     type: Literal["handoff_to_human"] = "handoff_to_human"
 
@@ -120,6 +127,7 @@ PrimaryAction = Annotated[
     | CloseNeedsReview
     | CloseOptedOut
     | CloseQualifiedUnscheduled
+    | CloseWaitlisted
     | HandoffToHuman
     | ClosedAck
     | NoMessage,

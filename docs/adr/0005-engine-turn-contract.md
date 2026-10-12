@@ -33,3 +33,21 @@ action = one primary action (ask_field, reask_field, confirm_ambiguous, show_rec
 - The engine is 100% unit-testable without network; the same contract serves chat and voice.
 - Adding a channel means writing an adapter, not touching the rules.
 - The contract is a versioned boundary: changing an action type is a breaking change for 003/013.
+
+## Amendments
+
+### 2026-10-12: waitlist when the area is fully staffed (spec 015)
+A breaking change to the contract, as the Consequences above anticipate:
+- **Input:** `TurnContext.zone_full: bool` (default `false`). The caller (004) sets it from
+  live staffing data when the candidate's area is at or above 100 % of its target. The
+  engine reads it only when the recap is confirmed (entering scheduling).
+- **Status:** `waitlisted` (closed, like `qualified_unscheduled`): qualified, no slots offered.
+  Never a rejection: opt-out still works, later messages get `closed_ack`, and a post-close
+  correction that would fail a hard rule goes to `needs_review` (as AC-26c).
+- **Action:** `close_waitlisted(area_id)`. Phrased with a per-register template naming the area.
+- **Scoring input:** `score_candidate(..., occupancy=)` / `build_record(..., occupancy=)` take the
+  area's staffing ratio (current / target, `None` = no data) for the zone-demand factor. The
+  engine still does no I/O: occupancy and `zone_full` are looked up by the caller.
+
+Channels and phrasing (003, 013) must handle the new action; the message catalog's
+startup check fails if a register has no `close_waitlisted` template.

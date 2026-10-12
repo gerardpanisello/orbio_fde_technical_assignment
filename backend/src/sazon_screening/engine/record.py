@@ -73,19 +73,32 @@ class CandidateRecord(_Record):
 
 
 # Only candidates a recruiter will act on are ranked (FR-30).
-_SCORED = frozenset({Status.interview_scheduled, Status.qualified_unscheduled, Status.needs_review})
+_SCORED = frozenset(
+    {
+        Status.interview_scheduled,
+        Status.qualified_unscheduled,
+        Status.waitlisted,  # ranked too: a recruiter calls them when the area has room
+        Status.needs_review,
+    }
+)
 
 
-def build_record(state: ConversationState, config: EngineConfig) -> CandidateRecord:
+def build_record(
+    state: ConversationState, config: EngineConfig, *, occupancy: float | None = None
+) -> CandidateRecord:
     """Snapshot of a conversation for storage and the dashboard. Pure, like `step`.
 
     The score is computed here, not stored in the state, so it always matches the
-    config version stamped next to it (AC-34).
+    config version stamped next to it (AC-34). `occupancy` is the candidate's area
+    staffing at this moment (spec 015), supplied by the caller; the stored record's
+    score is therefore the score *at close*, and the dashboard re-prices it live.
     """
     profile = state.profile
     score = None
     if state.status in _SCORED and state.last_turn_on is not None:
-        score = score_candidate(profile, config, reference_date=state.last_turn_on)
+        score = score_candidate(
+            profile, config, reference_date=state.last_turn_on, occupancy=occupancy
+        )
     return CandidateRecord(
         status=state.status,
         disqualification_reason=state.disqualification_reason,

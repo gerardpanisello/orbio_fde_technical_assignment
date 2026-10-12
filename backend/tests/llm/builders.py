@@ -12,6 +12,7 @@ from sazon_screening.engine import (
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
+    CloseWaitlisted,
     ConfirmAmbiguous,
     ConfirmInterview,
     ConfirmValue,
@@ -119,6 +120,7 @@ def sample_primaries(config: EngineConfig) -> list[PrimaryAction]:
         CloseNeedsReview(reasons=[ReviewReason.human_requested]),
         CloseOptedOut(),
         CloseQualifiedUnscheduled(),
+        CloseWaitlisted(area_id="mad-salamanca"),
         HandoffToHuman(),
         ClosedAck(),
     ]

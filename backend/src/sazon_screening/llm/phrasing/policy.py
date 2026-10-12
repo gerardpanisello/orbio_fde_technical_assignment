@@ -21,7 +21,7 @@ ASKING = frozenset(
 # Lists need room (spec decision 5): the recap and the slot list may use the long cap.
 LONG = frozenset({"show_recap", "offer_slots"})
 # Closing a door on someone is never cheerful (spec 001 §7).
-NO_EMOJI = frozenset({"close_disqualified"})
+NO_EMOJI = frozenset({"close_disqualified", "close_waitlisted"})
 
 
 def expects_question(action: EngineAction) -> bool:

@@ -34,4 +34,8 @@ scoring:
     - {within_days: 3, points: 20}
     - {within_days: 14, points: 10}
     - {within_days: 30, points: 5}
+  zone_demand:          # spec 015; no occupancy given -> 0 points, so spec 002 scores stand
+    - {below_pct: 50, points: 20}
+    - {below_pct: 80, points: 12}
+    - {below_pct: 100, points: 5}
   buckets: {high: 60, medium: 35}

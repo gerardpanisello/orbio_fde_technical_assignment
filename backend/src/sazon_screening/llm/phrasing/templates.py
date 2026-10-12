@@ -18,6 +18,7 @@ from sazon_screening.engine import (
     AnswerFaq,
     AskField,
     CloseDisqualified,
+    CloseWaitlisted,
     ConfirmAmbiguous,
     ConfirmInterview,
     ConfirmValue,
@@ -140,6 +141,8 @@ def _primary(
             return templates.close_disqualified[reason]
         case ConfirmInterview(slot_id=slot_id):
             return templates.confirm_interview.format(slot=slot_label(slot_id, ctx.slots, language))
+        case CloseWaitlisted(area_id=area_id):
+            return templates.close_waitlisted.format(zone=area_label(area_id, config, language))
     return _fixed_text(primary, entry)
 
 

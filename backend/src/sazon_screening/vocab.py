@@ -47,6 +47,7 @@ class Status(StrEnum):
     in_progress = "in_progress"
     interview_scheduled = "interview_scheduled"
     qualified_unscheduled = "qualified_unscheduled"
+    waitlisted = "waitlisted"  # qualified, but the area is fully staffed (spec 015)
     disqualified = "disqualified"
     needs_review = "needs_review"
     abandoned = "abandoned"
@@ -181,4 +182,5 @@ class FactorReason(StrEnum):
     availability_breadth = "availability_breadth"
     schedule_flexibility = "schedule_flexibility"
     start_date_proximity = "start_date_proximity"
+    zone_demand = "zone_demand"  # how short-staffed the candidate's area is (spec 015)
     unknown = "unknown"

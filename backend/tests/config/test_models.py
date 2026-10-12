@@ -168,6 +168,37 @@ class TestScreening:
         with pytest.raises(ValidationError, match="strictly increasing"):
             ScreeningConfig.model_validate(data)
 
+    def test_zone_demand_is_optional_and_adds_to_the_max_score(self) -> None:
+        data = minimal_screening()
+        data["scoring"]["zone_demand"] = [
+            {"below_pct": 50, "points": 20},
+            {"below_pct": 100, "points": 5},
+        ]
+        assert ScreeningConfig.model_validate(data).scoring.max_score == 120
+
+    def test_zone_demand_bands_must_increase(self) -> None:
+        data = minimal_screening()
+        data["scoring"]["zone_demand"] = [
+            {"below_pct": 80, "points": 12},
+            {"below_pct": 50, "points": 20},
+        ]
+        with pytest.raises(ValidationError, match="zone_demand bands must have strictly"):
+            ScreeningConfig.model_validate(data)
+
+    @pytest.mark.parametrize(
+        "band",
+        [
+            {"below_pct": 0, "points": 5},
+            {"below_pct": 120, "points": 5},
+            {"below_pct": 50, "points": -1},
+        ],
+    )
+    def test_zone_demand_band_out_of_range_is_rejected(self, band: dict[str, int]) -> None:
+        data = minimal_screening()
+        data["scoring"]["zone_demand"] = [band]
+        with pytest.raises(ValidationError, match="zone_demand"):
+            ScreeningConfig.model_validate(data)
+
     def test_missing_availability_weight_is_rejected(self) -> None:
         data = minimal_screening()
         del data["scoring"]["availability"]["weekends"]

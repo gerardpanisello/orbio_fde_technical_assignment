@@ -25,6 +25,7 @@ CLOSED = [
     Status.disqualified,
     Status.needs_review,
     Status.qualified_unscheduled,
+    Status.waitlisted,
     Status.interview_scheduled,
 ]
 
@@ -143,7 +144,7 @@ class TestClosedStatuses:
         c.select_slot("s1").expect(ClosedAck).expect_status(status)
 
 
-BOOKED = [Status.interview_scheduled, Status.qualified_unscheduled]
+BOOKED = [Status.interview_scheduled, Status.qualified_unscheduled, Status.waitlisted]
 
 
 class TestCorrectionAfterBooking:

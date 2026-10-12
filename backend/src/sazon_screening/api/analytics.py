@@ -13,6 +13,7 @@ from sazon_screening.vocab import DisqualificationReason, Status
 FINISHED = (
     Status.interview_scheduled,
     Status.qualified_unscheduled,
+    Status.waitlisted,
     Status.disqualified,
     Status.needs_review,
 )

@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-12.3"
+version: "2026-10-12.4"
 register: es-MX
 
 labels:
@@ -74,6 +74,7 @@ templates:
   close_needs_review: "Gracias. Una persona del equipo revisará tu solicitud y te escribirá por aquí."
   close_opted_out: "Entendido. Ya borré tus datos y no te volveremos a escribir. ¡Mucha suerte!"
   close_qualified_unscheduled: "¡Gracias! Completaste la solicitud. El equipo te escribirá para agendar la entrevista."
+  close_waitlisted: "Por ahora ya tenemos completo el equipo en {zone}. Te dejamos en lista de espera y te escribiremos en cuanto haya lugar."
   handoff_to_human: "Claro, una persona del equipo te escribirá por aquí."
   closed_ack: "Gracias por tu mensaje. El equipo ya tiene tu solicitud."
   prefaces:

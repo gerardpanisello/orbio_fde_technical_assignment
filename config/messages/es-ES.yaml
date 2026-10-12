@@ -12,7 +12,7 @@
 #   - never mention pay, conditions or promises;
 #   - only the {placeholders} already used in each message.
 # Spain vocabulary: carné de conducir, coche, barrio.
-version: "2026-10-12.3"
+version: "2026-10-12.4"
 register: es-ES
 
 labels:
@@ -84,6 +84,7 @@ templates:
   close_needs_review: "Gracias. Una persona del equipo revisará tu solicitud y te escribirá por aquí."
   close_opted_out: "Entendido. He borrado tus datos y no te escribiremos más. ¡Mucha suerte!"
   close_qualified_unscheduled: "¡Gracias! Has completado la solicitud. El equipo te escribirá para agendar la entrevista."
+  close_waitlisted: "Ahora mismo tenemos cubierto el equipo en {zone}. Te dejamos en lista de espera y te escribiremos en cuanto haya hueco."
   handoff_to_human: "Claro, una persona del equipo te escribirá por aquí."
   closed_ack: "Gracias por tu mensaje. El equipo ya tiene tu solicitud."
   prefaces:
@@ -115,6 +116,7 @@ summary:
     in_progress: En curso
     interview_scheduled: Entrevista agendada
     qualified_unscheduled: Apto, sin entrevista
+    waitlisted: En lista de espera
     disqualified: Descartado
     needs_review: Requiere revisión
     abandoned: Abandonado
@@ -161,6 +163,7 @@ summary:
     availability_breadth: Disponibilidad
     schedule_flexibility: Flexibilidad horaria
     start_date_proximity: Incorporación próxima
+    zone_demand: Demanda en su zona
     unknown: Desconocido
   languages: {es: Español, en: Inglés}
   sentiments: {positive: Positivo, neutral: Neutro, negative: Negativo}

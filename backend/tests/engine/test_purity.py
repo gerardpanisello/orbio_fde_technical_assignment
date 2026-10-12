@@ -70,6 +70,7 @@ def test_engine_files_are_found() -> None:
     assert {"turn.py", "apply.py", "collect.py", "closing.py"} <= {p.name for p in ENGINE_FILES}
 
 
+@pytest.mark.ac("015:AC-8")  # occupancy and zone_full are inputs: still no DB or clock
 @pytest.mark.parametrize("path", ENGINE_FILES, ids=lambda p: p.name)
 def test_engine_module_is_pure(path: Path) -> None:
     assert violations(path) == []

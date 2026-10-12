@@ -6,16 +6,21 @@ import pytest
 
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine.scoring import ScoreFactor, score_candidate
-from sazon_screening.engine.state import Experience, Profile, Slot
+from sazon_screening.engine.state import Experience, LocationValue, Profile, Slot
 from sazon_screening.vocab import (
     Availability,
     Bucket,
+    Country,
     FactorReason,
     FieldName,
     FieldStatus,
     ScheduleSlot,
 )
 from tests.engine.conftest import TODAY, MakeConfig
+
+COYOACAN = LocationValue(
+    raw_text="Coyoacán", country=Country.MX, city="cdmx", zone="cdmx-coyoacan", in_service_area=True
+)
 
 
 def profile(
@@ -34,6 +39,7 @@ def profile(
     p.availability = Slot(status=FieldStatus.valid, value=list(availability))
     p.schedule = Slot(status=FieldStatus.valid, value=list(schedule))
     p.start_date = Slot(status=FieldStatus.valid, value=TODAY + timedelta(days=start_in_days))
+    p.location = Slot(status=FieldStatus.valid, value=COYOACAN)
     return p
 
 
@@ -75,10 +81,16 @@ def test_score_is_the_sum_of_explained_factors(config: EngineConfig) -> None:
             points=20,
             reason_code=FactorReason.start_date_proximity,
         ),
+        ScoreFactor(  # no occupancy given: no staffing data, no bonus (spec 015)
+            field=FieldName.location,
+            value=None,
+            points=0,
+            reason_code=FactorReason.zone_demand,
+        ),
     ]
     assert result.score == sum(points(result.factors)) == 82
     assert result.bucket == Bucket.high
-    assert result.max_score == 100
+    assert result.max_score == 120  # 100 + the zone-demand factor (spec 015)
 
 
 @pytest.mark.ac("AC-33")
@@ -130,8 +142,20 @@ def test_caps_are_respected(config: EngineConfig) -> None:
         config,
         reference_date=TODAY,
     )
-    assert points(result.factors) == [20, 20, 25, 15, 20]
-    assert result.score == result.max_score == 100
+    assert points(result.factors) == [20, 20, 25, 15, 20, 0]
+    assert result.score == 100
+    full = score_candidate(
+        profile(
+            years=30,
+            platforms=("glovo", "uber_eats", "rappi", "deliveroo"),
+            availability=tuple(Availability),
+            schedule=(ScheduleSlot.morning, ScheduleSlot.afternoon, ScheduleSlot.evening),
+        ),
+        config,
+        reference_date=TODAY,
+        occupancy=0.1,
+    )
+    assert full.score == full.max_score == 120
 
 
 def test_unknown_platforms_score_zero(config: EngineConfig) -> None:

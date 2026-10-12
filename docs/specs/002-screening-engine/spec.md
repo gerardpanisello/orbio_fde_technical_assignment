@@ -3,6 +3,8 @@
 **Status:** Implemented (2026-10-11). All 37 ACs covered by marked tests (`backend/tests/test_ac_coverage.py`); implementation notes in [tasks.md](tasks.md).
 **Related:** ADR-0005 (turn contract), ADR-0002 (hybrid state machine), ADR-0004 (hard rules + soft scoring), Spec 001 ([process-design.md](../001-process-design/process-design.md), the source of truth)
 
+> **Amended by spec 015 (2026-10-12)** — [zone occupancy](../015-zone-occupancy/spec.md), ADR 0005 "Amendments": new status `waitlisted` and primary action `close_waitlisted(area_id)` (recap confirmed while `TurnContext.zone_full` is true: no slots, never a rejection; closed like `qualified_unscheduled`, so FR-15 / AC-26c apply). FR-30 gains a sixth factor, **zone demand** (`field: location`, `reason_code: zone_demand`, value = area occupancy %), from `occupancy` passed by the caller; `null` occupancy (no staffing data) scores 0. `waitlisted` records are scored too. The ACs below are unchanged: the fixture config adds zone-demand bands but tests that pass no occupancy keep their scores.
+
 ## 1. Problem / Why
 80% of recruiter time goes to candidates who cannot be hired. Spec 001 fixes that with knock-out questions first and ranked, pre-booked candidates. For the client to trust and audit those outcomes, every decision (what to ask next, whether an answer is valid, whether someone is disqualified, how they are ranked) must be **deterministic, configurable and testable without an LLM** (ADR 0002). This spec defines that core. The LLM layer (003), API (004), re-engagement (008), FAQ (009) and scheduling (010) all plug into it.
 

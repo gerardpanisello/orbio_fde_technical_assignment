@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-12.3"
+version: "2026-10-12.4"
 register: en
 
 labels:
@@ -74,6 +74,7 @@ templates:
   close_needs_review: "Thank you. Someone from the team will review your application and write to you here."
   close_opted_out: "Understood. I've deleted your details and we won't write to you again. Best of luck!"
   close_qualified_unscheduled: "Thank you! Your application is complete. The team will write to you to book the interview."
+  close_waitlisted: "Right now our team in {zone} is fully staffed. We have put you on the waiting list and will write to you as soon as there is a spot."
   handoff_to_human: "Of course, someone from the team will write to you here."
   closed_ack: "Thanks for your message. The team already has your application."
   prefaces:
@@ -105,6 +106,7 @@ summary:
     in_progress: In progress
     interview_scheduled: Interview scheduled
     qualified_unscheduled: Qualified, not scheduled
+    waitlisted: Waitlisted
     disqualified: Disqualified
     needs_review: Needs review
     abandoned: Abandoned
@@ -151,6 +153,7 @@ summary:
     availability_breadth: Availability
     schedule_flexibility: Schedule flexibility
     start_date_proximity: Early start
+    zone_demand: Demand in their area
     unknown: Unknown
   languages: {es: Spanish, en: English}
   sentiments: {positive: Positive, neutral: Neutral, negative: Negative}

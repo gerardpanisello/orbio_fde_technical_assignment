@@ -163,6 +163,7 @@ def contexts() -> st.SearchStrategy[TurnContext]:
         TurnContext,
         country_hint=st.none() | st.sampled_from(list(Country)),
         offered_slots=st.none() | st.lists(st.sampled_from(SLOT_IDS), max_size=3),
+        zone_full=st.booleans(),  # spec 015: the area may be full at any turn
     )
 
 

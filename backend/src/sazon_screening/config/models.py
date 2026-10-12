@@ -177,6 +177,17 @@ class StartDateBand(_Strict):
     points: int = Field(ge=0)
 
 
+class ZoneDemandBand(_Strict):
+    """An area staffed below `below_pct` % of its target earns `points` (spec 015 FR-2).
+
+    The first band that fits wins; an area at or above the last band earns nothing, and an
+    area without staffing data earns nothing either.
+    """
+
+    below_pct: int = Field(gt=0, le=100)
+    points: int = Field(ge=0)
+
+
 class Buckets(_Strict):
     """Score >= high -> high; >= medium -> medium; else low."""
 
@@ -190,6 +201,8 @@ class ScoringConfig(_Strict):
     availability: AvailabilityScoring
     schedule: ScheduleScoring
     start_date: list[StartDateBand] = Field(min_length=1)
+    # Empty: the zone-demand factor is off (always 0 points).
+    zone_demand: list[ZoneDemandBand] = []
     buckets: Buckets
 
     @property
@@ -200,6 +213,7 @@ class ScoringConfig(_Strict):
             + self.availability.max_points
             + self.schedule.max_points
             + max(band.points for band in self.start_date)
+            + max((band.points for band in self.zone_demand), default=0)
         )
 
     @model_validator(mode="after")
@@ -207,6 +221,9 @@ class ScoringConfig(_Strict):
         days = [band.within_days for band in self.start_date]
         if any(later <= earlier for earlier, later in pairwise(days)):
             raise ValueError(f"start_date bands must have strictly increasing within_days: {days}")
+        pcts = [band.below_pct for band in self.zone_demand]
+        if any(later <= earlier for earlier, later in pairwise(pcts)):
+            raise ValueError(f"zone_demand bands must have strictly increasing below_pct: {pcts}")
         return self
 
     @model_validator(mode="after")

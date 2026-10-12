@@ -39,7 +39,12 @@ SCREENING_FIELDS = {
     "experience",
     "start_date",
 }
-SCORED = {Status.interview_scheduled, Status.qualified_unscheduled, Status.needs_review}
+SCORED = {
+    Status.interview_scheduled,
+    Status.qualified_unscheduled,
+    Status.waitlisted,
+    Status.needs_review,
+}
 # Free text the candidate typed is data, not engine vocabulary.
 CANDIDATE_TEXT_KEYS = {"full_name", "raw_text"}
 NEUTRAL = re.compile(r"^[A-Za-z0-9_:.+\-]*$")  # ids, enum values, ISO dates, versions

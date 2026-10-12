@@ -50,6 +50,7 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
     "show_recap": frozenset({"recap"}),
     "offer_slots": frozenset({"slots"}),
     "confirm_interview": frozenset({"slot"}),
+    "close_waitlisted": frozenset({"zone"}),
     "prefaces": frozenset({"fields"}),
 }
 # Facts the recruiter summary renders (T22); each needs a label in every summary section.
@@ -145,6 +146,7 @@ class Templates(_Strict):
     close_needs_review: str
     close_opted_out: str
     close_qualified_unscheduled: str
+    close_waitlisted: str  # "{zone}": the area's name, e.g. "Salamanca (Madrid)"
     handoff_to_human: str
     closed_ack: str
     prefaces: Prefaces

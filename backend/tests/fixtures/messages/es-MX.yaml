@@ -93,6 +93,7 @@ templates:
   close_needs_review: A recruiter will review it.
   close_opted_out: Done, no more messages.
   close_qualified_unscheduled: We will contact you.
+  close_waitlisted: Waitlisted in {zone}.
   handoff_to_human: A person will write to you.
   closed_ack: Thanks.
   prefaces:

@@ -109,6 +109,7 @@
         "availability_breadth",
         "schedule_flexibility",
         "start_date_proximity",
+        "zone_demand",
         "unknown"
       ],
       "title": "FactorReason",
@@ -640,6 +641,7 @@
         "in_progress",
         "interview_scheduled",
         "qualified_unscheduled",
+        "waitlisted",
         "disqualified",
         "needs_review",
         "abandoned",

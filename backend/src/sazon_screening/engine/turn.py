@@ -232,6 +232,7 @@ _CLOSED = frozenset(
         Status.disqualified,
         Status.needs_review,
         Status.qualified_unscheduled,
+        Status.waitlisted,
         Status.interview_scheduled,
     }
 )

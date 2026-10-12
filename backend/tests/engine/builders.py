@@ -197,12 +197,15 @@ class Convo:
         *proposals: Proposal,
         offered_slots: list[str] | None = None,
         country_hint: Country | None = None,
+        zone_full: bool = False,
         **signals: Any,
     ) -> Self:
         turn = CandidateTurn(
             proposals=list(proposals),
             signals=Signals(**signals),
-            context=TurnContext(country_hint=country_hint, offered_slots=offered_slots),
+            context=TurnContext(
+                country_hint=country_hint, offered_slots=offered_slots, zone_full=zone_full
+            ),
         )
         return self.event(turn)
 
@@ -241,6 +244,8 @@ class Convo:
                 self.advance_to(Stage.scheduling).no_slot_fits()
             case Status.interview_scheduled:
                 self.advance_to(Stage.scheduling).select_slot("s1")
+            case Status.waitlisted:  # spec 015: the area is full when the recap is confirmed
+                self.advance_to(Stage.recap).say(yes(), offered_slots=OFFERED_SLOTS, zone_full=True)
             case Status.opted_out:
                 self.advance_to(at or Stage.name).say(opt_out=True)
         assert self.state.status == status, f"wanted {status}, got {self.state.status}"

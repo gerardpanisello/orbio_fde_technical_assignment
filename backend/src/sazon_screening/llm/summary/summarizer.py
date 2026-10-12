@@ -31,6 +31,7 @@ TERMINAL = frozenset(
     {
         Status.interview_scheduled,
         Status.qualified_unscheduled,
+        Status.waitlisted,
         Status.disqualified,
         Status.needs_review,
         Status.abandoned,

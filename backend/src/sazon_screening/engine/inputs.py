@@ -238,6 +238,9 @@ class Signals(_Input):
 class TurnContext(_Input):
     country_hint: Country | None = None  # e.g. from the phone prefix
     offered_slots: list[str] | None = None  # slot ids from 010; read when entering scheduling
+    # The candidate's area is at or above its target staffing (spec 015). The caller
+    # computes it from live occupancy; the engine reads it only when entering scheduling.
+    zone_full: bool = False
 
 
 class CandidateTurn(_Input):

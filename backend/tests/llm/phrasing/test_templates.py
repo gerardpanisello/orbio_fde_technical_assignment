@@ -11,6 +11,7 @@ from sazon_screening.engine import (
     AnswerFaq,
     AskField,
     CloseDisqualified,
+    CloseWaitlisted,
     PrimaryAction,
     ReaskField,
     Redirect,
@@ -194,6 +195,29 @@ def test_experience_is_one_question_with_an_example(
         assert re.search(r"«[^»]+»|\"[^\"]+\"", text), text  # the example, quoted
         assert " y con qué" not in text
         assert ", and with which" not in text
+
+
+@pytest.mark.ac("015:AC-3")
+@pytest.mark.parametrize(
+    ("register", "expected"),
+    [
+        (Register.es_ES, "Ahora mismo tenemos cubierto el equipo en Salamanca (Madrid)."),
+        (Register.es_MX, "lista de espera"),
+        (Register.en, "waiting list"),
+    ],
+)
+def test_waitlist_close_names_the_area_without_emoji(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    expected: str,
+) -> None:
+    act = action(CloseWaitlisted(area_id="mad-salamanca"), register=register)
+    text = render_template(act, ctx(), catalog, engine_config)
+    assert expected in text
+    assert "Salamanca" in text
+    assert "?" not in text  # a close: nothing to answer
+    assert not EMOJI.search(text)
 
 
 @pytest.mark.parametrize("register", list(Register))

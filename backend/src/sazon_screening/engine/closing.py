@@ -16,6 +16,7 @@ from sazon_screening.engine.actions import (
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
+    CloseWaitlisted,
     HandoffToHuman,
     OfferSlots,
     Preface,
@@ -111,10 +112,26 @@ def show_recap(s: ConversationState, cfg: EngineConfig) -> ShowRecap | CloseNeed
     return ShowRecap(profile=s.profile.model_copy(deep=True))  # the state keeps changing
 
 
+def close_waitlisted(s: ConversationState, area_id: str) -> CloseWaitlisted:
+    """Qualified, but the area is fully staffed: a waitlist, never a rejection (spec 015)."""
+    s.status = Status.waitlisted
+    s.drop_off_stage = s.stage
+    return CloseWaitlisted(area_id=area_id)
+
+
 def enter_scheduling(
     s: ConversationState, t: CandidateTurn
-) -> OfferSlots | CloseQualifiedUnscheduled:
-    """Offer the slots 010 sent with this turn (or the ones offered before) (FR-26)."""
+) -> OfferSlots | CloseQualifiedUnscheduled | CloseWaitlisted:
+    """Offer the slots 010 sent with this turn (or the ones offered before) (FR-26).
+
+    If the caller says the candidate's area is full (spec 015 FR-4), no slots are offered:
+    the candidate is waitlisted. The caller decides "full" from live staffing; the engine
+    only acts on the flag, and only here.
+    """
+    location = s.profile.location.value
+    area_id = location.area_id if location is not None else None
+    if t.context.zone_full and area_id is not None:
+        return close_waitlisted(s, area_id)
     slots = t.context.offered_slots or s.offered_slot_ids
     if not slots:
         return close_qualified_unscheduled(s)
@@ -145,8 +162,8 @@ def on_closed(
     a recruiter reviews them when they would change the outcome:
     - disqualified: only if every hard rule would now pass (AC-26b); "17 -> 16" stays
       disqualified, so nobody can talk their way past a knock-out rule;
-    - booked / qualified: if a hard rule would now fail (AC-26c); "actually I'm 16" is
-      never ignored, and never auto-disqualifies either.
+    - booked / qualified / waitlisted: if a hard rule would now fail (AC-26c); "actually
+      I'm 16" is never ignored, and never auto-disqualifies either.
     """
     if s.status is Status.disqualified and s.disqualification_reason is not None:
         fields = DISQUALIFYING_FIELDS[s.disqualification_reason]
@@ -154,7 +171,7 @@ def on_closed(
         _record(s, corrections)
         if corrections and _passes_hard_rules(s, corrections, cfg):
             return _review_correction(s)
-    elif s.status in (Status.interview_scheduled, Status.qualified_unscheduled):
+    elif s.status in _QUALIFIED:
         corrections = post_close_corrections(s, t, HARD_RULE_FIELDS, cfg, today)
         if corrections and not _passes_hard_rules(s, corrections, cfg):
             _record(s, corrections)
@@ -163,6 +180,11 @@ def on_closed(
         prefaces.append(AnswerFaq())
     return ClosedAck()
 
+
+# Closed as qualified: a correction that would fail a hard rule goes to a recruiter.
+_QUALIFIED = frozenset(
+    {Status.interview_scheduled, Status.qualified_unscheduled, Status.waitlisted}
+)
 
 Correction = tuple[PostCloseCorrection, object]  # as stored (JSON-ready), validated value
 
