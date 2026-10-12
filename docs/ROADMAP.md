@@ -11,7 +11,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 2 | `002-screening-engine` | Domain models, state machine, validators, zones config, scoring — pure Python, no LLM, fully tested | ✅ |
 | 3 | `003-llm-layer` | Claude client, extraction (structured output), reply generation, language detection, summary, retries/fallbacks — live-tested | ✅ |
 | 4 | `004-persistence-api` | SQLite models, conversation/candidate storage, FastAPI endpoints | 🟨 |
-| 5 | `005-candidate-chat-ui` | WhatsApp-style web chat | ⬜ |
+| 5 | `005-candidate-chat-ui` | WhatsApp-style web chat — spec: [005-006-frontend](specs/005-006-frontend/spec.md) | ⬜ |
 | 6 | `006-recruiter-dashboard` | Pipeline, candidate detail (summary/transcript/JSON), actions, CSV export | ⬜ |
 | 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone | ⬜ |
 | 8 | `008-reengagement` | Silence detection, follow-up schedule & messages, drop-off tracking | ⬜ |
