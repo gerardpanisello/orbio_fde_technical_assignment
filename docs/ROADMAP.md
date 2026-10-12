@@ -13,12 +13,12 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 4 | `004-persistence-api` | SQLite models, conversation/candidate storage, FastAPI endpoints, demo seed — spec: [004](specs/004-persistence-api/spec.md) | ✅ |
 | 5 | `005-candidate-chat-ui` | WhatsApp-style web chat — spec: [005-006-frontend](specs/005-006-frontend/spec.md) | ✅ |
 | 6 | `006-recruiter-dashboard` | Pipeline, candidate detail (summary/transcript/JSON), actions, CSV export, interviews, analytics | ✅ |
-| 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone | ⬜ |
+| 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone — built into 002/003 (signals, guard, opt-out purge, language keeping) | ✅ |
 | 8 | `008-reengagement` | Silence detection, follow-up schedule & messages, drop-off tracking | ⬜ |
-| 9 | `009-faq-rag` | FAQ knowledge base + retrieval to answer candidate questions | ⬜ |
-| 10 | `010-interview-scheduling` | Offer slots to qualified candidates, recruiter calendar view | ⬜ |
-| 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons | ⬜ |
-| 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report | ⬜ |
+| 9 | `009-faq-rag` | FAQ knowledge base + retrieval to answer candidate questions — spec: [009](specs/009-faq-rag/spec.md) | 🟨 |
+| 10 | `010-interview-scheduling` | Offer slots to qualified candidates, recruiter calendar view — simple slot provider + Entrevistas page (real calendars: not built) | 🟨 |
+| 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons — `/api/analytics` + Analítica page | ✅ |
+| 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report — `backend/evals/` (judge 4.12 → 4.70 after fixes) | ✅ |
 | 13 | `013-voice-agent` | Browser voice agent reusing the same engine | ⬜ |
 | 14 | Design docs | [ATS integration](design/ats-integration.md), [deployment & scaling](design/deployment.md) (10K/week) | ✅ |
 | 15 | `015-zone-occupancy` | Staffing per zone (Zonas page), zone-demand score factor with live priority, waitlist when the zone is full, hire → +1 — spec: [015](specs/015-zone-occupancy/spec.md) | ✅ |
