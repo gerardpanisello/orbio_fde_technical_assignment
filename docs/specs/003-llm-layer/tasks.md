@@ -443,3 +443,9 @@ Rules:
   - Mark `carry-over.md` items as honoured, with links to the tests.
   - Move OQ decisions from plan §8 into spec §7 once the human has answered them, incl. the AC-4 wording (OQ-1) and ADR 0007 status.
   - *(all)*
+
+## T29 live smoke test — findings (2026-10-12)
+- **Bug 1 (fixed):** structured outputs rejected the extraction schema (35 optional params > 24; 27 union-typed > 16). Wire schema is now all-required and non-nullable with neutral "not stated" values; Python keeps `None` (`schema.py`, `test_wire_schema.py`).
+- **Bug 2 (fixed):** years given per platform ("2 en Glovo y uno en Uber Eats") left `experience_years` empty → endless re-ask. `extraction.v2.md` sums them; `llm.yaml` points to v2.
+- **Measured (one full ES screening, 9 turns, consent → booked interview):** ≈ **$0.017 per candidate** (ADR 0001 estimated $0.05) → ~$17/week at 1,000 candidates. Latency **~3.7–5 s per turn** (target p50 < 3 s: missed; phrasing with Sonnet dominates). Improvement options: phrasing on Haiku for simple asks, streaming the reply, or running extraction + phrasing of the FAQ preface in parallel.
+- Graceful degradation verified live: with extraction failing, the candidate still got sensible messages and the conversation went to `needs_review` (`system_failure`).
