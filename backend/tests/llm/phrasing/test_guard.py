@@ -149,3 +149,45 @@ def test_the_greeting_itself_may_say_hello() -> None:
     consent = AskField(field=FieldName.consent)
     found = check(text, action(consent), ctx(is_greeting=True), CAPS)
     assert Violation.repeated_greeting not in found
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["¡Encantado, Ana! ¿Cuántos años tienes?", "Estoy contento de ayudarte. ¿Cuántos años tienes?"],
+)
+def test_sofi_speaks_of_herself_in_the_feminine(text: str) -> None:
+    """Eval 2026-10-12: "¡Encantado!" appeared; Sofi is female."""
+    assert Violation.masculine_form in violations(text)
+
+
+@pytest.mark.parametrize(
+    "text", ["¡Encantada, Ana! ¿Cuántos años tienes?", "Delighted! How old are you?"]
+)
+def test_feminine_or_english_passes(text: str) -> None:
+    assert Violation.masculine_form not in violations(text)
+
+
+RECENT = ("¡Gracias, Ana! ¿Cuántos años tienes?",)
+
+
+def test_the_name_twice_in_a_row_is_rejected() -> None:
+    """Eval 2026-10-12: the name in every message (tone 3.1/5)."""
+    found = check(
+        "¡Genial, Ana! ¿Con qué vehículo repartirías?",
+        action(ASK_AGE),
+        ctx(first_name="Ana", recent_agent_messages=RECENT),
+        CAPS,
+    )
+    assert Violation.name_overused in found
+
+
+def test_the_name_after_a_gap_passes() -> None:
+    recent = ("¿Cuántos años tienes?", "Vale. ¿Con qué vehículo repartirías?")
+    context = ctx(first_name="Ana", recent_agent_messages=recent)
+    assert check("¡Gracias, Ana! ¿Cuántos años tienes?", action(ASK_AGE), context, CAPS) == []
+
+
+def test_name_inside_another_word_is_not_the_name() -> None:
+    context = ctx(first_name="Ana", recent_agent_messages=RECENT)
+    text = "Vale. ¿Tienes alguna semana libre?"  # "semana" contains "ana"
+    assert Violation.name_overused not in check(text, action(ASK_AGE), context, CAPS)

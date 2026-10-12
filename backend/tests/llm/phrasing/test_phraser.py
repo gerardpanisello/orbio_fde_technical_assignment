@@ -189,3 +189,26 @@ async def test_a_rendering_bug_still_sends_an_apology(
     assert message is not None
     assert message.text
     assert (trace.outcome, trace.failure) == ("fallback", FailureKind.unexpected)
+
+
+@pytest.mark.anyio
+async def test_the_last_two_sofi_messages_go_to_the_model_and_the_name_rests(
+    phraser: Phraser, scripted: FakeLLMClient, fake_clock: FakeClock
+) -> None:
+    """Eval 2026-10-12: repeated openers and the name in every message."""
+    scripted.push(Role.phrasing, Scripted(value="¿Cuántos años tienes?"))
+    recent = ("¿Cómo te llamas?", "¡Gracias, Ana! ¿Con qué vehículo?", "Vale. ¿Tienes carné?")
+    await phrase(phraser, fake_clock, ASK_AGE, ctx(first_name="Ana", recent_agent_messages=recent))
+    [request] = scripted.calls
+    assert "¿Cómo te llamas?" not in request.user
+    assert "<sofi>¡Gracias, Ana! ¿Con qué vehículo?</sofi>" in request.user
+    assert "<sofi>Vale. ¿Tienes carné?</sofi>" in request.user
+    assert "<candidate_first_name></candidate_first_name>" in request.user
+
+
+@pytest.mark.parametrize(
+    ("recent", "expected"),
+    [((), "Ana"), (("¿Tienes carné?",), "Ana"), (("Gracias, ana. ¿Tienes carné?",), None)],
+)
+def test_name_to_use_rests_after_a_mention(recent: tuple[str, ...], expected: str | None) -> None:
+    assert ctx(first_name="Ana", recent_agent_messages=recent).name_to_use == expected

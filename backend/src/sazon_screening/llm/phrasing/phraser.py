@@ -159,8 +159,9 @@ class Phraser:
         parts = [
             tagged("instruction", json.dumps(instruction, ensure_ascii=False)),
             tagged("reference_message", reference),
-            tagged("candidate_first_name", ctx.first_name or ""),
+            tagged("candidate_first_name", ctx.name_to_use or ""),
             tagged("candidate_last_message", ctx.last_candidate_message or ""),
+            _recent_messages(ctx.recent_agent_messages[-RECENT_SHOWN:]),
         ]
         if ctx.faq_answer:
             parts.append(tagged("faq_answer", ctx.faq_answer))
@@ -182,6 +183,14 @@ class Phraser:
         return OutboundMessage(
             text=text, quick_replies=buttons, language=action.language, register=action.register
         )
+
+
+RECENT_SHOWN = 2  # Sofi's last messages the model sees, to vary its opener
+
+
+def _recent_messages(texts: tuple[str, ...]) -> str:
+    inner = "\n".join(tagged("sofi", text) for text in texts)
+    return f"<recent_sofi_messages>\n{inner}\n</recent_sofi_messages>"
 
 
 def template_key(action: EngineAction) -> str:

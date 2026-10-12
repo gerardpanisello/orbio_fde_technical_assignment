@@ -39,7 +39,7 @@ from sazon_screening.llm.extraction.pending import pending_view
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, load_catalog
 from sazon_screening.llm.phrasing.labels import display_name
 from sazon_screening.llm.phrasing.phraser import OutboundMessage, Phraser, PhrasingTrace
-from sazon_screening.llm.phrasing.templates import RenderContext
+from sazon_screening.llm.phrasing.templates import NAME_REST, RenderContext
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import LLMConfig, Settings, load_llm_config, load_settings
 from sazon_screening.llm.summary.summarizer import Summarizer, Summary, summary_due
@@ -151,6 +151,7 @@ class ScreeningAgent:
             today=today,
             context=context,
             last_message=message.text,
+            recent_agent=tuple(e.text for e in history if e.role == "agent")[-NAME_REST:],
             extraction=extraction,
             calls=calls,
             began=began,
@@ -203,6 +204,7 @@ class ScreeningAgent:
         today: date,
         context: TurnContextIn,
         last_message: str | None,
+        recent_agent: tuple[str, ...] = (),
         extraction: ExtractionTrace,
         calls: list[CallTelemetry],
         began: float,
@@ -210,7 +212,9 @@ class ScreeningAgent:
         conversation_id: str | None,
     ) -> TurnResult:
         new_state, action = step(state, turn_input, self._engine_config, today)  # never raises
-        ctx = self._render_context(new_state, context, last_message=last_message)
+        ctx = self._render_context(
+            new_state, context, last_message=last_message, recent_agent=recent_agent
+        )
         reply, phrasing, phrase_calls = await self._phraser.phrase(
             action, ctx, deadline, conversation_id=conversation_id
         )
@@ -233,6 +237,7 @@ class ScreeningAgent:
         context: TurnContextIn,
         *,
         last_message: str | None,
+        recent_agent: tuple[str, ...] = (),
         is_greeting: bool = False,
     ) -> RenderContext:
         name = state.profile.full_name.value or ""
@@ -242,6 +247,7 @@ class ScreeningAgent:
             last_candidate_message=last_message,
             slots=context.slot_map(),
             is_greeting=is_greeting,
+            recent_agent_messages=recent_agent,
         )
 
     def _media_reply(self, state: ConversationState) -> tuple[OutboundMessage, PhrasingTrace]:

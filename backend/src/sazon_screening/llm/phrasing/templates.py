@@ -6,6 +6,7 @@ exactly what the action says, in the action's register: prefaces first (in the
 engine's order), then the primary action, as one message.
 """
 
+import re
 from collections.abc import Mapping
 
 from pydantic import BaseModel, ConfigDict
@@ -44,6 +45,25 @@ class RenderContext(BaseModel):
     faq_answer: str | None = None  # FR-17 hook for 009: an approved answer text
     slots: dict[str, SlotDisplay] = {}
     is_greeting: bool = False  # start(): the consent ask is phrased as the greeting
+    # Sofi's last messages, oldest first: the model varies its opener against them, and
+    # the name rests for NAME_REST messages after each use (eval 2026-10-12).
+    recent_agent_messages: tuple[str, ...] = ()
+
+    @property
+    def name_to_use(self) -> str | None:
+        """The first name, unless one of Sofi's last NAME_REST messages already used it."""
+        if not self.first_name:
+            return None
+        recent = self.recent_agent_messages[-NAME_REST:]
+        return None if any(mentions(text, self.first_name) for text in recent) else self.first_name
+
+
+NAME_REST = 3  # at most one message in four uses the candidate's name
+
+
+def mentions(text: str, name: str) -> bool:
+    """`name` as a whole word: "Ana" is in "¡Gracias, Ana!", not in "semana"."""
+    return re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.IGNORECASE) is not None
 
 
 def render_template(

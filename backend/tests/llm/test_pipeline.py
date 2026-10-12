@@ -17,7 +17,7 @@ from sazon_screening.engine import (
 )
 from sazon_screening.llm.client.base import FailureKind, Role
 from sazon_screening.llm.client.fake import FakeLLMClient, Scripted
-from sazon_screening.llm.extraction.extractor import InboundMessage
+from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
 from sazon_screening.llm.extraction.schema import ExtractionOutput
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
 from sazon_screening.llm.pipeline import ScreeningAgent
@@ -287,3 +287,20 @@ async def test_an_injection_is_redirected_and_changes_nothing(
     extraction_request = rules.calls[0]
     assert attack not in extraction_request.system
     assert f"<candidate_message>{attack}</candidate_message>" in extraction_request.user
+
+
+@pytest.mark.anyio
+async def test_phrasing_sees_sofis_recent_messages(
+    agent: ScreeningAgent, scripted: FakeLLMClient, engine_config: EngineConfig
+) -> None:
+    history = [
+        TranscriptEntry(role="agent", text="¿Cómo te llamas?"),
+        TranscriptEntry(role="candidate", text="Ana López"),
+        TranscriptEntry(role="agent", text="¡Gracias, Ana! ¿Cuántos años tienes?"),
+    ]
+    scripted.push(Role.extraction, Scripted(value=ExtractionOutput(age=30)))
+    scripted.push(Role.phrasing, TEMPLATE)
+    state = at(Stage.age, engine_config)
+    await agent.handle_message(state, InboundMessage(text="30"), history, today=TODAY)
+    phrasing = next(call for call in scripted.calls if call.role is Role.phrasing)
+    assert "<sofi>¡Gracias, Ana! ¿Cuántos años tienes?</sofi>" in phrasing.user
