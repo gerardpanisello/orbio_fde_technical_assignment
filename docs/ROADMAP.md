@@ -15,7 +15,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 6 | `006-recruiter-dashboard` | Pipeline, candidate detail (summary/transcript/JSON), actions, CSV export, interviews, analytics | ✅ |
 | 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone — built into 002/003 (signals, guard, opt-out purge, language keeping) | ✅ |
 | 8 | `008-reengagement` | Silence detection, follow-up schedule & messages, drop-off tracking | ⬜ |
-| 9 | `009-faq-rag` | FAQ knowledge base + retrieval to answer candidate questions — spec: [009](specs/009-faq-rag/spec.md) | 🟨 |
+| 9 | `009-faq-rag` | FAQ knowledge base + retrieval to answer candidate questions — spec: [009](specs/009-faq-rag/spec.md); ~20 approved entries in `config/faq/`, BM25, unanswered questions flagged in the dashboard | ✅ |
 | 10 | `010-interview-scheduling` | Offer slots to qualified candidates, recruiter calendar view — simple slot provider + Entrevistas page (real calendars: not built) | 🟨 |
 | 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons — `/api/analytics` + Analítica page | ✅ |
 | 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report — `backend/evals/` (judge 4.12 → 4.70 after fixes) | ✅ |

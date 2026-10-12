@@ -39,8 +39,8 @@ Candidates ask before committing ("¿cuánto se paga?", "¿necesito moto propia?
 - [x] T1 FAQ YAML (~20 entries, es-ES/es-MX/en) + models + loader validation (AC-6).
 - [x] T2 BM25 retrieval + tests (AC-1..AC-3).
 - [x] T3 Pipeline wiring + trace + fake mode (AC-4, AC-5).
-- [ ] T4 API/analytics fields + dashboard: show the FAQ in the transcript trace and a "Preguntas frecuentes" card on the analytics page (AC-7).
+- [x] T4 API/analytics fields + dashboard: show the FAQ in the transcript trace and a "Preguntas frecuentes" card on the analytics page (AC-7).
   - [x] Backend half: `GET /api/analytics` → `faq {asked, answered, unanswered_rate, top_questions[{entry_id|null, question, count}]}`; each candidate trace has `faq: answered|unanswered|null` and `trace.faq` (question, hits with scores, entry ids). Frontend types not regenerated.
-  - [ ] Frontend half (pending, another agent): transcript trace + "Preguntas frecuentes" card.
-- [ ] T5 Live check with the real API; add 1–2 FAQ turns to a sample conversation; README/ROADMAP.
-  - Done early with T3/T4: live check (ES/MX pay, EN bike) and `h-questions-mid-flow` regenerated. README/ROADMAP still to do.
+  - [x] Frontend half: "Preguntas de candidatos" card on Analítica (asked / answered / unanswered %, top questions with unanswered ones marked) and a "FAQ: <id>" / "FAQ sin respuesta" chip on turns in the transcript and traces.
+- [x] T5 Live check with the real API; add 1–2 FAQ turns to a sample conversation; README/ROADMAP.
+  - Done early with T3/T4: live check (ES/MX pay, EN bike) and `h-questions-mid-flow` regenerated. README/ROADMAP updated with the frontend half.
