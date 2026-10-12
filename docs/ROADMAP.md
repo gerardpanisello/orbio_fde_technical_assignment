@@ -21,7 +21,8 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report | ⬜ |
 | 13 | `013-voice-agent` | Browser voice agent reusing the same engine | ⬜ |
 | 14 | Design docs | [ATS integration](design/ats-integration.md), [deployment & scaling](design/deployment.md) (10K/week) | ✅ |
-| 15 | Delivery | README, sample conversations, demo video script, presentation | ⬜ |
+| 15 | `015-zone-occupancy` | Staffing per zone (Zonas page), zone-demand score factor with live priority, waitlist when the zone is full, hire → +1 — spec: [015](specs/015-zone-occupancy/spec.md) | ✅ |
+| 16 | Delivery | README, sample conversations, demo video script, presentation | ⬜ |
 
 ## Suggested week plan
 - **Day 1:** Phases 0–1 (design doc reviewed with you before any code).
@@ -30,6 +31,6 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 - **Day 4:** Phases 5–6 → usable product.
 - **Day 5:** Phases 7–9.
 - **Day 6:** Phases 10–12.
-- **Day 7:** Phase 13 if time, 14–15, rehearse demo.
+- **Day 7:** Phase 13 if time, 14 and 16 (delivery), rehearse demo.
 
 Cut line if time runs short: 13 (voice) → 10 (scheduling) → 9 (RAG). Never cut tests or the design doc.

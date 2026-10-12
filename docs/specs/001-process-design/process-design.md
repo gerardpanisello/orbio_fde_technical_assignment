@@ -89,6 +89,7 @@ flowchart TD
 |---|---|---|
 | **Interview scheduled** | Recap, then 2–3 slots at the nearest location; picks one and gets a confirmation | Sees priority, summary and the booked slot in the calendar |
 | **Qualified, unscheduled** | "Te escribiremos para cerrar la cita" | Queue to book manually (never marked `abandoned`) |
+| **Waitlisted** (lista de espera, spec 015) | Qualified, but their zone is fully staffed: no slots, "te escribiremos en cuanto haya hueco" | Waitlist per zone on the Zonas page; never a disqualification |
 | **Disqualified** | Clear, kind reason, with the door left open where relevant ("si sacas el carné, escríbenos") | Sees the reason. **Override** reopens the chat and offers slots |
 | **Needs review** | "Un compañero del equipo te escribirá pronto" | Highlighted queue showing what is unclear |
 | **Abandoned / opted out** | Follow-ups, then silence / no further contact | Drop-off stage in analytics |

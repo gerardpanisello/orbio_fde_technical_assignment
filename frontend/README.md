@@ -30,6 +30,7 @@ the API default.
 | `/chat` | WhatsApp-style chat with Sofi. Desktop: phone frame + toggleable "Registro en vivo" demo panel |
 | `/recruiter` | Candidates: KPIs, filters (kept in the URL), priority-sorted table, detail drawer (`?id=`) |
 | `/recruiter/entrevistas` | Booked interviews grouped by day |
+| `/recruiter/zonas` | Staffing per zone (spec 015): occupancy bars, inline target/current edits, pipeline and waitlist per zone |
 | `/recruiter/analitica` | Funnel, drop-off, disqualification reasons, status per country, agent KPIs |
 
 ## Scripts
@@ -55,11 +56,12 @@ src/
   chat/       ChatPage, StartScreen, ChatWindow, MessageBubble, QuickReplies, TypingIndicator,
               LiveRecordPanel, useChat (state: start/send/retry/restore), i18n (ES/EN UI strings)
   recruiter/  RecruiterLayout, CandidatesPage, FilterBar, CandidateTable, CandidateDrawer,
-              detail/ (summary, actions, transcript, traces + JSON), InterviewsPage, AnalyticsPage
+              detail/ (summary, actions, transcript, traces + JSON), InterviewsPage, ZonesPage, AnalyticsPage
   components/ Badges (status, priority, recruiter tag), Kpi, ScoreBreakdown, RecordFields, Reasons,
               States (loading/empty/error), Icon, Logo
   lib/        status.ts (status colours, one source for badges, table and charts), labels.ts
-              (Spanish labels), format.ts, record.ts, filters.ts, funnel.ts, interviews.ts
+              (Spanish labels), format.ts, record.ts, filters.ts, funnel.ts, interviews.ts, zones.ts
+              (occupancy bands, optimistic zone edits)
 ```
 
 ## Design notes

@@ -39,5 +39,5 @@ Grupo Sazón doesn't need "drivers", it needs drivers **where it's short**. A ca
 - [x] T1 Engine: `waitlisted` status + `close_waitlisted` action + `zone_full` in turn context; occupancy-aware scoring factor; amend ADR 0005; spec 002 note. Tests.
 - [x] T2 Config: `zone_staffing.yaml`, demand bands in `screening.yaml`, waitlist templates (3 registers). Loader validation.
 - [x] T3 API: `zone_staffing` table seeded from config, `/api/zones` GET/PATCH, live scoring in list/detail, hire → +1, `zone_full` passed when entering scheduling, seed personas incl. a waitlisted one. Tests.
-- [ ] T4 Frontend: Zonas page, factor display, waitlisted badge/colour, KPI, regenerate API types.
-- [ ] T5 README + ROADMAP + process-design note (new outcome "Lista de espera").
+- [x] T4 Frontend: Zonas page, factor display, waitlisted badge/colour, KPI, regenerate API types.
+- [x] T5 README + ROADMAP + process-design note (new outcome "Lista de espera").
