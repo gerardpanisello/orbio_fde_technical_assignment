@@ -1,13 +1,17 @@
 """Funnel numbers for the dashboard (FR-11). The SQL is in repo; the arithmetic is here."""
 
+from collections import Counter
 from statistics import median
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
 from sazon_screening.api.models import Conversation
-from sazon_screening.api.schemas import Analytics
+from sazon_screening.api.schemas import Analytics, FaqAnalytics, FaqQuestionCount
 from sazon_screening.vocab import DisqualificationReason, Status
+
+TOP_QUESTIONS = 10  # the analytics card lists this many
 
 # Reached an outcome a recruiter can act on. Not abandoned, opted out or still running.
 FINISHED = (
@@ -52,6 +56,35 @@ async def build_analytics(session: AsyncSession) -> Analytics:
         fallback_rate=_ratio(fallbacks, turns),
         avg_cost_usd=round(cost / total, 6) if total else 0.0,
         by_country=by_country,
+        faq=_faq(await repo.faq_traces(session)),
+    )
+
+
+def _faq(traces: list[dict[str, Any]]) -> FaqAnalytics:
+    """Answered questions count per entry; unanswered ones per (folded) wording, so the
+    client sees which questions the FAQ is missing."""
+    counts: Counter[tuple[str | None, str]] = Counter()
+    shown: dict[tuple[str | None, str], str] = {}  # first wording seen for each group
+    for faq in traces:
+        entry_ids = faq.get("entry_ids") or []
+        question = str(faq.get("question", "")).strip()
+        if faq.get("outcome") == "answered" and entry_ids:
+            key: tuple[str | None, str] = (entry_ids[0], "")
+            label = faq.get("entry_question") or question
+        else:
+            key, label = (None, question.casefold().strip(" ¿?¡!.")), question
+        counts[key] += 1
+        shown.setdefault(key, label)
+    asked = sum(counts.values())
+    answered = sum(n for (entry_id, _), n in counts.items() if entry_id is not None)
+    return FaqAnalytics(
+        asked=asked,
+        answered=answered,
+        unanswered_rate=_ratio(asked - answered, asked),
+        top_questions=[
+            FaqQuestionCount(entry_id=key[0], question=shown[key], count=n)
+            for key, n in counts.most_common(TOP_QUESTIONS)
+        ],
     )
 
 

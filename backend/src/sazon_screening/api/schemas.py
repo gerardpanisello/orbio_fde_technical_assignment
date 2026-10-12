@@ -199,6 +199,9 @@ class TraceOut(BaseModel):
     cost_usd: float
     fallback: bool  # the reply is the template, not the model's text
     extraction: str  # "ok" | "failed" | "skipped"
+    # Spec 009: the candidate asked something; "unanswered" is flagged for the recruiter.
+    # The question, retrieved ids and scores are in `trace["faq"]`.
+    faq: Literal["answered", "unanswered"] | None = None
     trace: dict[str, Any]  # the full turn trace (spec 003)
 
     @classmethod
@@ -217,6 +220,7 @@ class TraceOut(BaseModel):
             cost_usd=row.cost_usd,
             fallback=row.fallback,
             extraction=trace["extraction"]["outcome"],
+            faq=(trace.get("faq") or {}).get("outcome"),
             trace=trace,
         )
 
@@ -258,6 +262,21 @@ class CandidateDetail(BaseModel):
 # --- analytics (FR-11) -----------------------------------------------------------------
 
 
+class FaqQuestionCount(BaseModel):
+    entry_id: str | None  # None: no approved answer matched (flagged for a recruiter)
+    question: str  # the entry's own question, or the candidate's words when unanswered
+    count: int
+
+
+class FaqAnalytics(BaseModel):
+    """Spec 009: what candidates ask and how often Sofi had no approved answer."""
+
+    asked: int  # agent turns that answered a candidate's question
+    answered: int  # from the approved FAQ
+    unanswered_rate: float  # (asked - answered) / asked: the gaps in the FAQ
+    top_questions: list[FaqQuestionCount]  # most asked first
+
+
 class Analytics(BaseModel):
     total: int
     by_status: dict[Status, int]
@@ -270,6 +289,7 @@ class Analytics(BaseModel):
     fallback_rate: float  # agent replies that used the template instead of the model
     avg_cost_usd: float  # LLM cost per conversation, including summaries
     by_country: dict[str, dict[Status, int]]  # "unknown" when no country is known yet
+    faq: FaqAnalytics
 
 
 class SeedOut(BaseModel):

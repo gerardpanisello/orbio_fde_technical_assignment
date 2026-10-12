@@ -18,6 +18,7 @@ from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
 from sazon_screening.api.slots import load_slot_provider
 from sazon_screening.config import EngineConfig, ZoneStaffingConfig, load_config, load_zone_staffing
+from sazon_screening.faq import load_faq
 from sazon_screening.llm.client.fake import FakeLLMClient
 from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
@@ -106,6 +107,7 @@ def agent(fake_client: FakeLLMClient, shipped_config: EngineConfig) -> Screening
         llm_config=load_llm_config(SHIPPED_CONFIG_DIR),
         catalog=load_catalog(SHIPPED_CONFIG_DIR / "messages"),
         prompts=PromptRegistry(),
+        faq=load_faq(SHIPPED_CONFIG_DIR),
     )
 
 

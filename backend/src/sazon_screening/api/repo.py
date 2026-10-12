@@ -184,6 +184,16 @@ async def durations(
     return [(created, updated) for created, updated in await session.execute(query)]
 
 
+async def faq_traces(session: AsyncSession) -> list[dict[str, Any]]:
+    """The FAQ part of every agent turn that had a question (spec 009), oldest first."""
+    query = (
+        select(Message.trace_json["faq"])
+        .where(Message.role == "agent", Message.trace_json.is_not(None))
+        .order_by(Message.id)
+    )
+    return [faq for faq in (await session.scalars(query)).all() if isinstance(faq, dict)]
+
+
 async def turn_totals(session: AsyncSession) -> tuple[int, int, float]:
     """Agent replies: (turns, fallbacks, total cost in USD incl. summaries)."""
     fallbacks = func.coalesce(func.sum(Message.fallback.cast(Integer)), 0)
