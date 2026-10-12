@@ -30,6 +30,7 @@ export type ScoreResult = Schemas['ScoreResult']
 export type Zone = Schemas['ZoneOut']
 export type AdvanceResult = Schemas['AdvanceOut']
 export type ZonePatch = Schemas['ZonePatchIn']
+export type VoiceStatus = Schemas['VoiceStatus']
 
 type ListQuery = NonNullable<operations['list_candidates_api_candidates_get']['parameters']['query']>
 /** GET /api/candidates query: status, country, city, bucket, recruiter_status, q, sort. */
@@ -59,7 +60,7 @@ function validationText(detail: unknown): string {
   return JSON.stringify(detail)
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function send(path: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(path, {
     ...init,
     headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
@@ -76,7 +77,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiError(response.status, detail)
   }
-  return (await response.json()) as T
+  return response
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  return (await (await send(path, init)).json()) as T
 }
 
 const post = <T>(path: string, body?: unknown) =>
@@ -119,6 +124,17 @@ export const api = {
   listZones: () => request<Zone[]>('/api/zones?lang=es'),
   updateZone: (id: string, body: ZonePatch) =>
     patch<Zone>(`/api/zones/${encodeURIComponent(id)}?lang=es`, body),
+
+  // voice (spec 013): Sofi's voice via the backend's ElevenLabs proxy (503 -> browser voice)
+  voiceStatus: () => request<VoiceStatus>('/api/voice/status'),
+  tts: async (text: string, language: Language, country: Country | null, signal?: AbortSignal) =>
+    (
+      await send('/api/voice/tts', {
+        method: 'POST',
+        body: JSON.stringify({ text, language, country }),
+        signal,
+      })
+    ).blob(),
 
   health: () => request<{ status: string; llm_mode: string; env: string }>('/api/health'),
 

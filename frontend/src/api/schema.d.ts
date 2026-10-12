@@ -300,6 +300,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/voice/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Voice Status
+         * @description Lets the page show "voz: ElevenLabs / navegador" and skip doomed TTS calls.
+         */
+        get: operations["voice_status_api_voice_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/voice/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Text To Speech */
+        post: operations["text_to_speech_api_voice_tts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -903,6 +940,14 @@ export interface components {
              */
             created_at: string;
         };
+        /** TTSIn */
+        TTSIn: {
+            /** Text */
+            text: string;
+            /** @default es */
+            language: components["schemas"]["Language"];
+            country?: components["schemas"]["Country"] | null;
+        };
         /**
          * TraceOut
          * @description One agent turn, for the dashboard's "how did the agent get here" view.
@@ -967,6 +1012,19 @@ export interface components {
          * @enum {string}
          */
         VehicleType: "motorbike" | "car" | "bicycle" | "e_bike" | "none";
+        /**
+         * VoiceStatus
+         * @description `elevenlabs` when a key is configured; `browser` means use speechSynthesis.
+         */
+        VoiceStatus: {
+            /**
+             * Tts
+             * @enum {string}
+             */
+            tts: "elevenlabs" | "browser";
+            /** Model Id */
+            model_id: string | null;
+        };
         /**
          * ZoneOut
          * @description One served area: a zone, or a city served as a whole (then `id == city`).
@@ -1527,6 +1585,66 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+        };
+    };
+    voice_status_api_voice_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceStatus"];
+                };
+            };
+        };
+    };
+    text_to_speech_api_voice_tts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TTSIn"];
+            };
+        };
+        responses: {
+            /** @description Sofi's voice (mp3) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "audio/mpeg": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description No key or the provider failed: use the browser voice */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
