@@ -29,6 +29,11 @@ export function SummaryCard({ detail }: { detail: CandidateDetail }) {
     retry: (count, error) => !(error instanceof ApiError && error.status === 409) && count < 1,
   })
 
+  // The summary text is written at close; with live priority (spec 015) its score can be stale.
+  const atClose = detail.record.score
+  const live = detail.live_score
+  const stale = !!atClose && !!live && atClose.score !== live.score
+
   return (
     <section className="card p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -71,6 +76,12 @@ export function SummaryCard({ detail }: { detail: CandidateDetail }) {
         </p>
       ) : summary.data ? (
         <div className={summary.isFetching ? 'opacity-60' : ''}>
+          {stale && (
+            <p className="mb-3 text-xs text-stone-500">
+              Resumen generado al cerrar la conversación (puntuación de entonces: {atClose.score}).
+              Prioridad actual: {live.score}.
+            </p>
+          )}
           {summary.data.narrative && (
             <div className="mb-4 rounded-lg bg-brand-50/60 p-3">
               <p className="text-sm text-stone-800">{summary.data.narrative.overview}</p>
