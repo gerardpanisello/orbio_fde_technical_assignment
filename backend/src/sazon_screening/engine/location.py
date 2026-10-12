@@ -100,7 +100,9 @@ def _match(
     whole, *parts = _segments(text)
     if not whole:
         return NoMatch()
-    if hits := _hits_bare(whole, entries, threshold):
+    # Zones inside a phrase are looked for in each piece; in the whole text only when it
+    # has no pieces, so "Centro, Madrid" still lets the city pick which Centro is meant.
+    if hits := _hits_bare(whole, entries, threshold, contained=not parts):
         return _combine(hits, [], index)
     part_hits = [(part, _hits_bare(part, entries, threshold)) for part in parts]
     return _combine(
@@ -118,12 +120,34 @@ def _segments(text: str) -> list[str]:
     return [whole, *parts]
 
 
-def _hits_bare(segment: str, entries: tuple[IndexEntry, ...], threshold: int) -> list[IndexEntry]:
-    """Hits for the segment as written; failing that, without generic place words."""
+def _hits_bare(
+    segment: str, entries: tuple[IndexEntry, ...], threshold: int, *, contained: bool = True
+) -> list[IndexEntry]:
+    """Hits for the segment as written; failing that, without generic place words;
+    failing that, a zone name contained in it as whole words."""
     if hits := _hits(segment, entries, threshold):
         return hits
     bare = _PLACE_WORDS.sub("", segment, count=1)
-    return _hits(bare, entries, threshold) if bare and bare != segment else []
+    if bare and bare != segment and (hits := _hits(bare, entries, threshold)):
+        return hits
+    return _contained_zones(segment, entries) if contained else []
+
+
+def _contained_zones(segment: str, entries: tuple[IndexEntry, ...]) -> list[IndexEntry]:
+    """Zones named inside a longer phrase: "por gracia", "cerca de Chamberí", "Roma norte".
+
+    Zones only, never cities: in "Vallecas, Madrid" the city must stay a separate match so
+    the unknown zone ("vallecas") is still noticed. Short keys are skipped (too generic).
+    """
+    padded = f" {segment} "
+    return [
+        entry
+        for entry in entries
+        if entry.level == "zone"
+        and len(entry.key) >= _MIN_FUZZY_LENGTH
+        and entry.key != segment
+        and f" {entry.key} " in padded
+    ]
 
 
 def _hits(segment: str, entries: tuple[IndexEntry, ...], threshold: int) -> list[IndexEntry]:
@@ -178,11 +202,17 @@ def validate_location(
     country_hint: Country | None,
     current: LocationValue | None,
     pending_zone: bool,
+    check_unknown_zone: bool = False,
 ) -> Accepted[LocationValue] | Rejected | NeedsConfirmation:
     """Turn a location answer into a stored value, a re-ask or an ambiguity question.
 
     Ambiguity never disqualifies. Only a place the extractor knows is real, and that we
     do not serve, is stored as out of area (`in_service_area=False`); rules.py rejects it.
+
+    `check_unknown_zone`: the candidate is answering our location/zone question for the
+    first time. A zone we don't recognise in a served city then gets one re-ask listing
+    the zones we serve, instead of an immediate rejection: "por gracia" or a local name
+    for a served barrio must not cost someone the job. A second unknown zone is final.
     """
     index = config.location_index
     within_city = current.city if pending_zone and current is not None else None
@@ -203,10 +233,12 @@ def validate_location(
             return Accepted(served_value(ref, raw_text))
         case Matched(refs=refs):
             return NeedsConfirmation("ambiguous", options=refs)
-        case CityWithUnknownZone(city=city) if answer.is_known_place:
+        case CityWithUnknownZone(city=city) if answer.is_known_place and not check_unknown_zone:
             return Accepted(_unserved(raw_text, city))
         case CityWithUnknownZone(city=city):
             return Rejected(ReaskReason.not_recognised, options=_zone_ids(index, city.city))
+        case NoMatch() if answer.is_known_place and within_city and check_unknown_zone:
+            return _not_recognised(index, within_city)  # zone asked for: one more chance
         case NoMatch() if answer.is_known_place:
             return Accepted(_unserved(raw_text, None))
         case _:

@@ -143,7 +143,8 @@ class TestZone:
 
     def test_unserved_zone_answer_is_out_of_area(self, config: EngineConfig) -> None:
         c = at_location(config).say(loc("Madrid")).say(loc("Vallecas", known=True))
-        c.expect(CloseDisqualified, reason="out_of_area")
+        c.expect(ReaskField, field=FieldName.zone, reason=ReaskReason.not_recognised)
+        c.say(loc("Vallecas", known=True)).expect(CloseDisqualified, reason="out_of_area")
         assert c.state.drop_off_stage == Stage.location
 
     def test_zone_reask_lists_the_city_zones(self, config: EngineConfig) -> None:

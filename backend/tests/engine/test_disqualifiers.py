@@ -116,6 +116,9 @@ class TestOutOfArea:
     @pytest.mark.ac("AC-10")
     def test_unserved_zone_of_a_served_city(self, config: EngineConfig) -> None:
         c = at_location(config).say(loc("Vallecas, Madrid", known=True))
+        # One re-ask listing the zones we serve: it may be a local name for one of them.
+        c.expect(ReaskField, field=FieldName.location, reason=ReaskReason.not_recognised)
+        c.say(loc("Vallecas, Madrid", known=True))
         c.expect(CloseDisqualified, reason="out_of_area").expect_status(Status.disqualified)
         assert c.state.drop_off_stage == Stage.location
 

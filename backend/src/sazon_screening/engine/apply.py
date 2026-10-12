@@ -274,6 +274,17 @@ def _raise_confirmation(
     )
 
 
+def _first_location_answer(s: ConversationState) -> bool:
+    """We asked where (city or zone) and have not re-asked yet: an unknown zone gets one
+    re-ask listing the zones we serve before it can count as out of area (FR-19)."""
+    asked = s.pending.field
+    return (
+        s.pending.kind is PendingKind.ask
+        and asked in (FieldName.location, FieldName.zone)
+        and s.reasks.get(asked, 0) == 0
+    )
+
+
 def validate_proposal(
     s: ConversationState, proposal: Proposal, cfg: EngineConfig, today: date
 ) -> Outcome:
@@ -302,6 +313,7 @@ def validate_proposal(
                 country_hint=s.country_hint,
                 current=s.profile.location.value,
                 pending_zone=s.pending.field is FieldName.zone,
+                check_unknown_zone=_first_location_answer(s),
             )
         case AvailabilityProposal(value=value):
             return validate_availability(value)

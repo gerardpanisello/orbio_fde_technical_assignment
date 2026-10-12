@@ -361,3 +361,44 @@ class TestValidateZoneAnswer:
     ) -> None:
         value = accepted_value(validate("Coyoacán", config, current=madrid))
         assert value.zone == "cdmx-coyoacan"
+
+
+class TestZoneInsideAPhrase:
+    """Found in manual testing: "Barcelona, por gracia" disqualified a candidate who lives
+    in a served zone. A zone named inside a longer phrase must still match."""
+
+    @pytest.mark.parametrize(
+        "text", ["Madrid, por Chamberí", "cerca de chamberi, Madrid", "vivo por chamberí madrid"]
+    )
+    def test_zone_named_inside_a_phrase_is_matched(self, config: EngineConfig, text: str) -> None:
+        assert ref_ids(match(text, config, country_hint=Country.ES)) == ["mad-chamberi"]
+
+    def test_the_shipped_case_por_gracia(self) -> None:
+        shipped = load_config(SHIPPED_CONFIG_DIR)
+        result = match("Barcelona, por gracia, Barcelona", shipped, country_hint=Country.ES)
+        assert ref_ids(result) == ["bcn-gracia"]
+
+    def test_unknown_zone_with_a_city_is_still_noticed(self, config: EngineConfig) -> None:
+        # Containment only looks for zones, so "madrid" inside the text never hides Vallecas.
+        assert isinstance(match("Vallecas, Madrid", config), CityWithUnknownZone)
+
+
+class TestUnknownZoneGetsOneReask:
+    def test_first_answer_with_unknown_zone_is_reasked_with_served_zones(
+        self, config: EngineConfig
+    ) -> None:
+        outcome = validate_location(
+            LocationAnswer(text="Vallecas, Madrid", is_known_place=True),
+            config,
+            country_hint=None,
+            current=None,
+            pending_zone=False,
+            check_unknown_zone=True,
+        )
+        assert outcome == Rejected(ReaskReason.not_recognised, options=MADRID_ZONES)
+
+    def test_after_the_reask_a_known_unserved_zone_is_out_of_area(
+        self, config: EngineConfig
+    ) -> None:
+        value = accepted_value(validate("Vallecas, Madrid", config, known=True))
+        assert not value.in_service_area

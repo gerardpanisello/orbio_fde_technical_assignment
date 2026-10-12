@@ -39,7 +39,7 @@
 - **FR-19 Location:** raw location text is matched against config service areas by exact name, alias, then fuzzy match (configurable threshold, accent/case-insensitive) → `country`, `city`, `zone` IDs.
   - Matches ≥ 2 areas → narrow with `country_hint`; if still > 1 → `confirm_ambiguous(options)`.
   - City matched and served, zones defined but none given → ask zone.
-  - City matched but zone not served → disqualify `out_of_area`.
+  - City matched but zone not served → the **first** time the candidate answers our location/zone question, one `reask_field(not_recognised)` listing the served zones (it may be a local name or a phrase such as "por Gràcia"); a second unknown zone that is a real place → disqualify `out_of_area`. Out-of-order answers and recap corrections are not re-asked. Zone names contained as whole words in a longer phrase ("cerca de Chamberí") match. *(Changed 2026-10-12 after manual testing: "Barcelona, por gracia" was wrongly disqualified.)*
   - A location proposal carries `is_known_place` (set by the extractor: is this text a real place?).
   - Not matched **and** `is_known_place = true` (e.g. "Zaragoza") → disqualify `out_of_area` immediately.
   - Not matched **and** `is_known_place = false` (typo, gibberish) → treated as `unclear`: `reask_field(reason=not_recognised)` listing served cities, under the normal re-ask policy (FR-23/24) → exhausted → `needs_review`. Ambiguity never disqualifies.
@@ -104,7 +104,7 @@ Unless stated otherwise: default config (license required for all vehicles, min 
 - [x] AC-7: Given vehicle = motorbike, when has_license = false, then the candidate is disqualified with reason `no_license`.
 - [x] AC-8: Given config where bicycle does not require a license, when vehicle = bicycle, then license is not asked, is stored as `not_required`, and the next action is `ask_field(location)`.
 - [x] AC-9: Given that bicycle config and vehicle unknown, when has_license = false, then the candidate is not disqualified and the action is `ask_field(vehicle_type)`; when vehicle = motorbike follows, then the candidate is disqualified (`no_license`).
-- [x] AC-10: Given city Madrid with configured zones, when location is a Madrid zone not in the list, then the candidate is disqualified with reason `out_of_area`.
+- [x] AC-10: Given city Madrid with configured zones, when location is a real Madrid zone not in the list, then the first answer gets one re-ask listing the served zones, and a second such answer disqualifies with reason `out_of_area`.
 - [x] AC-11: Given the location stage, when "Zaragoza" is proposed with `is_known_place = true`, then the candidate is disqualified (`out_of_area`). When "xjkq" is proposed with `is_known_place = false`, then the action is `reask_field(location, reason=not_recognised)` with the served cities as options, and after the re-asks are exhausted the outcome at recap is `needs_review` (never `disqualified`).
 
 **Location matching**
