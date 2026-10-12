@@ -17,7 +17,7 @@ from sazon_screening.api.db import Sessions, create_tables, make_engine, make_se
 from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
 from sazon_screening.api.slots import load_slot_provider
-from sazon_screening.config import EngineConfig, load_config
+from sazon_screening.config import EngineConfig, ZoneStaffingConfig, load_config, load_zone_staffing
 from sazon_screening.llm.client.fake import FakeLLMClient
 from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
@@ -70,6 +70,11 @@ def shipped_config() -> EngineConfig:
     return load_config(SHIPPED_CONFIG_DIR)
 
 
+@pytest.fixture(scope="session")
+def staffing_seed(shipped_config: EngineConfig) -> ZoneStaffingConfig:
+    return load_zone_staffing(SHIPPED_CONFIG_DIR, shipped_config.service_areas)
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> AppSettings:
     return AppSettings(
@@ -105,8 +110,17 @@ def agent(fake_client: FakeLLMClient, shipped_config: EngineConfig) -> Screening
 
 
 @pytest.fixture
-def service(agent: ScreeningAgent, sessions: Sessions, clock: TickingClock) -> ScreeningService:
-    return ScreeningService(agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), clock)
+async def service(
+    agent: ScreeningAgent,
+    sessions: Sessions,
+    clock: TickingClock,
+    staffing_seed: ZoneStaffingConfig,
+) -> ScreeningService:
+    service = ScreeningService(
+        agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), clock, staffing_seed
+    )
+    await service.init_zone_staffing()  # as the app does at startup
+    return service
 
 
 @pytest.fixture

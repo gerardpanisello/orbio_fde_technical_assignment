@@ -231,7 +231,9 @@ class ScreeningAgent:
 
     def _turn_context(self, context: TurnContextIn) -> TurnContext:
         slot_ids = [slot.id for slot in context.slots] if context.slots else None
-        return TurnContext(country_hint=context.country_hint, offered_slots=slot_ids)
+        return TurnContext(
+            country_hint=context.country_hint, offered_slots=slot_ids, zone_full=context.zone_full
+        )
 
     def _render_context(
         self,

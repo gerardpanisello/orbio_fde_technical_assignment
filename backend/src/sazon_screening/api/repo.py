@@ -12,7 +12,13 @@ from typing import Any, Literal
 from sqlalchemy import ColumnElement, Integer, Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
+from sazon_screening.api.models import (
+    Conversation,
+    Message,
+    RecruiterAction,
+    SummaryRow,
+    ZoneStaffing,
+)
 
 REDACTED = "[deleted: the candidate opted out]"
 
@@ -23,7 +29,9 @@ async def get_conversation(session: AsyncSession, conversation_id: str) -> Conve
     return await session.get(Conversation, conversation_id)
 
 
-def add(session: AsyncSession, row: Conversation | Message | RecruiterAction) -> None:
+def add(
+    session: AsyncSession, row: Conversation | Message | RecruiterAction | ZoneStaffing
+) -> None:
     session.add(row)
 
 
@@ -71,6 +79,38 @@ async def list_actions(session: AsyncSession, conversation_id: str) -> Sequence[
         .order_by(RecruiterAction.id)
     )
     return (await session.scalars(query)).all()
+
+
+async def has_action(session: AsyncSession, conversation_id: str, action: str) -> bool:
+    query = select(func.count()).where(
+        RecruiterAction.conversation_id == conversation_id, RecruiterAction.action == action
+    )
+    return bool(await session.scalar(query))
+
+
+# --- zone staffing (spec 015) ----------------------------------------------------------
+
+
+async def list_staffing(session: AsyncSession) -> Sequence[ZoneStaffing]:
+    return (await session.scalars(select(ZoneStaffing))).all()
+
+
+async def get_staffing(session: AsyncSession, area_id: str) -> ZoneStaffing | None:
+    return await session.get(ZoneStaffing, area_id)
+
+
+async def staffing_is_empty(session: AsyncSession) -> bool:
+    return not await session.scalar(select(func.count()).select_from(ZoneStaffing))
+
+
+async def count_by_area_and_status(
+    session: AsyncSession, statuses: Sequence[str]
+) -> list[tuple[str | None, str | None, str, int]]:
+    """(city, zone, status, count) for conversations in `statuses`: the pipeline per area."""
+    columns = (Conversation.city, Conversation.zone, Conversation.status)
+    query = select(*columns, func.count()).where(Conversation.status.in_(statuses))
+    rows = await session.execute(query.group_by(*columns))
+    return [(city, zone, status, count) for city, zone, status, count in rows]
 
 
 # --- candidate list (FR-6, FR-10) ------------------------------------------------------

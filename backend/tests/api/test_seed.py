@@ -15,7 +15,7 @@ from sazon_screening.api.seed import PERSONAS, seed
 from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
 from sazon_screening.api.slots import load_slot_provider
-from sazon_screening.config import EngineConfig
+from sazon_screening.config import EngineConfig, ZoneStaffingConfig
 from sazon_screening.llm.client.fake import FakeLLMClient
 from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
@@ -30,6 +30,7 @@ EXPECTED_STATUS = {
     "booked_en": "interview_scheduled",
     "unscheduled": "qualified_unscheduled",
     "unscheduled_silent": "qualified_unscheduled",
+    "waitlisted": "waitlisted",
     "under_age": "disqualified",
     "no_license": "disqualified",
     "out_of_area_es": "disqualified",
@@ -46,7 +47,9 @@ Seeder = Callable[[int, int], Awaitable[list[tuple[Any, ...]]]]
 
 
 @pytest.fixture
-async def seeded_snapshot(tmp_path: Path, agent: ScreeningAgent) -> AsyncIterator[Seeder]:
+async def seeded_snapshot(
+    tmp_path: Path, agent: ScreeningAgent, staffing_seed: ZoneStaffingConfig
+) -> AsyncIterator[Seeder]:
     """Seed a fresh database and return what the dashboard would see, oldest first."""
     engines = []
 
@@ -57,7 +60,11 @@ async def seeded_snapshot(tmp_path: Path, agent: ScreeningAgent) -> AsyncIterato
         await create_tables(engine)
         sessions = make_sessions(engine)
         service = ScreeningService(
-            agent, sessions, load_slot_provider(SHIPPED_CONFIG_DIR), TickingClock()
+            agent,
+            sessions,
+            load_slot_provider(SHIPPED_CONFIG_DIR),
+            TickingClock(),
+            staffing_seed,
         )
         ids = await seed(service, n, seed=seed_value, now=START)
         snapshot = []
@@ -124,7 +131,13 @@ async def test_analytics_on_seeded_data_add_up(client: AsyncClient) -> None:
     assert sum(analytics["disqualification_reasons"].values()) == by_status["disqualified"]
     finished = sum(
         by_status.get(s, 0)
-        for s in ("interview_scheduled", "qualified_unscheduled", "disqualified", "needs_review")
+        for s in (
+            "interview_scheduled",
+            "qualified_unscheduled",
+            "waitlisted",
+            "disqualified",
+            "needs_review",
+        )
     )
     assert analytics["finished"] == finished
     assert analytics["completion_rate"] == round(finished / 30, 4)

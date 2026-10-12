@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from sazon_screening.api.db import create_tables, make_engine, make_sessions
-from sazon_screening.api.routes import analytics, candidates, conversations, dev, meta
+from sazon_screening.api.routes import analytics, candidates, conversations, dev, meta, zones
 from sazon_screening.api.service import (
     Clock,
     ConversationNotFound,
@@ -27,6 +27,7 @@ from sazon_screening.api.service import (
 )
 from sazon_screening.api.settings import AppSettings, load_app_settings
 from sazon_screening.api.slots import load_slot_provider
+from sazon_screening.config import load_zone_staffing
 from sazon_screening.llm.pipeline import ScreeningAgent, build_agent
 
 logger = logging.getLogger("sazon_screening.api")
@@ -47,12 +48,17 @@ def create_app(
         engine = make_engine(settings.database_url)
         await create_tables(engine)
         app.state.sessions = make_sessions(engine)
+        screening_agent = agent or build_agent(settings.llm)
         app.state.service = ScreeningService(
-            agent or build_agent(settings.llm),
+            screening_agent,
             app.state.sessions,
             load_slot_provider(settings.llm.config_dir),
             clock,
+            load_zone_staffing(
+                settings.llm.config_dir, screening_agent.engine_config.service_areas
+            ),
         )
+        await app.state.service.init_zone_staffing()  # spec 015: only into an empty table
         yield
         await engine.dispose()
 
@@ -75,6 +81,7 @@ def create_app(
     app.include_router(conversations.router)
     app.include_router(candidates.router)
     app.include_router(analytics.router)
+    app.include_router(zones.router)
     app.include_router(meta.router)
     app.include_router(dev.router)
     return app

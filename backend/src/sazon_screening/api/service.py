@@ -22,7 +22,9 @@ from sazon_screening.api import repo
 from sazon_screening.api.db import Sessions
 from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
 from sazon_screening.api.slots import SlotProvider
-from sazon_screening.config import EngineConfig
+from sazon_screening.api.staffing import Staffing, area_of_row, area_of_state, load_staffing
+from sazon_screening.api.staffing import seed_staffing as insert_seed
+from sazon_screening.config import EngineConfig, ZoneStaffingConfig
 from sazon_screening.engine import CandidateRecord, ConversationState, build_record
 from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
 from sazon_screening.llm.pipeline import Event, ScreeningAgent
@@ -69,11 +71,13 @@ class ScreeningService:
         sessions: Sessions,
         slots: SlotProvider,
         clock: Clock = utc_now,
+        staffing_seed: ZoneStaffingConfig | None = None,
     ) -> None:
         self._agent = agent
         self._sessions = sessions
         self._slots = slots
         self._clock = clock
+        self._staffing_seed = staffing_seed  # spec 015: written to an empty table at startup
         # FR-4: one turn at a time per conversation. Per process: enough for one instance
         # (several instances need a DB row lock or a queue; deployment design, 014).
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -83,7 +87,20 @@ class ScreeningService:
 
     def with_agent(self, agent: ScreeningAgent) -> "ScreeningService":
         """The same database, slots and clock behind another agent (the offline demo seed)."""
-        return ScreeningService(agent, self._sessions, self._slots, self._clock)
+        return ScreeningService(
+            agent, self._sessions, self._slots, self._clock, self._staffing_seed
+        )
+
+    async def init_zone_staffing(self) -> bool:
+        """Seed `zone_staffing` from config if the table is empty (spec 015 FR-1).
+
+        Idempotent: after the first start the database is the source of truth, so edits
+        made in the dashboard are never overwritten by the YAML. True if it inserted.
+        """
+        if self._staffing_seed is None:
+            return False
+        async with self._sessions.begin() as session:
+            return await insert_seed(session, self._staffing_seed, self._clock())
 
     # --- candidate side ------------------------------------------------------------------
 
@@ -116,12 +133,13 @@ class ScreeningService:
         async with self._locks[conversation_id]:
             now = at or self._clock()
             state, history = await self._load(conversation_id)
+            zone_full = await self._zone_full(state, conversation_id)
             result = await self._agent.handle_message(
                 state,
                 InboundMessage(text=text),
                 history,
                 today=now.date(),
-                context=self._context(state.country_hint, now),
+                context=self._context(state.country_hint, now, zone_full=zone_full),
                 conversation_id=conversation_id,
             )
             return await self._save_turn(conversation_id, text, result, now)
@@ -133,11 +151,12 @@ class ScreeningService:
         async with self._locks[conversation_id]:
             now = at or self._clock()
             state, _ = await self._load(conversation_id)
+            zone_full = await self._zone_full(state, conversation_id)
             result = await self._agent.handle_event(
                 state,
                 event,
                 today=now.date(),
-                context=self._context(state.country_hint, now),
+                context=self._context(state.country_hint, now, zone_full=zone_full),
                 conversation_id=conversation_id,
             )
             return await self._save_turn(conversation_id, None, result, now)
@@ -208,6 +227,8 @@ class ScreeningService:
                 raise NotAllowed("override is only for disqualified or needs_review candidates")
             if status is Status.opted_out and action in ("shortlist", "hire", "override"):
                 raise NotAllowed("the candidate opted out: do not contact")
+            if action == "hire" and not await repo.has_action(session, conversation_id, "hire"):
+                await self._add_hired_driver(session, conversation)
             if action in RECRUITER_STATUS:
                 conversation.recruiter_status = RECRUITER_STATUS[action]
             if action == "override":
@@ -220,8 +241,44 @@ class ScreeningService:
 
     # --- helpers -------------------------------------------------------------------------
 
-    def _context(self, country_hint: Country | None, now: datetime) -> TurnContextIn:
-        return TurnContextIn(country_hint=country_hint, slots=self._slots.slots(now.date()))
+    async def _add_hired_driver(self, session: AsyncSession, conversation: Conversation) -> None:
+        """FR-5: the first "hire" of a candidate adds one driver to their area, once.
+
+        A second "hire" of the same candidate changes nothing (the caller checks the action
+        history); undoing a hire is a manual edit on the "Zonas" page. An area without
+        staffing data stays without data.
+        """
+        area_id = area_of_row(conversation)
+        row = await repo.get_staffing(session, area_id) if area_id else None
+        if row is None:
+            logger.info("hire without staffing data (conversation %s)", conversation.id)
+            return
+        row.current_drivers += 1
+        row.updated_at = self._clock()
+
+    async def _zone_full(self, state: ConversationState, conversation_id: str) -> bool:
+        """Spec 015 FR-4: is the candidate's area at or above target right now?
+
+        Sent on every turn; the engine only reads it when the recap is confirmed. A
+        staffing read that fails must not break the conversation: slots are offered as before.
+        """
+        area_id = area_of_state(state)
+        if area_id is None:
+            return False
+        try:
+            async with self._sessions() as session:
+                row = await repo.get_staffing(session, area_id)
+            return Staffing({area_id: row} if row else {}).is_full(area_id)
+        except Exception:
+            logger.exception("staffing lookup failed (conversation %s)", conversation_id)
+            return False
+
+    def _context(
+        self, country_hint: Country | None, now: datetime, *, zone_full: bool = False
+    ) -> TurnContextIn:
+        return TurnContextIn(
+            country_hint=country_hint, slots=self._slots.slots(now.date()), zone_full=zone_full
+        )
 
     async def _load(self, conversation_id: str) -> tuple[ConversationState, list[TranscriptEntry]]:
         async with self._sessions() as session:
@@ -237,7 +294,8 @@ class ScreeningService:
             conversation = await self._get(session, conversation_id)
             previous = conversation.status
             self._add_messages(session, conversation_id, text, result, now)
-            self._copy_state(conversation, result.state, now)
+            staffing = await load_staffing(session)
+            self._copy_state(conversation, result.state, now, staffing)
             if conversation.status != previous:
                 await repo.delete_summaries(session, conversation_id)  # they describe the past
             if result.state.status is Status.opted_out:
@@ -292,9 +350,20 @@ class ScreeningService:
                 ),
             )
 
-    def _copy_state(self, row: Conversation, state: ConversationState, now: datetime) -> None:
-        """Store the state and record, and copy the columns the dashboard filters on."""
-        record = build_record(state, self._agent.engine_config)
+    def _copy_state(
+        self,
+        row: Conversation,
+        state: ConversationState,
+        now: datetime,
+        staffing: Staffing | None = None,
+    ) -> None:
+        """Store the state and record, and copy the columns the dashboard filters on.
+
+        The record's score uses the area's occupancy at this moment: it is the score at
+        close, kept for audit; the dashboard shows a live one (spec 015 FR-6).
+        """
+        occupancy = staffing.ratio(area_of_state(state)) if staffing else None
+        record = build_record(state, self._agent.engine_config, occupancy=occupancy)
         location = state.profile.location.value
         row.updated_at = now
         row.status = state.status.value

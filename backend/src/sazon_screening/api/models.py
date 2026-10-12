@@ -83,6 +83,18 @@ class SummaryRow(Base):
     cost_usd: Mapped[float] = mapped_column(default=0.0)
 
 
+class ZoneStaffing(Base):
+    """Drivers per served area (spec 015). Seeded once from config/zone_staffing.yaml; then
+    the source of truth, edited from the dashboard and by "hire" (+1)."""
+
+    __tablename__ = "zone_staffing"
+
+    area_id: Mapped[str] = mapped_column(String(64), primary_key=True)  # zone or city id
+    target_drivers: Mapped[int]
+    current_drivers: Mapped[int]
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
 class RecruiterAction(Base):
     __tablename__ = "recruiter_actions"
 

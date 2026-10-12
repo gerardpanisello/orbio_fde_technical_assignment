@@ -25,6 +25,7 @@ class TurnContextIn(_Frozen):
 
     country_hint: Country | None = None  # e.g. from the phone prefix
     slots: list[SlotDisplay] | None = None  # interview slots on offer (010; the demo for now)
+    zone_full: bool = False  # the candidate's area is fully staffed (spec 015; from 004)
 
     def slot_map(self) -> dict[str, SlotDisplay]:
         return {slot.id: slot for slot in self.slots or []}

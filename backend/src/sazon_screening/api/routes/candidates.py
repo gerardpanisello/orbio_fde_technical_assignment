@@ -6,9 +6,11 @@ service redacted their transcript, so there is no PII left to show (002 FR-11).
 
 import csv
 import io
+from dataclasses import replace
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
 from sazon_screening.api.deps import ServiceDep, SessionDep
@@ -24,6 +26,8 @@ from sazon_screening.api.schemas import (
     TraceOut,
 )
 from sazon_screening.api.service import ConversationNotFound
+from sazon_screening.api.staffing import load_staffing
+from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord
 from sazon_screening.vocab import Bucket, Country, Language, Status
 
@@ -53,14 +57,38 @@ def candidate_filters(
 FiltersDep = Annotated[CandidateFilters, Depends(candidate_filters)]
 
 
+async def live_rows(
+    session: AsyncSession, filters: CandidateFilters, config: EngineConfig
+) -> list[CandidateRow]:
+    """Rows with the live score and bucket (spec 015 FR-6).
+
+    Score and bucket depend on today's occupancy, so they are not SQL columns: the other
+    filters run in SQL, then the bucket filter and the score sort run here. Fine at this
+    scale (~1000 applications a week, one dashboard page); with many thousands of rows,
+    store a per-area score offset or page in SQL by the at-close score instead.
+    """
+    rows = await repo.list_candidates(session, replace(filters, bucket=None))
+    staffing = await load_staffing(session)
+    candidates = [CandidateRow.of(row, staffing=staffing, config=config) for row in rows]
+    if filters.bucket:
+        candidates = [c for c in candidates if c.bucket == filters.bucket]
+    if filters.sort in ("score", "-score"):
+        sign = -1 if filters.sort == "-score" else 1
+        # Unscored candidates always go last; the id breaks ties so the order is stable.
+        candidates.sort(key=lambda c: (c.score is None, sign * (c.score or 0), c.id))
+    return candidates
+
+
 @router.get("")
-async def list_candidates(filters: FiltersDep, session: SessionDep) -> list[CandidateRow]:
-    return [CandidateRow.of(row) for row in await repo.list_candidates(session, filters)]
+async def list_candidates(
+    filters: FiltersDep, session: SessionDep, service: ServiceDep
+) -> list[CandidateRow]:
+    return await live_rows(session, filters, service.engine_config)
 
 
 @router.get("/export.csv", response_class=Response)
-async def export_csv(filters: FiltersDep, session: SessionDep) -> Response:
-    rows = [CandidateRow.of(row) for row in await repo.list_candidates(session, filters)]
+async def export_csv(filters: FiltersDep, session: SessionDep, service: ServiceDep) -> Response:
+    rows = await live_rows(session, filters, service.engine_config)
     out = io.StringIO()
     writer = csv.DictWriter(out, fieldnames=list(CandidateRow.model_fields))
     writer.writeheader()
@@ -85,9 +113,15 @@ async def get_candidate(
     language = service.default_summary_language.value
     summary = await repo.get_summary(session, conversation_id, language)
     traces = [TraceOut.of(m) for m in messages]
+    record = CandidateRecord.model_validate(row.record_json)
+    staffing = await load_staffing(session)
+    candidate, live = CandidateRow.from_record(
+        row, record, staffing=staffing, config=service.engine_config
+    )
     return CandidateDetail(
-        candidate=CandidateRow.of(row),
-        record=CandidateRecord.model_validate(row.record_json),
+        candidate=candidate,
+        record=record,
+        live_score=live,
         summary=SummaryOut.of(summary) if summary else None,
         transcript=[MessageOut.of(m) for m in messages],
         traces=[t for t in traces if t is not None],

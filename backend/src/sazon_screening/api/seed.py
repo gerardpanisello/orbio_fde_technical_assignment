@@ -60,15 +60,16 @@ EXPERIENCE = [
 START = ["el lunes", "en 2 semanas", "ya", "en 3 días", "en 1 semana"]
 
 
-def _screening(rng: random.Random, *, mexico: bool = False) -> list[str]:
+def _screening(rng: random.Random, *, mexico: bool = False, place: str | None = None) -> list[str]:
     """A Spanish-speaking candidate who answers everything, up to the recap confirmation."""
+    random_place = rng.choice(MX_PLACES if mexico else ES_PLACES)
     return [
         rng.choice(["sí", "sí, acepto", "vale"]),
         f"Me llamo {rng.choice(MX_NAMES if mexico else ES_NAMES)}",
         f"tengo {rng.randint(19, 48)}",
         rng.choice(["moto", "carro" if mexico else "coche"]),
         "sí",
-        rng.choice(MX_PLACES if mexico else ES_PLACES),
+        place or random_place,
         rng.choice(
             ["medio tiempo" if mexico else "media jornada", "tiempo completo", "fines de semana"]
         ),
@@ -118,6 +119,8 @@ PERSONAS = [
     Persona("booked_en", 2, _english, language=Language.en),
     Persona("unscheduled", 2, lambda r: [*_screening(r), "ninguna me va bien"]),
     Persona("unscheduled_silent", 1, _first(11), silent_at_end=True),
+    # Salamanca is fully staffed in zone_staffing.yaml: waitlisted, no slots (spec 015).
+    Persona("waitlisted", 2, lambda r: _screening(r, place="Salamanca, Madrid")),
     Persona("under_age", 2, lambda r: [*_screening(r)[:2], f"tengo {r.choice([16, 17])}"]),
     Persona("no_license", 2, lambda r: [*_screening(r)[:4], "no"]),
     Persona("out_of_area_es", 1, lambda r: [*_screening(r)[:5], "vivo en Zaragoza"]),
@@ -144,6 +147,7 @@ PERSONAS = [
 
 async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -> list[str]:
     """Create `n` conversations; every persona appears once before any repeats."""
+    await service.init_zone_staffing()  # the waitlist persona needs staffing data
     rng = random.Random(seed)
     weights = [p.weight for p in PERSONAS]
     chosen = PERSONAS[:n] + rng.choices(PERSONAS, weights=weights, k=max(0, n - len(PERSONAS)))

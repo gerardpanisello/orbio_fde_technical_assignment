@@ -3,11 +3,13 @@
 from datetime import date, datetime
 from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
 from sazon_screening.api.service import ActionName, TurnOutcome
-from sazon_screening.engine import CandidateRecord
+from sazon_screening.api.staffing import Staffing, area_of_row, live_score
+from sazon_screening.config import EngineConfig
+from sazon_screening.engine import CandidateRecord, ScoreResult
 from sazon_screening.llm.summary.facts import SummaryFact
 from sazon_screening.llm.summary.summarizer import NarrativeOutput
 from sazon_screening.vocab import (
@@ -105,8 +107,10 @@ class CandidateRow(BaseModel):
     zone: str | None
     status: Status
     disqualification_reason: DisqualificationReason | None
-    bucket: Bucket | None
-    score: int | None
+    bucket: Bucket | None  # live: zone demand at today's occupancy (spec 015 FR-6)
+    score: int | None  # live
+    score_at_close: int | None  # as stored when the conversation last changed (audit)
+    bucket_at_close: Bucket | None
     vehicle_type: VehicleType | None
     availability: list[Availability] | None
     schedule: list[ScheduleSlot] | None
@@ -121,10 +125,25 @@ class CandidateRow(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def of(cls, row: Conversation) -> Self:
-        fields = CandidateRecord.model_validate(row.record_json).fields
+    def of(cls, row: Conversation, *, staffing: Staffing, config: EngineConfig) -> Self:
+        return cls.from_record(
+            row, CandidateRecord.model_validate(row.record_json), staffing=staffing, config=config
+        )[0]
+
+    @classmethod
+    def from_record(
+        cls,
+        row: Conversation,
+        record: CandidateRecord,
+        *,
+        staffing: Staffing,
+        config: EngineConfig,
+    ) -> tuple[Self, ScoreResult | None]:
+        """The row, plus the live score it shows (the detail view lists its factors)."""
+        live = live_score(record, area_of_row(row), staffing, config)
+        fields = record.fields
         experience = fields.experience.value
-        return cls.model_validate(
+        candidate = cls.model_validate(
             {
                 "id": row.id,
                 "full_name": row.full_name,
@@ -133,8 +152,10 @@ class CandidateRow(BaseModel):
                 "zone": row.zone,
                 "status": row.status,
                 "disqualification_reason": row.disqualification_reason,
-                "bucket": row.bucket,
-                "score": row.score,
+                "bucket": live.bucket if live else None,
+                "score": live.score if live else None,
+                "score_at_close": row.score,
+                "bucket_at_close": row.bucket,
                 "vehicle_type": fields.vehicle_type.value,
                 "availability": fields.availability.value,
                 "schedule": fields.schedule.value,
@@ -149,6 +170,7 @@ class CandidateRow(BaseModel):
                 "updated_at": row.updated_at,
             }
         )
+        return candidate, live
 
 
 class SummaryOut(BaseModel):
@@ -225,7 +247,8 @@ class ActionOut(BaseModel):
 
 class CandidateDetail(BaseModel):
     candidate: CandidateRow
-    record: CandidateRecord  # spec 002 schema
+    record: CandidateRecord  # spec 002 schema; `record.score` is the score at close
+    live_score: ScoreResult | None  # the same factors, zone demand at today's occupancy
     summary: SummaryOut | None  # default language; None while in progress or being written
     transcript: list[MessageOut]
     traces: list[TraceOut]
@@ -238,7 +261,7 @@ class CandidateDetail(BaseModel):
 class Analytics(BaseModel):
     total: int
     by_status: dict[Status, int]
-    finished: int  # reached an outcome: booked, qualified, disqualified or needs_review
+    finished: int  # reached an outcome: booked, qualified, waitlisted, disqualified, review
     completion_rate: float  # finished / total
     drop_off_by_stage: dict[str, int]  # abandoned conversations only
     median_duration_s: float | None  # finished conversations: first to last message
@@ -252,6 +275,46 @@ class Analytics(BaseModel):
 class SeedOut(BaseModel):
     created: int
     ids: list[str]
+
+
+# --- zones (spec 015) --------------------------------------------------------------------
+
+
+class ZonePipeline(BaseModel):
+    """Qualified candidates in the area, by status."""
+
+    qualified_unscheduled: int
+    interview_scheduled: int
+    waitlisted: int
+
+
+class ZoneOut(BaseModel):
+    """One served area: a zone, or a city served as a whole (then `id == city`)."""
+
+    id: str
+    name: str  # display name in the requested language, e.g. "Salamanca"
+    city: str  # config city id
+    city_name: str
+    country: Country
+    target_drivers: int | None  # None: no staffing data (no bonus, never waitlisted)
+    current_drivers: int | None
+    occupancy_pct: int | None  # current / target, rounded down; a target of 0 reads 100
+    full: bool  # occupancy >= 100 %: new qualified candidates are waitlisted
+    pipeline: ZonePipeline
+    updated_at: datetime | None
+
+
+class ZonePatchIn(_In):
+    """Either or both. On an area without data, the missing number starts at 0."""
+
+    target_drivers: int | None = Field(default=None, ge=0)
+    current_drivers: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _something_to_change(self) -> Self:
+        if self.target_drivers is None and self.current_drivers is None:
+            raise ValueError("give target_drivers, current_drivers or both")
+        return self
 
 
 # --- labels for config ids ---------------------------------------------------------------
