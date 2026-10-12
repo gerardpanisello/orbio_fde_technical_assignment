@@ -1,0 +1,46 @@
+# Grupo Sazón: Sofi's voice for the browser voice agent (spec 013).
+#
+# Ops can edit this file without touching code; the API reads it on the first voice
+# request. Bump `version` on every change.
+#
+# Text-to-speech goes through our backend (POST /api/voice/tts) to ElevenLabs, so the
+# API key (ELEVENLABS_API_KEY, environment only) never reaches the browser. Without a
+# key, or if ElevenLabs fails, the page falls back to the browser's own voice.
+#
+# What you can change:
+#   - model_id: an ElevenLabs text-to-speech model that speaks Spanish and English.
+#     eleven_multilingual_v2 (default: natural, reads numbers and dates well) or
+#     eleven_flash_v2_5 (lower latency, cheaper, weaker number reading).
+#   - output_format: mp3 only (the endpoint answers audio/mpeg). mp3_44100_64 is plenty
+#     for a voice and halves the download of the 128 kbps default.
+#   - voices: voice id per language, and optionally per country register ("es-MX").
+#     The most specific key wins: "es-MX" -> "es". Copy an id from ElevenLabs
+#     (My Voices -> ... -> Copy voice ID). ELEVENLABS_VOICE_ID overrides them all.
+#     NOTE: the default below is "Sarah" (warm, multilingual), an ElevenLabs Default
+#     voice. ElevenLabs only offers Default voices to accounts created before March 2026
+#     and retires them on 2026-12-31; its suggested replacement is "Talia - Warm Soft
+#     Guide". With a newer account, add Talia (or another warm female voice that speaks
+#     Spanish) from the Voice Library and paste its id here.
+#   - voice_settings: ElevenLabs per-request settings (0..1, speed 0.7..1.2).
+#   - max_text_chars: longer texts are refused (422): one reply, not a document.
+#   - cache_entries: identical (voice, model, text) audio is kept in memory, so repeated
+#     prompts ("¿Tienes carné?") cost credits once.
+#   - timeout_seconds: after this the page uses the browser voice instead.
+version: "2026-10-13.1"
+
+model_id: eleven_multilingual_v2
+output_format: mp3_44100_64
+
+voices:
+  es: EXAVITQu4vr4xnSDxMaL  # Sarah (Default voice, see NOTE)
+  en: EXAVITQu4vr4xnSDxMaL
+
+voice_settings:
+  stability: 0.5
+  similarity_boost: 0.75
+  style: 0.0
+  speed: 1.0
+
+max_text_chars: 1200
+cache_entries: 256
+timeout_seconds: 12

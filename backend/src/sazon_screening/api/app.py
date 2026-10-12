@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from sazon_screening.api.db import create_tables, make_engine, make_sessions
 from sazon_screening.api.routes import analytics, candidates, conversations, dev, meta, zones
+from sazon_screening.api.routes.voice import router as voice_router
 from sazon_screening.api.service import (
     Clock,
     ConversationNotFound,
@@ -100,6 +101,7 @@ def create_app(
     app.include_router(zones.router)
     app.include_router(meta.router)
     app.include_router(dev.router)
+    app.include_router(voice_router)  # spec 013
     return app
 
 

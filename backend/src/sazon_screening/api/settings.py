@@ -8,7 +8,7 @@ import os
 from collections.abc import Mapping
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from sazon_screening.llm.settings import Settings, SettingsError, load_settings
 
@@ -28,11 +28,15 @@ class AppSettings(BaseModel):
     # environment (where it defaults to on), so tests drive the scheduler themselves.
     reengagement_scheduler: bool = False
     reengagement_time_scale: float = Field(1.0, gt=0)  # 60: an hour of schedule per minute
+    # Spec 013: Sofi's voice. No key -> the voice page uses the browser's own voice.
+    elevenlabs_api_key: SecretStr | None = None
+    elevenlabs_voice_id: str | None = None  # overrides config/voice.yaml
 
 
 def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
     """Read DATABASE_URL, APP_ENV, CORS_ORIGINS (comma-separated), REENGAGEMENT_SCHEDULER
-    (on/off) and REENGAGEMENT_TIME_SCALE on top of the LLM ones."""
+    (on/off), REENGAGEMENT_TIME_SCALE, ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID on top of
+    the LLM ones."""
     app_env = environ.get("APP_ENV", "").strip() or "dev"
     if app_env not in ("dev", "prod"):
         raise SettingsError(f"APP_ENV must be 'dev' or 'prod', got {app_env!r}")
@@ -49,6 +53,7 @@ def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
         ) from None
     if time_scale <= 0:
         raise SettingsError(f"REENGAGEMENT_TIME_SCALE must be positive, got {raw_scale!r}")
+    eleven_key = environ.get("ELEVENLABS_API_KEY", "").strip()
     return AppSettings(
         llm=load_settings(environ),
         database_url=environ.get("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL,
@@ -58,4 +63,6 @@ def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
         else list(DEFAULT_CORS_ORIGINS),
         reengagement_scheduler=scheduler == "on",
         reengagement_time_scale=time_scale,
+        elevenlabs_api_key=SecretStr(eleven_key) if eleven_key else None,
+        elevenlabs_voice_id=environ.get("ELEVENLABS_VOICE_ID", "").strip() or None,
     )
