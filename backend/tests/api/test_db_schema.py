@@ -2,6 +2,7 @@
 testing: `no such column: conversations.last_candidate_at` on every chat)."""
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -10,7 +11,8 @@ from sazon_screening.api.db import StaleSchemaError, prepare_database
 
 
 def _old_database(path: Path) -> None:
-    with sqlite3.connect(path) as db:
+    # closing(): `with sqlite3.connect()` only commits; an open handle locks the file on Windows.
+    with closing(sqlite3.connect(path)) as db, db:
         db.execute("CREATE TABLE conversations (id TEXT PRIMARY KEY, status TEXT)")
         db.execute("INSERT INTO conversations VALUES ('old', 'in_progress')")
 
@@ -27,7 +29,7 @@ async def test_dev_moves_a_stale_sqlite_file_aside_and_starts_fresh(tmp_path: Pa
     await engine.dispose()
     backups = list(tmp_path.glob("sazon.db.bak-*"))
     assert len(backups) == 1  # the old data is kept, never deleted
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db:
         columns = {row[1] for row in db.execute("PRAGMA table_info(conversations)")}
     assert "last_candidate_at" in columns
 
