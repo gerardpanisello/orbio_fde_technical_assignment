@@ -28,6 +28,7 @@ the API default.
 |---|---|
 | `/` | Entry: "Soy candidato" / "Soy recruiter" |
 | `/chat` | WhatsApp-style chat with Sofi. Desktop: phone frame + toggleable "Registro en vivo" demo panel |
+| `/voz` | The same screening by voice (spec 013): Chrome/Edge speech-to-text, Sofi's reply spoken (ElevenLabs via `/api/voice/tts`, browser voice fallback) |
 | `/recruiter` | Candidates: KPIs, filters (kept in the URL), priority-sorted table, detail drawer (`?id=`) |
 | `/recruiter/entrevistas` | Booked interviews grouped by day |
 | `/recruiter/zonas` | Staffing per zone (spec 015): occupancy bars, inline target/current edits, pipeline and waitlist per zone |
@@ -55,6 +56,8 @@ src/
               schema.d.ts (generated)
   chat/       ChatPage, StartScreen, ChatWindow, MessageBubble, QuickReplies, TypingIndicator,
               LiveRecordPanel, useChat (state: start/send/retry/restore), i18n (ES/EN UI strings)
+  voice/      VoicePage, MicButton, useSpeechRecognition (Web Speech API), useSpeaker (ElevenLabs or
+              speechSynthesis), speakable.ts (what Sofi says aloud), voiceLogic.ts (pure turn rules)
   recruiter/  RecruiterLayout, CandidatesPage, FilterBar, CandidateTable, CandidateDrawer,
               detail/ (summary, actions, transcript, traces + JSON), InterviewsPage, ZonesPage, AnalyticsPage
   components/ Badges (status, priority, recruiter tag), Kpi, ScoreBreakdown, RecordFields, Reasons,
@@ -75,6 +78,10 @@ src/
 - **Re-engagement (spec 008):** the open chat polls its conversation every 4 s (only while visible,
   idle and in progress; `lib/reengagement.ts#shouldPoll`), so reminders arrive on their own; the demo
   panel's **Avanzar tiempo ⏩** runs the next step via `POST /api/dev/conversations/{id}/advance`.
+- **Voice (spec 013):** the rules are pure and unit-tested (`voiceLogic.ts`: the mic never opens while
+  Sofi speaks or while waiting for the API; `speakable.ts`: no emoji/URLs, privacy link "en pantalla",
+  quick replies read as "Puedes decir: Sí o No", dates as "lunes 19 de octubre"); the hooks are thin.
+  Page tests render under StrictMode with a fake `SpeechRecognition` and `speechSynthesis`.
 - **Chat state** is in `useChat`: the conversation id is kept in `sessionStorage`, so a reload
   restores the transcript; a failed send marks the bubble "No se pudo enviar · Reintentar".
 - **City and zone names** come from `GET /api/meta/areas` (read from `config/service_areas.yaml`),

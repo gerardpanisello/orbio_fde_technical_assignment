@@ -19,7 +19,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 10 | `010-interview-scheduling` | Offer slots to qualified candidates, recruiter calendar view — simple slot provider + Entrevistas page (real calendars: not built) | 🟨 |
 | 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons — `/api/analytics` + Analítica page | ✅ |
 | 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report — `backend/evals/` (judge 4.12 → 4.70 after fixes) | ✅ |
-| 13 | `013-voice-agent` | Browser voice agent reusing the same engine | ⬜ |
+| 13 | `013-voice-agent` | Browser voice agent reusing the same engine — spec: [013](specs/013-voice-agent/spec.md); `/voz` page (Web Speech API → normal turn API → ElevenLabs TTS proxy, browser voice fallback); full screening by voice verified in headless Chrome with a scripted fake recognizer; real-microphone and real-ElevenLabs test pending | 🟨 |
 | 14 | Design docs | [ATS integration](design/ats-integration.md), [deployment & scaling](design/deployment.md) (10K/week) | ✅ |
 | 15 | `015-zone-occupancy` | Staffing per zone (Zonas page), zone-demand score factor with live priority, waitlist when the zone is full, hire → +1 — spec: [015](specs/015-zone-occupancy/spec.md) | ✅ |
 | 16 | `016-whatsapp` | Real WhatsApp channel (Meta Cloud API): signed webhook, dedupe, reply buttons/lists, media, do-not-contact, reminders via WhatsApp (template after 24 h), channel badge/filter/analytics — spec: [016](specs/016-whatsapp/spec.md), setup: [whatsapp-setup.md](whatsapp-setup.md); built and tested with a fake Graph client, live test pending credentials | 🟨 |

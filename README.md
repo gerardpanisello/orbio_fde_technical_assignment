@@ -36,6 +36,8 @@ Open http://localhost:5173:
 
 **Real WhatsApp (optional).** Off by default. With a free Meta developer app and its test number, Sofi answers on WhatsApp from your own phone: reply buttons, lists, voice-note handling, reminders through WhatsApp, and a WhatsApp badge and filter in the dashboard. Step-by-step for Windows (Meta app, tunnel, webhook, troubleshooting): [docs/whatsapp-setup.md](docs/whatsapp-setup.md).
 
+**Voice (optional).** **"Hablar con Sofi"** on the home page (`/voz`) runs the same screening by voice: the browser turns speech into text (Web Speech API: **Chrome or Edge**, with a microphone; other browsers get a link to the chat), each turn goes through the normal conversation API, and Sofi's reply is shown and spoken. Tap the mic and talk (it stops at a pause) or hold it while talking; it reopens by itself after Sofi speaks. Her voice is the browser's own by default; for a natural voice, set `ELEVENLABS_API_KEY` in `.env` and start the API with `--env-file` (the key stays on the server, `POST /api/voice/tts` proxies ElevenLabs; voice ids per language in `config/voice.yaml`, or `ELEVENLABS_VOICE_ID`). If ElevenLabs fails, the page falls back to the browser voice; the header shows which one is in use. Spec: [013](docs/specs/013-voice-agent/spec.md).
+
 Terminal-only demo: `cd backend && uv run python -m sazon_screening.llm.demo --lang es --debug`.
 
 Checks: `cd backend && uv run ruff check . && uv run mypy && uv run pytest -q` (1,100+ tests, no network) · `cd frontend && npm run lint && npm test && npm run build`.
@@ -135,6 +137,7 @@ From one full Spanish screening, 9 turns from consent to booked interview. Detai
 
 - **Latency.** Stream the reply; phrase simple asks with Haiku; run the FAQ answer in parallel with extraction. Target p50 < 2.5 s.
 - **Real channel in production.** The WhatsApp channel ([setup](docs/whatsapp-setup.md)) runs on Meta's test number with `hello_world` as the after-24 h template; production needs a verified business number, an approved Spanish reminder template and a queue in front of the webhook.
+- **Voice with barge-in.** The voice page is turn-based (browser speech-to-text, our API, then text-to-speech: ~4 s per turn). For phone calls and interruptions, ElevenLabs Conversational AI with our backend as a custom LLM (option B in [spec 013](docs/specs/013-voice-agent/spec.md)).
 - **Re-engagement at scale.** The reminder loop runs inside the API process (fine for one instance); production wants a scheduler service or a delayed queue with a DB lock.
 - **FAQ recall.** Embeddings for paraphrases once the knowledge base grows past a few hundred entries; feed the "Sin respuesta" list back into the FAQ.
 - **Evals.** Simulated candidate personas plus an LLM judge on every prompt change, run in CI.

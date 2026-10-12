@@ -31,6 +31,13 @@ Bonus tier "Great": the same screening by voice in the browser. Some candidates 
 - AC-6 lint/test/build + backend checks green.
 
 ## 5. Tasks
-- [ ] T1 Backend: `config/voice.yaml`, `api/routes/voice.py` TTS proxy (httpx to ElevenLabs REST, cache, 503 path), tests with a fake client. Do **not** modify `api/service.py`, `api/models.py` (WhatsApp work in parallel).
-- [ ] T2 Frontend: speakable-text helper + tests; speech hooks (`useSpeechRecognition`, `useSpeaker` with ElevenLabs→browser fallback).
-- [ ] T3 `/voz` page + Home entry; verify; README/ROADMAP.
+- [x] T1 Backend: `config/voice.yaml`, `api/routes/voice.py` TTS proxy (httpx to ElevenLabs REST, cache, 503 path), tests with a fake client. Do **not** modify `api/service.py`, `api/models.py` (WhatsApp work in parallel).
+- [x] T2 Frontend: speakable-text helper + tests; speech hooks (`useSpeechRecognition`, `useSpeaker` with ElevenLabs→browser fallback).
+- [x] T3 `/voz` page + Home entry; verify; README/ROADMAP.
+
+## 6. Implementation notes (2026-10-13)
+- TTS body is `{text, language, country}` (`register` shadows a Pydantic attribute; the country is the register). Added `GET /api/voice/status` (`elevenlabs` | `browser`) so the page shows the engine and skips doomed TTS calls.
+- Model `eleven_multilingual_v2`, `mp3_44100_64`. Default voice "Sarah" (`EXAVITQu4vr4xnSDxMaL`) is an ElevenLabs *Default* voice: only for accounts created before March 2026 and retired on 2026-12-31. With a newer account, put the id of "Talia - Warm Soft Guide" (its suggested replacement) or another warm Spanish-speaking voice in `config/voice.yaml` or `ELEVENLABS_VOICE_ID`.
+- `/voz` keeps its own conversation id (`useChat` storage key), so it never resumes the text chat's conversation.
+- Verified in headless Chrome with a fake `SpeechRecognition`/`speechSynthesis` (full screening to a booked interview, transcript in the dashboard, ElevenLabs path with mocked audio, 503 → browser fallback). Not verified: a real microphone and real ElevenLabs audio.
+- Fake LLM mode does not understand "la primera" / "uno" for a slot ("la 1", "opción 1", the time do work); the real extractor is expected to.
