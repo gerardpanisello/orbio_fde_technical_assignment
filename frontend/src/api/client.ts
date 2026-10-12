@@ -28,6 +28,7 @@ export type AreaLabels = Schemas['AreaLabels']
 export type ScoreFactor = Schemas['ScoreFactor']
 export type ScoreResult = Schemas['ScoreResult']
 export type Zone = Schemas['ZoneOut']
+export type AdvanceResult = Schemas['AdvanceOut']
 export type ZonePatch = Schemas['ZonePatchIn']
 
 type ListQuery = NonNullable<operations['list_candidates_api_candidates_get']['parameters']['query']>
@@ -124,4 +125,6 @@ export const api = {
   // dev helpers (APP_ENV=dev only)
   seed: (n = 40) => post<{ created: number; ids: string[] }>(`/api/dev/seed?n=${n}`),
   silence: (id: string) => post<Turn>(`/api/dev/conversations/${id}/silence`),
+  /** Spec 008 FR-8: run the next re-engagement step now (reminder, or abandon after the last). */
+  advance: (id: string) => post<AdvanceResult>(`/api/dev/conversations/${id}/advance`),
 }

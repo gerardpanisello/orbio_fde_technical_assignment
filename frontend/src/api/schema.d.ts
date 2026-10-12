@@ -256,6 +256,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dev/conversations/{conversation_id}/advance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Advance
+         * @description Spec 008 FR-8: run the NEXT re-engagement step now (the next reminder, or the
+         *     abandon after the last one), as if its time had come. Exactly one step per call.
+         *     409 when there is nothing to advance (closed, opted out, the candidate wrote last,
+         *     or re-engagement is disabled).
+         */
+        post: operations["advance_api_dev_conversations__conversation_id__advance_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dev/conversations/{conversation_id}/silence": {
         parameters: {
             query?: never;
@@ -265,7 +288,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Silence */
+        /**
+         * Silence
+         * @description Kept from 004: `silence_expired` at once, skipping the reminders (straight to
+         *     `abandoned`). Use `/advance` to walk through the reminders first.
+         */
         post: operations["silence_api_dev_conversations__conversation_id__silence_post"];
         delete?: never;
         options?: never;
@@ -303,6 +330,24 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * AdvanceOut
+         * @description `POST /api/dev/conversations/{id}/advance`: the step that just ran (spec 008 FR-8).
+         */
+        AdvanceOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "follow_up" | "abandon";
+            status: components["schemas"]["Status"];
+            /** Step */
+            step: number | null;
+            reply: components["schemas"]["ReplyOut"] | null;
+            /** Requires Template */
+            requires_template: boolean;
+            next: components["schemas"]["NextStepOut"] | null;
         };
         /**
          * AgeAnswer
@@ -355,6 +400,7 @@ export interface components {
                 };
             };
             faq: components["schemas"]["FaqAnalytics"];
+            reengagement: components["schemas"]["ReengagementAnalytics"];
         };
         /** AreaLabels */
         AreaLabels: {
@@ -389,6 +435,7 @@ export interface components {
             traces: components["schemas"]["TraceOut"][];
             /** Actions */
             actions: components["schemas"]["ActionOut"][];
+            reengagement: components["schemas"]["ReengagementOut"];
         };
         /** CandidateRecord */
         CandidateRecord: {
@@ -636,6 +683,19 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Kind
+             * @default reply
+             * @enum {string}
+             */
+            kind: "reply" | "follow_up";
+            /** Follow Up Step */
+            follow_up_step?: number | null;
+            /**
+             * Requires Template
+             * @default false
+             */
+            requires_template: boolean;
         };
         /**
          * NarrativeOutput
@@ -665,6 +725,26 @@ export interface components {
             observations: string[];
         };
         /**
+         * NextStepOut
+         * @description Spec 008: what re-engagement does next if the candidate stays quiet.
+         */
+        NextStepOut: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "follow_up" | "abandon";
+            /** Step */
+            step: number | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Requires Template */
+            requires_template: boolean;
+        };
+        /**
          * PostCloseCorrection
          * @description A correction received after disqualification: stored, never applied (FR-15).
          */
@@ -691,6 +771,47 @@ export interface components {
             schedule: components["schemas"]["FieldRecord_list_ScheduleSlot__"];
             experience: components["schemas"]["FieldRecord_Experience_"];
             start_date: components["schemas"]["FieldRecord_date_"];
+        };
+        /**
+         * ReengagementAnalytics
+         * @description Spec 008 FR-9. `sum(by_step.sent) == follow_ups_sent` and
+         *     `sum(by_step.reactivated) == reactivated`.
+         */
+        ReengagementAnalytics: {
+            /** Follow Ups Sent */
+            follow_ups_sent: number;
+            /** Conversations Nudged */
+            conversations_nudged: number;
+            /** Reactivated */
+            reactivated: number;
+            /** Reactivation Rate */
+            reactivation_rate: number;
+            /** By Step */
+            by_step: components["schemas"]["ReengagementStepCount"][];
+        };
+        /**
+         * ReengagementOut
+         * @description Spec 008 FR-9: the reminders a candidate got and whether they came back.
+         */
+        ReengagementOut: {
+            /** Follow Ups Sent */
+            follow_ups_sent: number;
+            /** Waiting Steps */
+            waiting_steps: number;
+            /** Last Follow Up At */
+            last_follow_up_at: string | null;
+            /** Reactivated After Step */
+            reactivated_after_step: number | null;
+            next: components["schemas"]["NextStepOut"] | null;
+        };
+        /** ReengagementStepCount */
+        ReengagementStepCount: {
+            /** Step */
+            step: number;
+            /** Sent */
+            sent: number;
+            /** Reactivated */
+            reactivated: number;
         };
         /** ReplyOut */
         ReplyOut: {
@@ -792,6 +913,12 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /**
+             * Kind
+             * @default reply
+             * @enum {string}
+             */
+            kind: "reply" | "follow_up";
             /** Action */
             action: string | null;
             /** Client */
@@ -1326,6 +1453,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SeedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    advance_api_dev_conversations__conversation_id__advance_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdvanceOut"];
                 };
             };
             /** @description Validation Error */

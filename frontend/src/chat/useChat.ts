@@ -9,10 +9,13 @@ import {
   type Status,
   type Turn,
 } from '../api/client'
+import { shouldPoll } from '../lib/reengagement'
 
 const STORAGE_KEY = 'sazon.chat.conversationId'
 /** Minimum time the typing indicator shows, so instant (fake-mode) replies still feel human. */
 const MIN_TYPING_MS = 650
+/** Spec 008: reminders arrive on their own while the chat is open. */
+const POLL_MS = 4000
 
 export type Delivery = 'sending' | 'sent' | 'failed'
 
@@ -23,6 +26,9 @@ export type UiMessage = {
   quickReplies: QuickReply[]
   createdAt: string
   delivery?: Delivery // candidate messages only
+  /** Spec 008: a reminder sent while the candidate was silent (agent messages only). */
+  followUpStep?: number | null
+  requiresTemplate?: boolean
 }
 
 type Phase = 'restoring' | 'start' | 'starting' | 'chat'
@@ -35,7 +41,13 @@ function fromServer(message: ChatMessage): UiMessage {
     quickReplies: message.quick_replies,
     createdAt: message.created_at,
     delivery: message.role === 'candidate' ? 'sent' : undefined,
+    followUpStep: message.kind === 'follow_up' ? (message.follow_up_step ?? null) : undefined,
+    requiresTemplate: message.requires_template,
   }
+}
+
+function hidden(): boolean {
+  return typeof document !== 'undefined' && document.visibilityState === 'hidden'
 }
 
 function readStoredId(): string | null {
@@ -192,6 +204,45 @@ export function useChat(onTurn?: (conversationId: string) => void) {
     [deliver, messages, typing],
   )
 
+  /**
+   * Pull what the server has (reminders, an abandon) and show anything new. The server
+   * is the source of truth; local candidate messages still sending or failed are kept.
+   */
+  const sync = useCallback(async () => {
+    if (!conversationId) return
+    const conversation = await api.getConversation(conversationId)
+    setMessages((current) => {
+      const confirmed = current.filter((m) => !m.delivery || m.delivery === 'sent')
+      if (conversation.messages.length <= confirmed.length) return current
+      const pending = current.filter((m) => m.delivery === 'sending' || m.delivery === 'failed')
+      // Keep the keys of bubbles already on screen, so only the new ones animate in.
+      const merged = conversation.messages.map((m, i) =>
+        i < confirmed.length ? { ...fromServer(m), key: confirmed[i].key } : fromServer(m),
+      )
+      return [...merged, ...pending]
+    })
+    setStatus(conversation.status)
+    onTurn?.(conversationId)
+  }, [conversationId, onTurn])
+
+  const [visible, setVisible] = useState(() => !hidden())
+  useEffect(() => {
+    const onChange = () => setVisible(!hidden())
+    document.addEventListener('visibilitychange', onChange)
+    return () => document.removeEventListener('visibilitychange', onChange)
+  }, [])
+
+  const polling = shouldPoll({ phase, status, hidden: !visible, busy: typing, hasConversation: !!conversationId })
+  useEffect(() => {
+    if (!polling) return
+    const timer = setInterval(() => {
+      sync().catch(() => {
+        // a missed poll is harmless: the next one retries
+      })
+    }, POLL_MS)
+    return () => clearInterval(timer)
+  }, [polling, sync])
+
   const reset = useCallback(() => {
     storeId(null)
     setConversationId(null)
@@ -238,5 +289,6 @@ export function useChat(onTurn?: (conversationId: string) => void) {
     reset,
     restore,
     applyTurn,
+    sync,
   }
 }

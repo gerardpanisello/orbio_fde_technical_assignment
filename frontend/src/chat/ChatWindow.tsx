@@ -13,7 +13,15 @@ import type { useChat } from './useChat'
 type Chat = ReturnType<typeof useChat>
 
 /** The WhatsApp-like conversation screen (FR-1, FR-2, FR-5, FR-6, NFR-4). */
-export function ChatWindow({ chat, slot }: { chat: Chat; slot: string | null }) {
+export function ChatWindow({
+  chat,
+  slot,
+  followUpTotal = null,
+}: {
+  chat: Chat
+  slot: string | null
+  followUpTotal?: number | null
+}) {
   const t = CHAT_TEXT[chat.language]
   const [draft, setDraft] = useState('')
   const bottom = useRef<HTMLDivElement>(null)
@@ -110,6 +118,7 @@ export function ChatWindow({ chat, slot }: { chat: Chat; slot: string | null }) 
                 read={i < lastAgentIndex || chat.status !== 'in_progress'}
                 language={chat.language}
                 onRetry={chat.retry}
+                followUpTotal={followUpTotal}
               />
               {showReplies && i === messages.length - 1 && (
                 <QuickReplies

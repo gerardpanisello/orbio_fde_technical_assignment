@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { api, type CandidateDetail, type Turn } from '../api/client'
+import { ApiError, api, type CandidateDetail } from '../api/client'
 import { useAreaLabels } from '../api/queries'
 import { StatusBadge } from '../components/Badges'
 import { Icon } from '../components/Icon'
@@ -8,7 +8,10 @@ import { Reasons } from '../components/Reasons'
 import { RecordFields } from '../components/RecordFields'
 import { ScoreBreakdown } from '../components/ScoreBreakdown'
 import { Spinner } from '../components/States'
+import { errorMessage } from '../lib/errors'
 import { STAGE } from '../lib/labels'
+import { followUpLabel, followUpTotal, nextStepText } from '../lib/reengagement'
+import { ReengagementSummary } from '../components/ReengagementSummary'
 
 /**
  * FR-7 (demo only): what the engine has extracted and validated so far, refreshed after
@@ -18,24 +21,45 @@ export function LiveRecordPanel({
   conversationId,
   detail,
   loading,
-  onSilence,
+  onAdvanced,
 }: {
   conversationId: string | null
   detail: CandidateDetail | undefined
   loading: boolean
-  onSilence: (turn: Turn) => void
+  /** Pull the new reminder (or the abandon) into the chat. */
+  onAdvanced: () => Promise<void>
 }) {
   const areas = useAreaLabels()
-  const [silencing, setSilencing] = useState(false)
+  const [advancing, setAdvancing] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const lastTrace = detail?.traces.at(-1)
+  const total = followUpTotal(detail)
+  const next = detail?.reengagement.next
 
-  async function silence() {
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 4000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  /** Spec 008 FR-8 (dev): run the next re-engagement step now instead of waiting hours. */
+  async function advance() {
     if (!conversationId) return
-    setSilencing(true)
+    setAdvancing(true)
+    setToast(null)
     try {
-      onSilence(await api.silence(conversationId))
+      const result = await api.advance(conversationId)
+      await onAdvanced()
+      setToast(
+        result.action === 'abandon'
+          ? 'Conversación abandonada (sin respuesta tras el último recordatorio)'
+          : `${followUpLabel(result.step ?? 0, total)} enviado${result.requires_template ? ' · plantilla WhatsApp' : ''}`,
+      )
+    } catch (e) {
+      // 409 "nothing to advance: <reason>" is the useful answer here, not an error page.
+      setToast(e instanceof ApiError && e.status === 409 ? `Nada que avanzar: ${e.detail.replace(/^nothing to advance:\s*/, '')}` : errorMessage(e))
     } finally {
-      setSilencing(false)
+      setAdvancing(false)
     }
   }
 
@@ -79,6 +103,11 @@ export function LiveRecordPanel({
             />
           </section>
 
+          <section>
+            <h3 className="eyebrow mb-2">Re-engagement</h3>
+            <ReengagementSummary detail={detail} total={total} />
+          </section>
+
           {lastTrace && (
             <section>
               <h3 className="eyebrow mb-2">Último turno</h3>
@@ -95,6 +124,11 @@ export function LiveRecordPanel({
         </div>
       )}
 
+      {toast && (
+        <p role="status" className="mx-4 mb-2 rounded-lg bg-stone-900 px-3 py-2 text-xs text-white shadow-lg">
+          {toast}
+        </p>
+      )}
       {conversationId && (
         <div className="flex flex-wrap gap-2 border-t border-stone-100 px-4 py-3">
           <Link to={`/recruiter?id=${conversationId}`} className="btn-secondary flex-1" target="_blank">
@@ -102,12 +136,16 @@ export function LiveRecordPanel({
           </Link>
           <button
             type="button"
-            className="btn-ghost flex-1"
-            onClick={silence}
-            disabled={silencing || detail?.candidate.status !== 'in_progress'}
-            title="Simula que vence el temporizador de silencio (dev)"
+            className="btn-ghost flex-1 whitespace-nowrap"
+            onClick={advance}
+            disabled={advancing || detail?.candidate.status !== 'in_progress'}
+            title={
+              next
+                ? `Próximo paso: ${nextStepText(next, total)} (dev: lo ejecuta ya)`
+                : 'Ejecuta el siguiente paso de re-engagement (dev)'
+            }
           >
-            {silencing ? <Spinner className="size-3.5" /> : <Icon name="clock" />} Simular silencio
+            {advancing ? <Spinner className="size-3.5" /> : <Icon name="clock" />} Avanzar tiempo ⏩
           </button>
         </div>
       )}

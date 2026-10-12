@@ -8,6 +8,7 @@ import { ChatWindow } from './ChatWindow'
 import { LiveRecordPanel } from './LiveRecordPanel'
 import { StartScreen } from './StartScreen'
 import { useChat } from './useChat'
+import { followUpTotal } from '../lib/reengagement'
 
 const PANEL_KEY = 'sazon.chat.demoPanel'
 
@@ -55,7 +56,11 @@ export function ChatPage() {
         failed={chat.error === 'start'}
       />
     ) : (
-      <ChatWindow chat={chat} slot={detail.data?.candidate.interview_slot ?? null} />
+      <ChatWindow
+        chat={chat}
+        slot={detail.data?.candidate.interview_slot ?? null}
+        followUpTotal={followUpTotal(detail.data)}
+      />
     )
 
   return (
@@ -83,7 +88,7 @@ export function ChatPage() {
               conversationId={chat.conversationId}
               detail={detail.data}
               loading={detail.isFetching}
-              onSilence={chat.applyTurn}
+              onAdvanced={chat.sync}
             />
           </div>
         )}

@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import type { Language } from '../api/client'
 import { formatTime } from '../lib/format'
+import { followUpLabel } from '../lib/reengagement'
 import { CHAT_TEXT } from './i18n'
 import { Tail } from './TypingIndicator'
 import type { UiMessage } from './useChat'
@@ -32,13 +33,16 @@ export function MessageBubble({
   read,
   language,
   onRetry,
+  followUpTotal = null,
 }: {
   message: UiMessage
+  followUpTotal?: number | null
   first: boolean // first of a group: gets the tail
   read: boolean // the agent answered after it: blue ticks
   language: Language
   onRetry: (key: string) => void
 }) {
+  const followUp = message.role === 'agent' && message.followUpStep != null
   const mine = message.role === 'candidate'
   const t = CHAT_TEXT[language]
   return (
@@ -52,6 +56,21 @@ export function MessageBubble({
           } ${first ? (mine ? 'rounded-tr-none' : 'rounded-tl-none') : ''}`}
         >
           {first && <Tail side={mine ? 'right' : 'left'} />}
+          {followUp && (
+            // Spec 008: a reminder Sofi sent on her own. The template tag is a demo hint for
+            // reminders past WhatsApp's 24 h window (in production: an approved template).
+            <span className="mb-0.5 flex items-center gap-1.5 text-[11px] text-wa-meta">
+              {followUpLabel(message.followUpStep!, followUpTotal, language)}
+              {message.requiresTemplate && (
+                <span
+                  className="rounded border border-wa-meta/30 px-1 text-[10px] leading-tight"
+                  title="Fuera de la ventana de 24 h de WhatsApp: en producción se envía como plantilla aprobada"
+                >
+                  plantilla WhatsApp
+                </span>
+              )}
+            </span>
+          )}
           <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">
             <Linkified text={message.text} />
           </span>
