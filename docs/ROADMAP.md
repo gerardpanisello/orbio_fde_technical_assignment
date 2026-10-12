@@ -20,7 +20,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons | ⬜ |
 | 12 | `012-evals` | Simulated candidates (LLM personas), LLM-as-judge, scenario suite, report | ⬜ |
 | 13 | `013-voice-agent` | Browser voice agent reusing the same engine | ⬜ |
-| 14 | Design docs | ATS integration API spec, deployment & scaling (10K/week) design | ⬜ |
+| 14 | Design docs | [ATS integration](design/ats-integration.md), [deployment & scaling](design/deployment.md) (10K/week) | ✅ |
 | 15 | Delivery | README, sample conversations, demo video script, presentation | ⬜ |
 
 ## Suggested week plan
