@@ -41,4 +41,4 @@
 - [x] T3 DB fields + scheduler loop + lock + idempotency + resume tracking (AC-5, AC-6).
 - [x] T4 Dev `advance` endpoint, time scale, analytics (AC-8); seed a few nudged/reactivated conversations.
 - [ ] T5 Frontend (AC-9) — separate agent.
-- [ ] T6 README/ROADMAP/process-design note.
+- [x] T6 README/ROADMAP/process-design note.

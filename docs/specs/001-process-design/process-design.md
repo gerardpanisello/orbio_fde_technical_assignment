@@ -76,7 +76,7 @@ flowchart TD
 
 | Case | Handling |
 |---|---|
-| **Stops responding** | The client configures the follow-up schedule. Suggested: 2h, 23h, 72h, with no messages during quiet hours (local time). Any follow-up that lands past WhatsApp's 24h window is sent as a template. Each one picks up from the pending question. After the last one, the conversation is `abandoned` and the drop-off stage is recorded. A reply at any time resumes it. |
+| **Stops responding** | The client configures the follow-up schedule. Suggested: 2h, 23h, 72h, with no messages during quiet hours (local time). Any follow-up that lands past WhatsApp's 24h window is sent as a template. Each one picks up from the pending question. If there is still no answer 24 h after the last one, the conversation is `abandoned` and the drop-off stage is recorded. A reply at any time resumes it. |
 | **Invalid / ambiguous answer** | Apply the re-ask policy, explaining the problem kindly ("Necesito una fecha aproximada, por ejemplo 'el lunes'"). |
 | **Language switch ES ↔ EN** | Language is detected on every message, and the agent replies in the candidate's latest language. In mixed messages (code-switching) it uses the dominant one. Data is stored as language-neutral enums, so nothing is lost. The Spain vs Mexico register follows the city once it is known. |
 | **Question about the job** | Answered from the FAQ knowledge base. If the answer is not there: "Lo consulto con el equipo", and the conversation is flagged for a recruiter. |

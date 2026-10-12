@@ -14,7 +14,7 @@ Target: ~1 week. Order matters: **core first, bonuses on top of a solid core**. 
 | 5 | `005-candidate-chat-ui` | WhatsApp-style web chat — spec: [005-006-frontend](specs/005-006-frontend/spec.md) | ✅ |
 | 6 | `006-recruiter-dashboard` | Pipeline, candidate detail (summary/transcript/JSON), actions, CSV export, interviews, analytics | ✅ |
 | 7 | `007-multilang-guardrails` | ES/EN + code-switching, injection/off-topic/abuse handling, PII policy, sentiment-aware tone — built into 002/003 (signals, guard, opt-out purge, language keeping) | ✅ |
-| 8 | `008-reengagement` | Silence detection, follow-up schedule & messages, drop-off tracking | ⬜ |
+| 8 | `008-reengagement` | Silence detection, follow-up schedule & messages, drop-off tracking — spec: [008](specs/008-reengagement/spec.md); backend done (`config/reengagement.yaml`, pure policy, scheduler, `/advance` demo endpoint, analytics); frontend pending | 🟨 |
 | 9 | `009-faq-rag` | FAQ knowledge base + retrieval to answer candidate questions — spec: [009](specs/009-faq-rag/spec.md); ~20 approved entries in `config/faq/`, BM25, unanswered questions flagged in the dashboard | ✅ |
 | 10 | `010-interview-scheduling` | Offer slots to qualified candidates, recruiter calendar view — simple slot provider + Entrevistas page (real calendars: not built) | 🟨 |
 | 11 | `011-analytics` | Funnel, completion, drop-off stage, duration, disqualification reasons — `/api/analytics` + Analítica page | ✅ |

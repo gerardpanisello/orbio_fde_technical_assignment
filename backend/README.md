@@ -133,6 +133,8 @@ Environment (all optional; see `../.env.example`):
 | `DATABASE_URL` | `sqlite+aiosqlite:///./sazon.db` | any async SQLAlchemy URL (Postgres: `postgresql+asyncpg://...`) |
 | `APP_ENV` | `dev` | `prod` turns off `/api/dev/*` (403) |
 | `CORS_ORIGINS` | `http://localhost:5173` | comma-separated (the Vite dev server) |
+| `REENGAGEMENT_SCHEDULER` | `on` | `off` stops the follow-up loop (spec 008); the schedule itself is `config/reengagement.yaml` |
+| `REENGAGEMENT_TIME_SCALE` | `1` | demo speed-up: `60` = an hour of the schedule per minute (quiet hours are ignored when scaled) |
 
 | Method and path | What it does |
 |---|---|
@@ -145,12 +147,16 @@ Environment (all optional; see `../.env.example`):
 | `GET /api/candidates/{id}` | record (002 schema), summary, transcript, traces, recruiter actions |
 | `GET /api/candidates/{id}/summary?lang=es\|en` | stored summary; generated once if missing (409 while in progress) |
 | `POST /api/candidates/{id}/actions` `{action, note?}` | `shortlist`, `reject`, `hire`, `override`, `note` (audit log) |
-| `GET /api/analytics` | funnel totals, completion, drop-off, durations, reasons, fallback rate, cost |
+| `GET /api/analytics` | funnel totals, completion, drop-off, durations, reasons, fallback rate, cost, FAQ (009), `reengagement` (008) |
 | `POST /api/dev/seed?n=40&seed=42[&mode=fake]` | simulated candidates through the real pipeline and the server's agent; `mode=fake` forces the offline rules agent (dev only) |
-| `POST /api/dev/conversations/{id}/silence` | the candidate goes quiet: `silence_expired` (dev only, until 008) |
+| `POST /api/dev/conversations/{id}/advance` | re-engagement demo (008): runs the **next** step now (the next reminder, or the abandon after the last one); 409 when there is nothing to advance (dev only) |
+| `POST /api/dev/conversations/{id}/silence` | `silence_expired` at once: straight to `abandoned`, skipping the reminders (kept from 004; dev only) |
 
 How it fits together: routes are thin; `api/service.py` runs a turn (load state, call the
 agent with no DB session open, save state + messages + trace in one transaction) under
 a per-conversation lock; `api/repo.py` holds all the SQL. Tables are created at startup
-(no migrations yet). Interview slots come from `config/interview_slots.yaml` until real
+(no migrations yet): after a schema change, such as spec 008's new columns, **delete an
+existing local `sazon.db`** (and `sazon.db-wal`, `sazon.db-shm`) and seed again. Follow-ups
+(`sazon_screening/reengagement/`) run in an asyncio loop started in the API lifespan, under
+the same per-conversation lock as messages. Interview slots come from `config/interview_slots.yaml` until real
 calendars (010). Opting out purges the record (engine) and redacts the stored transcript.
