@@ -5,10 +5,12 @@ import { PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
 import { Icon } from '../components/Icon'
 import { Reasons } from '../components/Reasons'
 import { RecordFields } from '../components/RecordFields'
+import { ReengagementSummary } from '../components/ReengagementSummary'
 import { ScoreBreakdown } from '../components/ScoreBreakdown'
 import { ErrorState, Loading } from '../components/States'
 import { formatDateTime, formatSlot } from '../lib/format'
 import { LANGUAGE, STAGE, placeLabel } from '../lib/labels'
+import { followUpTotal } from '../lib/reengagement'
 import { ActionsPanel } from './detail/ActionsPanel'
 import { SummaryCard } from './detail/SummaryCard'
 import { TechnicalTab } from './detail/TechnicalTab'
@@ -137,6 +139,12 @@ function DrawerBody({
             <Reasons record={record} />
             <ActionsPanel detail={detail} />
             <SummaryCard detail={detail} />
+            {(detail.reengagement.follow_ups_sent > 0 || detail.reengagement.next) && (
+              <section className="card p-4">
+                <h3 className="eyebrow mb-3">Re-engagement</h3>
+                <ReengagementSummary detail={detail} total={followUpTotal(detail)} />
+              </section>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <section className="card p-4">
                 <h3 className="eyebrow mb-3">Puntuación y factores</h3>
@@ -152,7 +160,7 @@ function DrawerBody({
             </div>
           </div>
         )}
-        {tab === 'transcript' && <Transcript messages={detail.transcript} traces={detail.traces} />}
+        {tab === 'transcript' && <Transcript messages={detail.transcript} traces={detail.traces} followUpTotal={followUpTotal(detail)} />}
         {tab === 'technical' && <TechnicalTab detail={detail} />}
       </div>
     </>

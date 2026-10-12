@@ -28,6 +28,8 @@ import { PageHeader, SeedButton } from './common'
 const FUNNEL_RAMP = ['#e98a5f', '#dc6a3a', '#c2531f', '#9c4019', '#753012']
 /** FAQ questions: answered = blue, unanswered = the warning amber (always with its label). */
 const FAQ_COLOR = { answered: '#2a78d6', unanswered: '#eda100' }
+/** Re-engagement: two categorical series (validated pair; aqua < 3:1, so values are labelled). */
+const RE_COLOR = { sent: '#2a78d6', reactivated: '#1baf7a' }
 const INK = '#44403c'
 const MUTED = '#78716c'
 const BAR = 22 // px, thin marks with air between them
@@ -150,6 +152,8 @@ function Dashboard({ a, refreshing }: { a: Analytics; refreshing: boolean }) {
         <ByCountry a={a} />
 
         <FaqCard faq={a.faq} />
+
+        <ReengagementCard re={a.reengagement} />
       </div>
     </div>
   )
@@ -175,9 +179,9 @@ function FaqCard({ faq }: { faq: Analytics['faq'] }) {
       }}
     >
       <dl className="mb-4 grid grid-cols-3 gap-3">
-        <FaqStat label="Preguntas" value={String(faq.asked)} />
-        <FaqStat label="Respondidas" value={String(faq.answered)} dot={FAQ_COLOR.answered} />
-        <FaqStat
+        <MiniStat label="Preguntas" value={String(faq.asked)} />
+        <MiniStat label="Respondidas" value={String(faq.answered)} dot={FAQ_COLOR.answered} />
+        <MiniStat
           label="Sin respuesta"
           value={faq.asked ? formatPercent(faq.unanswered_rate) : '—'}
           hint={faq.asked ? `${unanswered} de ${faq.asked}` : undefined}
@@ -224,7 +228,67 @@ function FaqCard({ faq }: { faq: Analytics['faq'] }) {
   )
 }
 
-function FaqStat({ label, value, hint, dot }: { label: string; value: string; hint?: string; dot?: string }) {
+/** Spec 008 AC-9: reminders sent to silent candidates and how many came back, per step. */
+function ReengagementCard({ re }: { re: Analytics['reengagement'] }) {
+  const steps = [...re.by_step].sort((x, y) => x.step - y.step)
+  const max = Math.max(1, ...steps.map((s) => Math.max(s.sent, s.reactivated)))
+  return (
+    <ChartCard
+      title="Re-engagement"
+      note="Recordatorios a candidatos que dejaron de contestar a mitad (config/reengagement.yaml) y cuántos volvieron después de cada uno."
+      className="lg:col-span-2"
+      table={{
+        head: ['Recordatorio', 'Enviados', 'Volvieron', '% volvieron'],
+        rows: steps.map((s) => [
+          `Recordatorio ${s.step}`,
+          String(s.sent),
+          String(s.reactivated),
+          s.sent ? formatPercent(s.reactivated / s.sent) : '—',
+        ]),
+      }}
+    >
+      <dl className="mb-4 grid grid-cols-3 gap-3">
+        <MiniStat label="Candidatos con recordatorio" value={String(re.conversations_nudged)} hint={`${re.follow_ups_sent} enviados`} />
+        <MiniStat label="Volvieron" value={String(re.reactivated)} />
+        <MiniStat label="Tasa de reactivación" value={re.conversations_nudged ? formatPercent(re.reactivation_rate) : '—'} />
+      </dl>
+      {steps.length === 0 ? (
+        <NoData text="Aún no se ha enviado ningún recordatorio. Aparecerán cuando un candidato deje de contestar." />
+      ) : (
+        <>
+          <ul className="mb-2 flex gap-4 text-xs text-stone-600" aria-label="Leyenda">
+            {(['sent', 'reactivated'] as const).map((k) => (
+              <li key={k} className="flex items-center gap-1.5">
+                <span className="size-2.5 rounded-sm" style={{ backgroundColor: RE_COLOR[k] }} />
+                {k === 'sent' ? 'Enviados' : 'Volvieron tras este recordatorio'}
+              </li>
+            ))}
+          </ul>
+          <ol className="space-y-3" aria-label="Recordatorios por paso">
+            {steps.map((s) => (
+              <li key={s.step} className="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 text-[13px]">
+                <span className="text-stone-700">Recordatorio {s.step}</span>
+                <span className="space-y-1">
+                  {(['sent', 'reactivated'] as const).map((k) => (
+                    <span key={k} className="flex items-center gap-2" title={`${k === 'sent' ? 'Enviados' : 'Volvieron'}: ${s[k]}`}>
+                      <span
+                        className="block h-2.5 rounded-r"
+                        style={{ width: `${Math.max(s[k] ? 2 : 0, (s[k] / max) * 80)}%`, backgroundColor: RE_COLOR[k] }}
+                      />
+                      <span className="text-xs font-semibold text-stone-900 tabular-nums">{s[k]}</span>
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+    </ChartCard>
+  )
+}
+
+function MiniStat({ label, value, hint, dot }: { label: string; value: string; hint?: string; dot?: string }) {
   return (
     <div className="rounded-lg bg-stone-50 px-3 py-2">
       <dt className="flex items-center gap-1.5 text-[11px] text-stone-500">

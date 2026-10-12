@@ -2,10 +2,19 @@ import type { ChatMessage, Trace } from '../../api/client'
 import { FaqChip } from '../../components/FaqChip'
 import { EmptyState } from '../../components/States'
 import { faqTurn, type FaqTurn } from '../../lib/faq'
+import { followUpLabel } from '../../lib/reengagement'
 import { formatTime } from '../../lib/format'
 
 /** The stored conversation, read-only, in the same left/right layout as the chat. */
-export function Transcript({ messages, traces = [] }: { messages: ChatMessage[]; traces?: Trace[] }) {
+export function Transcript({
+  messages,
+  traces = [],
+  followUpTotal = null,
+}: {
+  messages: ChatMessage[]
+  traces?: Trace[]
+  followUpTotal?: number | null
+}) {
   if (!messages.length) return <EmptyState icon="chat" title="Sin mensajes" />
   // A trace belongs to the agent message it produced (same id).
   const faqByMessage = new Map<number, FaqTurn>()
@@ -31,6 +40,19 @@ export function Transcript({ messages, traces = [] }: { messages: ChatMessage[];
                 <span className="flex items-center gap-1.5">
                   {agent ? 'Sofi' : 'Candidato'}
                   {faq && <FaqChip turn={faq} />}
+                  {m.kind === 'follow_up' && m.follow_up_step != null && (
+                    <span className="font-normal normal-case">
+                      · {followUpLabel(m.follow_up_step, followUpTotal)}
+                      {m.requires_template && (
+                        <span
+                          className="ml-1 rounded border border-stone-200 px-1 text-[10px]"
+                          title="Fuera de la ventana de 24 h de WhatsApp: en producción, plantilla aprobada"
+                        >
+                          plantilla WhatsApp
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </span>
                 <span className="normal-case">{formatTime(m.created_at)}</span>
               </div>
