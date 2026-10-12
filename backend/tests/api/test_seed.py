@@ -21,6 +21,7 @@ from sazon_screening.llm.phrasing.catalog import load_catalog
 from sazon_screening.llm.pipeline import ScreeningAgent
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import load_llm_config
+from sazon_screening.reengagement import ReengagementConfig
 from tests.api.conftest import START, TickingClock
 from tests.paths import SHIPPED_CONFIG_DIR
 
@@ -41,6 +42,9 @@ EXPECTED_STATUS = {
     "abandoned_at_start_date": "abandoned",
     "needs_review": "needs_review",
     "opted_out": "opted_out",
+    "reactivated_after_1": "interview_scheduled",
+    "reactivated_after_2": "interview_scheduled",
+    "nudged_waiting": "in_progress",
 }
 
 Seeder = Callable[[int, int], Awaitable[list[tuple[Any, ...]]]]
@@ -48,7 +52,10 @@ Seeder = Callable[[int, int], Awaitable[list[tuple[Any, ...]]]]
 
 @pytest.fixture
 async def seeded_snapshot(
-    tmp_path: Path, agent: ScreeningAgent, staffing_seed: ZoneStaffingConfig
+    tmp_path: Path,
+    agent: ScreeningAgent,
+    staffing_seed: ZoneStaffingConfig,
+    reengagement: ReengagementConfig,
 ) -> AsyncIterator[Seeder]:
     """Seed a fresh database and return what the dashboard would see, oldest first."""
     engines = []
@@ -65,6 +72,7 @@ async def seeded_snapshot(
             load_slot_provider(SHIPPED_CONFIG_DIR),
             TickingClock(),
             staffing_seed,
+            reengagement,
         )
         ids = await seed(service, n, seed=seed_value, now=START)
         snapshot = []
@@ -75,7 +83,15 @@ async def seeded_snapshot(
                 texts = [m.text for m in await repo.list_messages(session, conversation_id)]
                 summary = await repo.get_summary(session, conversation_id, "es")
                 snapshot.append(
-                    (row.created_at, row.status, row.full_name, row.city, texts, summary is None)
+                    (
+                        row.created_at,
+                        row.status,
+                        row.full_name,
+                        row.city,
+                        texts,
+                        summary is None,
+                        row.reactivated_after_step,
+                    )
                 )
         return snapshot
 
@@ -89,7 +105,8 @@ async def seeded_snapshot(
 async def test_every_persona_reaches_its_outcome(seeded_snapshot: Seeder) -> None:
     snapshot = await seeded_snapshot(len(PERSONAS), 1)
     assert {p.key: s[1] for p, s in zip(PERSONAS, snapshot, strict=True)} == EXPECTED_STATUS
-    assert all(not no_summary for *_, no_summary in snapshot)  # every one is finished
+    finished = [s for s in snapshot if s[1] != "in_progress"]
+    assert all(not s[5] for s in finished)  # every finished one has its summary
     assert any("Hello" in " ".join(s[4]) or "Hi" in " ".join(s[4]) for s in snapshot)  # EN
     times = [s[0] for s in snapshot]
     assert all(START - timedelta(days=14) <= t < START for t in times)
@@ -142,6 +159,10 @@ async def test_analytics_on_seeded_data_add_up(client: AsyncClient) -> None:
     assert analytics["finished"] == finished
     assert analytics["completion_rate"] == round(finished / 30, 4)
     assert analytics["median_duration_s"] > 0
+    reengagement = analytics["reengagement"]  # spec 008: the seed nudges and reactivates
+    assert reengagement["follow_ups_sent"] > reengagement["reactivated"] > 0
+    assert sum(s["sent"] for s in reengagement["by_step"]) == reengagement["follow_ups_sent"]
+    assert sum(s["reactivated"] for s in reengagement["by_step"]) == reengagement["reactivated"]
     rows = (await client.get("/api/candidates")).json()
     assert len(rows) == 30
 
@@ -193,3 +214,17 @@ async def test_seed_uses_the_server_agent_unless_mode_fake(
             assert "server-model" in str(detail)
 
             assert (await client.post("/api/dev/seed", params={"mode": "x"})).status_code == 422
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("008:AC-8")
+async def test_the_seed_has_nudged_reactivated_and_abandoned_candidates(
+    seeded_snapshot: Seeder,
+) -> None:
+    """Spec 008: the analytics card has something to show after a seed."""
+    snapshot = await seeded_snapshot(len(PERSONAS), 1)
+    by_key = {p.key: s for p, s in zip(PERSONAS, snapshot, strict=True)}
+    assert by_key["reactivated_after_1"][6] == 1
+    assert by_key["reactivated_after_2"][6] == 2
+    assert by_key["nudged_waiting"][6] is None
+    assert by_key["abandoned_at_vehicle"][6] is None  # never came back

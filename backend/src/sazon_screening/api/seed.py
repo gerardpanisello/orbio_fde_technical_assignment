@@ -6,6 +6,11 @@ through the same service, pipeline and engine as a real chat (in fake rules mode
 "LLM" is the keyword extractor and the templates), so stored transcripts, records,
 traces and summaries are genuine. Same seed, same conversations; start times are
 spread over the 14 days before `now`.
+
+Candidates who go quiet get the re-engagement reminders (spec 008) at the times the
+policy gives, replayed up to `now`: some come back and finish, some are left waiting,
+some are abandoned after the last reminder. Without a schedule (re-engagement off), a
+silence is the plain `silence_expired` of 004.
 """
 
 import random
@@ -18,6 +23,8 @@ from sazon_screening.engine import SilenceExpired
 from sazon_screening.vocab import Country, Language
 
 Script = Callable[[random.Random], list[str]]
+HOUR = 3600
+DAY = 24 * HOUR
 
 ES_NAMES = [
     "Lucía Martín",
@@ -108,8 +115,15 @@ class Persona:
     script: Script
     language: Language = Language.es
     country_hint: Country | None = None
-    silent_at_end: bool = False  # goes quiet after the script: silence_expired
+    silent_at_end: bool = False  # goes quiet after the script for good (008: reminders, abandon)
+    # Spec 008: goes quiet after `pause_after` messages for `nudges` reminders, then writes
+    # the rest of the script (None: no pause; without `pause_after`, left waiting).
+    pause_after: int | None = None
+    nudges: int = 0
+    started_hours_ago: tuple[int, int] = (4, 14 * 24)  # range for the start time
 
+
+QUIET = (7 * 24, 14 * 24)  # long enough ago for every reminder and the abandon
 
 PERSONAS = [
     Persona("booked_es", 6, lambda r: [*_screening(r), str(r.randint(1, 6))]),
@@ -118,7 +132,7 @@ PERSONAS = [
     ),
     Persona("booked_en", 2, _english, language=Language.en),
     Persona("unscheduled", 2, lambda r: [*_screening(r), "ninguna me va bien"]),
-    Persona("unscheduled_silent", 1, _first(11), silent_at_end=True),
+    Persona("unscheduled_silent", 1, _first(11), silent_at_end=True, started_hours_ago=QUIET),
     # Salamanca is fully staffed in zone_staffing.yaml: waitlisted, no slots (spec 015).
     Persona("waitlisted", 2, lambda r: _screening(r, place="Salamanca, Madrid")),
     Persona("under_age", 2, lambda r: [*_screening(r)[:2], f"tengo {r.choice([16, 17])}"]),
@@ -130,16 +144,37 @@ PERSONAS = [
         lambda r: [*_screening(r, mexico=True)[:5], "vivo en Querétaro"],
         country_hint=Country.MX,
     ),
-    Persona("abandoned_at_consent", 2, lambda r: [], silent_at_end=True),
-    Persona("abandoned_at_vehicle", 1, _first(3), silent_at_end=True),
-    Persona("abandoned_at_availability", 2, _first(6), silent_at_end=True),
+    # Quiet for good: the three reminders, then abandoned (started 7+ days ago).
+    Persona("abandoned_at_consent", 2, lambda r: [], silent_at_end=True, started_hours_ago=QUIET),
+    Persona("abandoned_at_vehicle", 1, _first(3), silent_at_end=True, started_hours_ago=QUIET),
+    Persona("abandoned_at_availability", 2, _first(6), silent_at_end=True, started_hours_ago=QUIET),
     Persona(
         "abandoned_at_start_date",
         1,
         _first(9, mexico=True),
         country_hint=Country.MX,
         silent_at_end=True,
+        started_hours_ago=QUIET,
     ),
+    # Spec 008: back after a reminder, and one still waiting after the first.
+    Persona(
+        "reactivated_after_1",
+        2,
+        lambda r: [*_screening(r), str(r.randint(1, 6))],
+        pause_after=5,
+        nudges=1,
+        started_hours_ago=(3 * 24, 14 * 24),
+    ),
+    Persona(
+        "reactivated_after_2",
+        1,
+        lambda r: [*_screening(r, mexico=True), "el 2"],
+        country_hint=Country.MX,
+        pause_after=7,
+        nudges=2,
+        started_hours_ago=(3 * 24, 14 * 24),
+    ),
+    Persona("nudged_waiting", 1, _first(4), nudges=1, started_hours_ago=(4, 20)),
     Persona("needs_review", 2, lambda r: [*_screening(r)[:3], "quiero hablar con una persona"]),
     Persona("opted_out", 2, lambda r: [*_screening(r)[:3], "no me interesa, dame de baja"]),
 ]
@@ -157,19 +192,54 @@ async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -
 async def _play(
     service: ScreeningService, persona: Persona, rng: random.Random, now: datetime
 ) -> str:
-    at = now - timedelta(seconds=rng.randint(4 * 3600, 14 * 24 * 3600))
+    low, high = persona.started_hours_ago
+    at = now - timedelta(seconds=rng.randint(low * HOUR, high * HOUR))
     conversation_id = await service.start_conversation(
         persona.language, persona.country_hint, at=at
     )
-    for text in persona.script(rng):
+    script = persona.script(rng)
+    pause = persona.pause_after if persona.pause_after is not None else len(script)
+    for index, text in enumerate(script):
+        if index == pause and persona.nudges:
+            at = await _go_quiet(service, conversation_id, at, now, steps=persona.nudges)
         at += timedelta(seconds=rng.randint(15, 180))  # the candidate types
         outcome = await service.send_message(conversation_id, text, at=at)
         await _summarise_if_due(service, conversation_id, outcome, at)
+    if persona.nudges and pause >= len(script):
+        at = await _go_quiet(service, conversation_id, at, now, steps=persona.nudges)
     if persona.silent_at_end:
-        at += timedelta(hours=2)  # no answer: the silence timer fires (spec 008 later)
-        outcome = await service.send_event(conversation_id, SilenceExpired(), at=at)
-        await _summarise_if_due(service, conversation_id, outcome, at)
+        await _go_quiet(service, conversation_id, at, now, steps=None)
     return conversation_id
+
+
+async def _go_quiet(
+    service: ScreeningService,
+    conversation_id: str,
+    at: datetime,
+    now: datetime,
+    *,
+    steps: int | None,
+) -> datetime:
+    """The candidate stops answering: replay the re-engagement policy (reminders, then
+    the abandon) at the times it gives, up to `steps` steps and never past `now`.
+    Returns the time of the last step (the candidate's next message comes after it)."""
+    if service.reengagement is None:  # 004 behaviour: the silence timer just fires
+        if steps is None:
+            at += timedelta(hours=2)
+            outcome = await service.send_event(conversation_id, SilenceExpired(), at=at)
+            await _summarise_if_due(service, conversation_id, outcome, at)
+        return at
+    taken = 0
+    while steps is None or taken < steps:
+        planned = await service.next_reengagement(conversation_id)
+        if planned is None or planned.at > now:
+            break
+        at = planned.at
+        done = await service.reengage(conversation_id, force=True, at=at)
+        if done.summary_due:
+            await service.write_summary(conversation_id, at=at)
+        taken += 1
+    return at
 
 
 async def _summarise_if_due(
