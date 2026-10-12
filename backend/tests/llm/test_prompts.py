@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from sazon_screening.config import ConfigError
+from sazon_screening.llm.client.base import Role
 from sazon_screening.llm.extraction.schema import ExtractionOutput
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import load_llm_config
@@ -70,10 +71,23 @@ def test_prompts_are_static(name: str) -> None:
     assert not PLACEHOLDER.search(text), f"{name} contains a {{placeholder}}"
 
 
+def _shipped_prompt(role: Role) -> str:
+    return PromptRegistry().load(load_llm_config(SHIPPED_CONFIG_DIR).roles[role].prompt).text
+
+
 def test_phrasing_prompt_covers_registers_and_length() -> None:
-    text = PromptRegistry().load("phrasing.v1").text
+    text = _shipped_prompt(Role.phrasing)
     for register in ("es-ES", "es-MX", "en"):
         assert register in text
     assert "300 characters" in text
     for tag in ("<instruction>", "<reference_message>", "<candidate_last_message>", "<faq_answer>"):
         assert tag in text
+
+
+def test_phrasing_prompt_forbids_a_second_hello() -> None:
+    """Sample conversations: "¡Hola! Soy Sofi" on turn two; "tardes" answered with
+    "¡Buenas tardes!"; "una pregunta más" with five questions to go."""
+    text = _shipped_prompt(Role.phrasing)
+    assert "Never say hello" in text
+    assert "answer, not a greeting" in text
+    assert "how many questions are left" in text

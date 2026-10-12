@@ -113,3 +113,39 @@ def test_language_check_can_be_switched_off() -> None:
     act = action(AskField(field=FieldName.age))
     english = "Great, thanks! How old are you?"
     assert check(english, act, ctx(), CAPS, language_check=False) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "¡Hola! Soy Sofi, de Grupo Sazón. Vamos allá: ¿cómo te llamas?",
+        "¡Buenas tardes, Pedro! ¿Cuántos años tienes?",
+        "Buenos días, Ana. ¿Cuántos años tienes?",
+        "Hello again! How old are you?",
+        "Genial, ya sabes que soy Sofi. ¿Cuántos años tienes?",
+    ],
+)
+def test_greeting_again_after_the_greeting(text: str) -> None:
+    """Found by the sample conversations: Sofi said hello again mid-conversation, and read
+    the shift answer "tardes" as a greeting ("¡Buenas tardes, Pedro!")."""
+    assert Violation.repeated_greeting in violations(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "¡Genial, Ana! ¿Cuántos años tienes?",
+        "Perfecto, tardes anotadas. ¿Cuántos años tienes?",
+        "¡Buenas noticias, Ana! ¿Cuántos años tienes?",
+        "Thanks, Hilda! How old are you?",
+    ],
+)
+def test_no_greeting_passes(text: str) -> None:
+    assert Violation.repeated_greeting not in violations(text)
+
+
+def test_the_greeting_itself_may_say_hello() -> None:
+    text = "¡Hola! Soy Sofi, la asistente automática. ¿Aceptas?"
+    consent = AskField(field=FieldName.consent)
+    found = check(text, action(consent), ctx(is_greeting=True), CAPS)
+    assert Violation.repeated_greeting not in found

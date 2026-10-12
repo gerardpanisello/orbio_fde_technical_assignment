@@ -95,6 +95,7 @@ The engine (002) decides everything but only speaks typed proposals and actions.
   - be within the length cap
   - follow the question-count rule
   - contain no currency or pay amounts
+  - not say hello or introduce Sofi again after the greeting
 
   A failed check uses the template (outcome `fallback`). Deeper guardrails are 007.
 - **FR-16 Template fallback.** Every primary action, preface and register has a template that satisfies FR-12/13. Templates are versioned files. They are used on any phrasing failure (API error, timeout, refusal, `max_tokens`, failed check) and for all phrasing in fake mode.

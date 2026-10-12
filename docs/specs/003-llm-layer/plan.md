@@ -407,7 +407,8 @@ class Phraser:
   - `question_count`: count of `?`. It must be exactly 1 when the primary is an ask (`ask_field`, `reask_field`, `confirm_*`, `ask_correction_field`, `show_recap`, `offer_slots`), else 0;
   - `pay_or_currency`: regex for currency symbols and codes (`€ $ EUR MXN euros pesos`), and amounts with `/h`, `/hora`, `per hour`, unless the exact token appears in `ctx.faq_answer`;
   - `emoji`: more than 1, or any in `close_disqualified`;
-  - `wrong_language`: a conservative stopword score that only fires when the text is clearly the other language (OQ-5).
+  - `wrong_language`: a conservative stopword score that only fires when the text is clearly the other language (OQ-5);
+  - `repeated_greeting`: outside the greeting, a reply that opens with a hello ("hola", "buenas tardes", "hello") or says "soy Sofi" again. Added after the sample conversations showed "¡Hola! Soy Sofi" on turn two and "¡Buenas tardes!" as the acknowledgement of the shift answer "tardes".
 - **LLM path.** System = `phrasing.v1.md` (persona Sofi, the §7 rules, the register vocabulary table, "say only what the instruction contains"). The user content holds:
   - `<instruction>`: the action as JSON with resolved labels;
   - `<reference_message>`: the rendered template, which anchors content and register;

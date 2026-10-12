@@ -59,7 +59,8 @@ class Chat:
         if result.reply is not None:
             self.history.append(TranscriptEntry(role="agent", text=result.reply.text))
             assert result.trace.action is not None
-            ctx = RenderContext(privacy_url=str(self.llm_config.privacy_url))
+            greeting = len(self.results) == 1  # start(): the one reply that may say hello
+            ctx = RenderContext(privacy_url=str(self.llm_config.privacy_url), is_greeting=greeting)
             assert (
                 check(result.reply.text, result.trace.action, ctx, self.llm_config.length_caps)
                 == []
