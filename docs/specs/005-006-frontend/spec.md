@@ -54,10 +54,10 @@ This is what Grupo Sazón (and the Orbio evaluator) actually sees. Two users, on
 - AC-9 `npm run build` and `npm run lint` pass; `npm test` passes.
 
 ## 5. Tasks
-- [ ] T1 Scaffold Vite React-TS in `frontend/`, Tailwind, router, TanStack Query, ESLint, Vitest; Vite proxy; `gen:api` script.
-- [ ] T2 Home + layout + design tokens (colours, status badge map).
-- [ ] T3 Chat: start screen, bubbles, quick replies, typing indicator, session restore, error/retry, final banner (AC-1..AC-3).
-- [ ] T4 Chat demo side panel with the live record.
+- [x] T1 Scaffold Vite React-TS in `frontend/`, Tailwind, router, TanStack Query, ESLint, Vitest; Vite proxy; `gen:api` script.
+- [x] T2 Home + layout + design tokens (colours, status badge map).
+- [x] T3 Chat: start screen, bubbles, quick replies, typing indicator, session restore, error/retry, final banner (AC-1..AC-3).
+- [x] T4 Chat demo side panel with the live record.
 - [ ] T5 Recruiter: candidates page with KPIs, filters, table (AC-4).
 - [ ] T6 Candidate detail + actions + summary language toggle (AC-5, AC-6).
 - [ ] T7 Export + interviews view (AC-7).

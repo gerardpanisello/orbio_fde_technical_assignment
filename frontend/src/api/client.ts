@@ -1,0 +1,106 @@
+/**
+ * The only module that talks to the backend (spec 004). Types come from the FastAPI
+ * OpenAPI schema (`npm run gen:api` -> schema.d.ts), so they mirror the Pydantic models
+ * and can't drift silently.
+ */
+import type { components, operations } from './schema'
+
+type Schemas = components['schemas']
+
+export type Status = Schemas['Status']
+export type Bucket = Schemas['Bucket']
+export type Country = Schemas['Country']
+export type Language = Schemas['Language']
+export type RecruiterStatus = Schemas['CandidateRow']['recruiter_status']
+export type ActionName = Schemas['ActionIn']['action']
+export type Conversation = Schemas['ConversationOut']
+export type ChatMessage = Schemas['MessageOut']
+export type QuickReply = Schemas['QuickReplyOut']
+export type Turn = Schemas['TurnOut']
+export type CandidateRow = Schemas['CandidateRow']
+export type CandidateDetail = Schemas['CandidateDetail']
+export type CandidateRecord = Schemas['CandidateRecord']
+export type Summary = Schemas['SummaryOut']
+export type Trace = Schemas['TraceOut']
+export type RecruiterAction = Schemas['ActionOut']
+export type Analytics = Schemas['Analytics']
+export type AreaLabels = Schemas['AreaLabels']
+export type ScoreFactor = Schemas['ScoreFactor']
+
+type ListQuery = NonNullable<operations['list_candidates_api_candidates_get']['parameters']['query']>
+/** GET /api/candidates query: status, country, city, bucket, recruiter_status, q, sort. */
+export type CandidateFilters = { [K in keyof ListQuery]?: NonNullable<ListQuery[K]> }
+export type SortKey = NonNullable<ListQuery['sort']>
+
+/** A non-2xx answer. `detail` is FastAPI's message (e.g. the reason for a 409). */
+export class ApiError extends Error {
+  readonly status: number
+  readonly detail: string
+
+  constructor(status: number, detail: string) {
+    super(`HTTP ${status}: ${detail}`)
+    this.status = status
+    this.detail = detail
+  }
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+  })
+  if (!response.ok) {
+    let detail = response.statusText
+    try {
+      const body: unknown = await response.json()
+      if (body && typeof body === 'object' && 'detail' in body) {
+        detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail)
+      }
+    } catch {
+      // not JSON (e.g. the dev proxy's 502 when the API is down): keep statusText
+    }
+    throw new ApiError(response.status, detail)
+  }
+  return (await response.json()) as T
+}
+
+const post = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) })
+
+/** Filters -> query string. Empty values are dropped so URLs stay short. */
+export function toQueryString(filters: CandidateFilters): string {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== null && String(value).trim() !== '') {
+      params.set(key, String(value).trim())
+    }
+  }
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+export const api = {
+  // candidate chat
+  startConversation: (language: Language, countryHint: Country) =>
+    post<Conversation>('/api/conversations', { language, country_hint: countryHint }),
+  getConversation: (id: string) => request<Conversation>(`/api/conversations/${id}`),
+  sendMessage: (id: string, text: string) =>
+    post<Turn>(`/api/conversations/${id}/messages`, { text }),
+
+  // recruiter dashboard
+  listCandidates: (filters: CandidateFilters) =>
+    request<CandidateRow[]>(`/api/candidates${toQueryString(filters)}`),
+  exportUrl: (filters: CandidateFilters) =>
+    `/api/candidates/export.csv${toQueryString(filters)}`,
+  getCandidate: (id: string) => request<CandidateDetail>(`/api/candidates/${id}`),
+  getSummary: (id: string, lang: Language) =>
+    request<Summary>(`/api/candidates/${id}/summary?lang=${lang}`),
+  addAction: (id: string, action: ActionName, note?: string) =>
+    post<RecruiterAction>(`/api/candidates/${id}/actions`, { action, note }),
+  analytics: () => request<Analytics>('/api/analytics'),
+  areaLabels: () => request<AreaLabels>('/api/meta/areas?lang=es'),
+
+  // dev helpers (APP_ENV=dev only)
+  seed: (n = 40) => post<{ created: number; ids: string[] }>(`/api/dev/seed?n=${n}`),
+  silence: (id: string) => post<Turn>(`/api/dev/conversations/${id}/silence`),
+}
