@@ -14,6 +14,7 @@ Candidates ask before committing ("¿cuánto se paga?", "¿necesito moto propia?
 - FR-5 **Guard:** the existing pay guard stays; money amounts are allowed only if they appear in the retrieved approved answer. A grounded answer that fails the guard → falls back to the entry's own text (the approved answer, verbatim), not to the holding message.
 - FR-6 **Trace & analytics:** per turn, store the question, retrieved ids + scores, `answered|unanswered`. Analytics: top asked questions, unanswered rate.
 - FR-7 Fake mode: retrieval is real (no LLM needed); phrasing uses the entry's approved answer verbatim.
+- FR-8 **Relevance check** (follow-up, 2026-10-12): BM25 matches words, not meaning ("¿El contrato incluye un perro de compañía?" retrieves the contract entry). With approved entries attached, the phrasing call returns structured output `{answers_question, message}`; on `false` code discards the model's text, sends the holding template (+ the pending question) and traces `faq: unanswered`, `reason: not_relevant`. Chosen over a separate Haiku relevance call: no extra round trip, the model that writes the answer is the one already reading question and entries, and a structured field makes the decision mandatory and traceable. Prompt `phrasing.v5`. Fake mode trusts retrieval (FR-7).
 
 ## 3. Plan
 - `backend/src/sazon_screening/faq/` — `models.py` (Pydantic + loader validation), `retrieve.py` (small BM25 implementation, ~60 lines, no dependency), `__init__.py`.
@@ -34,6 +35,7 @@ Candidates ask before committing ("¿cuánto se paga?", "¿necesito moto propia?
 - AC-5 A phrased answer containing an amount not in the approved entry fails the guard and the approved text is sent instead.
 - AC-6 Invalid FAQ YAML (duplicate id, missing language) fails at startup with a clear error.
 - AC-7 Analytics exposes top questions and the unanswered rate.
+- AC-8 A question that retrieves an entry by a shared word but is not answered by it ("¿dan seguro dental?" → accident insurance) gets the holding message + pending question and is traced `unanswered` / `not_relevant`; a relevant one ("¿cuánto se paga?") is still answered.
 
 ## 5. Tasks
 - [x] T1 FAQ YAML (~20 entries, es-ES/es-MX/en) + models + loader validation (AC-6).
@@ -44,3 +46,4 @@ Candidates ask before committing ("¿cuánto se paga?", "¿necesito moto propia?
   - [x] Frontend half: "Preguntas de candidatos" card on Analítica (asked / answered / unanswered %, top questions with unanswered ones marked) and a "FAQ: <id>" / "FAQ sin respuesta" chip on turns in the transcript and traces.
 - [x] T5 Live check with the real API; add 1–2 FAQ turns to a sample conversation; README/ROADMAP.
   - Done early with T3/T4: live check (ES/MX pay, EN bike) and `h-questions-mid-flow` regenerated. README/ROADMAP updated with the frontend half.
+- [x] T6 Relevance check (FR-8, AC-8): `FaqReply` structured phrasing output, `phrasing.v5`, `FaqTrace.reason`, offline tests + live check.
