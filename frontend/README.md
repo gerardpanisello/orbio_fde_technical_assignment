@@ -30,7 +30,7 @@ the API default.
 | `/chat` | WhatsApp-style chat with Sofi. Desktop: phone frame + toggleable "Registro en vivo" demo panel |
 | `/voz` | The same screening by voice (spec 013): Chrome/Edge speech-to-text, Sofi's reply spoken (ElevenLabs via `/api/voice/tts`, browser voice fallback) |
 | `/recruiter` | Candidates: KPIs, filters (kept in the URL), priority-sorted table, detail drawer (`?id=`) |
-| `/recruiter/entrevistas` | Booked interviews grouped by day |
+| `/recruiter/entrevistas` | Week view per city (slots, booked/capacity, attendance) and a **Disponibilidad** tab to edit interview availability (spec 010; `?city=&week=&tab=`) |
 | `/recruiter/zonas` | Staffing per zone (spec 015): occupancy bars, inline target/current edits, pipeline and waitlist per zone |
 | `/recruiter/analitica` | Funnel, drop-off, disqualification reasons, status per country, agent KPIs |
 
