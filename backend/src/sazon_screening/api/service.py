@@ -12,7 +12,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal, Protocol
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -40,6 +40,7 @@ from sazon_screening.engine import (
     SilenceExpired,
     SlotTaken,
     build_record,
+    register_for,
 )
 from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
 from sazon_screening.llm.phrasing.phraser import OutboundMessage
@@ -55,6 +56,7 @@ from sazon_screening.reengagement import (
     next_step,
     timezone_for,
 )
+from sazon_screening.scheduling.ics import CalendarEvent, build_ics
 from sazon_screening.vocab import Country, Language, Status
 from sazon_screening.whatsapp.phone import phone_hash, phone_ref
 
@@ -198,6 +200,39 @@ class ScreeningService:
     @property
     def slots(self) -> SlotProvider:
         return self._slots
+
+    def timezone_name(self, city: str) -> str:
+        """The city's IANA timezone (service_areas.yaml); UTC for an unknown city."""
+        tz = self._slots.timezone(city)
+        return tz.key if tz else "UTC"
+
+    async def interview_ics(self, conversation_id: str) -> str | None:
+        """FR-5: the candidate's live booking as an .ics invite, in their language and
+        register; None when they have no booked interview."""
+        async with self._sessions() as session:
+            row = await self._get(session, conversation_id)
+            booking = await repo.active_booking(session, conversation_id)
+        if booking is None:
+            return None
+        config = self._agent.engine_config
+        register = register_for(
+            Language(row.language),
+            Country(row.country) if row.country else None,
+            None,
+            default_country=config.screening.default_country,
+        )
+        texts = self._agent.catalog.for_register(register).templates.interview
+        return build_ics(
+            CalendarEvent(
+                uid=f"interview-{booking.id}@gruposazon.example",
+                starts_at=booking.starts_at,
+                ends_at=booking.starts_at + timedelta(minutes=booking.duration_min),
+                stamp=booking.created_at,
+                summary=texts.calendar_summary,
+                location=booking.place,
+                description=texts.calendar_description,
+            )
+        )
 
     # --- candidate side ------------------------------------------------------------------
 

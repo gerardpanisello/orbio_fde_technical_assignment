@@ -1,11 +1,17 @@
 """Request and response models: the HTTP contract the frontend (005, 006) is built on."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
-from sazon_screening.api.models import Conversation, Message, RecruiterAction, SummaryRow
+from sazon_screening.api.models import (
+    Conversation,
+    InterviewBooking,
+    Message,
+    RecruiterAction,
+    SummaryRow,
+)
 from sazon_screening.api.service import ActionName, Channel, Reengaged, TurnOutcome
 from sazon_screening.api.staffing import Staffing, area_of_row, live_score
 from sazon_screening.config import EngineConfig
@@ -80,11 +86,59 @@ class MessageOut(BaseModel):
         )
 
 
+BookingStatus = Literal["booked", "attended", "no_show", "cancelled", "rescheduled"]
+
+
+class BookingOut(BaseModel):
+    """One interview booking (spec 010). Times are UTC; `local_start` is the wall clock in
+    the city (`timezone`), which is what candidates and recruiters read."""
+
+    id: int
+    slot_id: str  # "madrid:2026-10-20T10:00"
+    city: str
+    local_start: str  # "2026-10-20T10:00"
+    timezone: str  # IANA, e.g. "Europe/Madrid"
+    starts_at: datetime
+    ends_at: datetime
+    duration_min: int
+    place: str
+    status: BookingStatus
+    ics_url: str  # relative to the API root, e.g. "/api/interviews/<conversation id>.ics"
+    reminder_sent_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def of(cls, row: InterviewBooking, timezone: str) -> Self:
+        slot = parse_slot_id(row.slot_id)
+        local = f"{slot.day.isoformat()}T{slot.time}" if slot else row.slot_id
+        return cls.model_validate(
+            {
+                "id": row.id,
+                "slot_id": row.slot_id,
+                "city": row.city,
+                "local_start": local,
+                "timezone": timezone,
+                "starts_at": row.starts_at,
+                "ends_at": row.starts_at + timedelta(minutes=row.duration_min),
+                "duration_min": row.duration_min,
+                "place": row.place,
+                "status": row.status,
+                "ics_url": f"/api/interviews/{row.conversation_id}.ics",
+                "reminder_sent_at": row.reminder_sent_at,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            }
+        )
+
+
 class ConversationOut(BaseModel):
     id: str
     status: Status
     language: Language
     messages: list[MessageOut]
+    # Spec 010: the live interview booking, if any (the chat's "Añadir al calendario").
+    booking: BookingOut | None = None
 
 
 class ReplyOut(BaseModel):

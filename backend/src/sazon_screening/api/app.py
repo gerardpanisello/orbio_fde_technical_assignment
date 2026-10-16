@@ -24,6 +24,7 @@ from sazon_screening.api.routes import (
     candidates,
     conversations,
     dev,
+    interviews,
     meta,
     whatsapp,
     zones,
@@ -125,6 +126,7 @@ def create_app(
     app.include_router(candidates.router)
     app.include_router(analytics.router)
     app.include_router(zones.router)
+    app.include_router(interviews.router)  # spec 010
     app.include_router(meta.router)
     app.include_router(dev.router)
     app.include_router(whatsapp.router)  # spec 016

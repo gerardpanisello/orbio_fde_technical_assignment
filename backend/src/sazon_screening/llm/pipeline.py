@@ -17,6 +17,7 @@ from sazon_screening.config import EngineConfig, load_config
 from sazon_screening.engine import (
     AnswerFaq,
     CandidateRecord,
+    ConfirmInterview,
     ConversationState,
     EngineAction,
     NoSlotFits,
@@ -117,6 +118,11 @@ class ScreeningAgent:
     def engine_config(self) -> EngineConfig:
         """The rules in force, e.g. for `build_record` at the caller."""
         return self._engine_config
+
+    @property
+    def catalog(self) -> MessageCatalog:
+        """The message catalog (e.g. the .ics texts and the interview reminder, spec 010)."""
+        return self._catalog
 
     @property
     def default_summary_language(self) -> Language:
@@ -300,6 +306,7 @@ class ScreeningAgent:
         )
         if faq_trace is not None and phrasing.faq_relevant is False:
             faq_trace = faq_trace.not_relevant()  # FR-8: held and flagged for the recruiter
+        reply = self._with_calendar_link(reply, action, context.calendar_url)
         trace = self._trace(
             turn_input, action, extraction, phrasing, calls + phrase_calls, began, faq=faq_trace
         )
@@ -344,6 +351,19 @@ class ScreeningAgent:
             return unanswered(question, country, error=type(error).__name__), None
 
     # --- helpers -------------------------------------------------------------------------
+
+    def _with_calendar_link(
+        self, reply: OutboundMessage | None, action: EngineAction, url: str | None
+    ) -> OutboundMessage | None:
+        """Spec 010 FR-5: a confirmation gets the .ics link when the caller passes one (a
+        WhatsApp chat with a public base URL). Added after phrasing, from the template,
+        so the model can never alter or invent the link."""
+        if reply is None or url is None or not isinstance(action.primary, ConfirmInterview):
+            return reply
+        texts = self._catalog.for_register(action.register).templates.interview
+        return reply.model_copy(
+            update={"text": f"{reply.text}\n{texts.calendar_link.format(url=url)}"}
+        )
 
     def _deadline(self) -> Deadline:
         return Deadline(self._clock, self._config.turn_budget_s)

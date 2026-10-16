@@ -6,13 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sazon_screening.api import repo
 from sazon_screening.api.deps import ServiceDep, SessionDep
 from sazon_screening.api.schemas import (
+    BookingOut,
     ConversationOut,
     CreateConversationIn,
     MessageOut,
     SendMessageIn,
     TurnOut,
 )
-from sazon_screening.api.service import ConversationNotFound
+from sazon_screening.api.service import ConversationNotFound, ScreeningService
 from sazon_screening.vocab import Language, Status
 
 router = APIRouter(prefix="/api/conversations", tags=["candidate chat"])
@@ -24,7 +25,7 @@ async def create_conversation(
 ) -> ConversationOut:
     body = body or CreateConversationIn()
     conversation_id = await service.start_conversation(body.language, body.country_hint)
-    return await conversation_out(session, conversation_id)
+    return await conversation_out(session, conversation_id, service)
 
 
 @router.post("/{conversation_id}/messages")
@@ -38,18 +39,24 @@ async def send_message(
 
 
 @router.get("/{conversation_id}")
-async def get_conversation(conversation_id: str, session: SessionDep) -> ConversationOut:
-    return await conversation_out(session, conversation_id)
+async def get_conversation(
+    conversation_id: str, session: SessionDep, service: ServiceDep
+) -> ConversationOut:
+    return await conversation_out(session, conversation_id, service)
 
 
-async def conversation_out(session: AsyncSession, conversation_id: str) -> ConversationOut:
+async def conversation_out(
+    session: AsyncSession, conversation_id: str, service: ScreeningService
+) -> ConversationOut:
     row = await repo.get_conversation(session, conversation_id)
     if row is None:
         raise ConversationNotFound(conversation_id)
     messages = await repo.list_messages(session, conversation_id)
+    booking = await repo.active_booking(session, conversation_id)
     return ConversationOut(
         id=row.id,
         status=Status(row.status),
         language=Language(row.language),
         messages=[MessageOut.of(m) for m in messages],
+        booking=BookingOut.of(booking, service.timezone_name(booking.city)) if booking else None,
     )
