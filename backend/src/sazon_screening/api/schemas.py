@@ -19,7 +19,7 @@ from sazon_screening.engine import CandidateRecord, ScoreResult
 from sazon_screening.llm.summary.facts import SummaryFact
 from sazon_screening.llm.summary.summarizer import NarrativeOutput
 from sazon_screening.reengagement import Planned, SendFollowUp
-from sazon_screening.scheduling import parse_slot_id
+from sazon_screening.scheduling import PartialAvailability, parse_slot_id
 from sazon_screening.vocab import (
     Availability,
     Bucket,
@@ -30,6 +30,7 @@ from sazon_screening.vocab import (
     ScheduleSlot,
     Status,
     VehicleType,
+    Weekday,
 )
 
 RecruiterStatus = Literal["new", "shortlisted", "rejected", "hired"]
@@ -366,6 +367,10 @@ class ReengagementOut(BaseModel):
 
 class CandidateDetail(BaseModel):
     candidate: CandidateRow
+    # Spec 010 FR-8: the live booking (None: no interview booked) and every booking of this
+    # candidate, oldest first: moves ("rescheduled"), cancels and attendance.
+    booking: BookingOut | None = None
+    bookings: list[BookingOut] = []
     record: CandidateRecord  # spec 002 schema; `record.score` is the score at close
     live_score: ScoreResult | None  # the same factors, zone demand at today's occupancy
     summary: SummaryOut | None  # default language; None while in progress or being written
@@ -410,6 +415,18 @@ class ReengagementAnalytics(BaseModel):
     by_step: list[ReengagementStepCount]
 
 
+class InterviewAnalytics(BaseModel):
+    """Spec 010 FR-7. `booked`: interviews holding a seat (upcoming, attended or no-show);
+    `show_up_rate`: attended / (attended + no_show), 0 when none is marked yet."""
+
+    booked: int
+    attended: int
+    no_show: int
+    show_up_rate: float
+    rescheduled: int  # bookings moved to another slot by chat
+    cancelled: int  # bookings cancelled (by chat, or by an opt-out)
+
+
 class Analytics(BaseModel):
     total: int
     by_status: dict[Status, int]
@@ -425,6 +442,7 @@ class Analytics(BaseModel):
     by_channel: dict[Channel, dict[Status, int]]  # spec 016: web chat vs WhatsApp
     faq: FaqAnalytics
     reengagement: ReengagementAnalytics
+    interviews: InterviewAnalytics  # spec 010
 
 
 class AdvanceOut(BaseModel):
@@ -499,6 +517,77 @@ class ZonePatchIn(_In):
         if self.target_drivers is None and self.current_drivers is None:
             raise ValueError("give target_drivers, current_drivers or both")
         return self
+
+
+# --- interviews (spec 010) -----------------------------------------------------------------
+
+
+class AvailabilityOut(BaseModel):
+    """One city's interview agenda ("Entrevistas -> Disponibilidad")."""
+
+    city: str
+    city_name: str
+    country: Country
+    timezone: str
+    weekdays: list[Weekday]
+    times: list[str]  # "HH:MM", local, sorted
+    capacity: int  # candidates per slot
+    duration_min: int
+    days_ahead: int  # interview days offered, from tomorrow
+    place: str
+    updated_at: datetime
+
+
+class AvailabilityPatchIn(PartialAvailability):
+    """Any subset of the settings; the result is validated as a whole (times HH:MM,
+    capacity >= 1, ...). Only slots offered from now on change: bookings stay."""
+
+    @model_validator(mode="after")
+    def _something_to_change(self) -> Self:
+        if not self.model_dump(exclude_none=True):
+            raise ValueError("give at least one setting to change")
+        return self
+
+
+class WeekBookingOut(BaseModel):
+    booking_id: int
+    conversation_id: str
+    full_name: str | None
+    status: Literal["booked", "attended", "no_show"]
+    seat: int
+
+
+class WeekSlotOut(BaseModel):
+    slot_id: str
+    time: str  # "HH:MM", local
+    starts_at: datetime
+    capacity: int  # the city's capacity now
+    booked: int  # seats taken (booked, attended or no-show)
+    in_agenda: bool  # False: only here because of a booking made before an agenda change
+    past: bool
+    bookings: list[WeekBookingOut]
+
+
+class WeekDayOut(BaseModel):
+    date: date
+    weekday: Weekday
+    slots: list[WeekSlotOut]
+
+
+class WeekOut(BaseModel):
+    """Seven days from Monday, in the city's local time."""
+
+    city: str
+    city_name: str
+    timezone: str
+    start: date  # Monday
+    days: list[WeekDayOut]
+
+
+class AttendanceIn(_In):
+    """Mark a past interview; `booked` undoes a mark."""
+
+    status: Literal["attended", "no_show", "booked"]
 
 
 # --- labels for config ids ---------------------------------------------------------------

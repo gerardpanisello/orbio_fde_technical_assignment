@@ -12,6 +12,7 @@ from sazon_screening.api.schemas import (
     Analytics,
     FaqAnalytics,
     FaqQuestionCount,
+    InterviewAnalytics,
     ReengagementAnalytics,
     ReengagementStepCount,
 )
@@ -70,6 +71,20 @@ async def build_analytics(session: AsyncSession) -> Analytics:
         reengagement=_reengagement(
             await repo.follow_up_steps(session), await repo.reactivation_steps(session)
         ),
+        interviews=_interviews(await repo.booking_counts(session)),
+    )
+
+
+def _interviews(counts: dict[str, int]) -> InterviewAnalytics:
+    """Spec 010 FR-7: bookings by status, and how many marked interviews happened."""
+    attended, no_show = counts.get("attended", 0), counts.get("no_show", 0)
+    return InterviewAnalytics(
+        booked=counts.get("booked", 0) + attended + no_show,
+        attended=attended,
+        no_show=no_show,
+        show_up_rate=_ratio(attended, attended + no_show),
+        rescheduled=counts.get("rescheduled", 0),
+        cancelled=counts.get("cancelled", 0),
     )
 
 

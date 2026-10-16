@@ -401,6 +401,16 @@ async def claim_reminder(session: AsyncSession, booking_id: int, at: datetime) -
     return result.rowcount == 1
 
 
+async def names_of(session: AsyncSession, conversation_ids: set[str]) -> dict[str, str | None]:
+    """conversation id -> candidate name, for the week view."""
+    if not conversation_ids:
+        return {}
+    query = select(Conversation.id, Conversation.full_name).where(
+        Conversation.id.in_(conversation_ids)
+    )
+    return dict((await session.execute(query)).all())  # Result itself is not dict()-able
+
+
 async def booking_counts(session: AsyncSession) -> dict[str, int]:
     """status -> bookings (analytics)."""
     query = select(InterviewBooking.status, func.count()).group_by(InterviewBooking.status)

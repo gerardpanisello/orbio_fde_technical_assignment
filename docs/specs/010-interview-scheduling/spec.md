@@ -40,5 +40,5 @@ Booking the interview inside the chat is what removes the phone call (the 60 % p
 - [x] T3 Engine signals + extraction prompt + templates: reschedule/cancel (AC-3, AC-4).
 - [x] T4 `.ics` endpoint (AC-5) + confirmation message link.
 - [x] T5 Day-before reminder in the scheduler (AC-6).
-- [ ] T6 Interviews API: week view, availability, attendance, analytics (AC-7, AC-8).
+- [x] T6 Interviews API: week view, availability, attendance, analytics (AC-7, AC-8).
 - [ ] T7 Frontend (AC-9), seed with bookings across the coming week, README/ROADMAP.

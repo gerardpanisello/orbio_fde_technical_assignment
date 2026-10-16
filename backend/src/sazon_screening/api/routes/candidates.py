@@ -18,6 +18,7 @@ from sazon_screening.api.repo import CandidateFilters, SortKey
 from sazon_screening.api.schemas import (
     ActionIn,
     ActionOut,
+    BookingOut,
     CandidateDetail,
     CandidateRow,
     MessageOut,
@@ -124,8 +125,12 @@ async def get_candidate(
     candidate, live = CandidateRow.from_record(
         row, record, staffing=staffing, config=service.engine_config
     )
+    history = await repo.bookings_for(session, conversation_id)
+    bookings = [BookingOut.of(b, service.timezone_name(b.city)) for b in history]
     return CandidateDetail(
         candidate=candidate,
+        booking=next((b for b in reversed(bookings) if b.status == "booked"), None),
+        bookings=bookings,
         record=record,
         live_score=live,
         summary=SummaryOut.of(summary) if summary else None,
