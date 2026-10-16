@@ -50,8 +50,9 @@ def test_unknown_or_malformed_id_is_a_config_error(prompt_id: str) -> None:
 
 
 def test_extraction_prompt_names_every_schema_field() -> None:
-    """Guards drift: a schema field the prompt never explains is a field the model guesses."""
-    text = PromptRegistry().load("extraction.v1").text
+    """Guards drift: a schema field the prompt never explains is a field the model guesses.
+    Checked on the prompt in use (llm.yaml): older versions predate newer fields."""
+    text = _shipped_prompt(Role.extraction)
     missing = [name for name in ExtractionOutput.model_fields if f"`{name}`" not in text]
     assert missing == []
 

@@ -37,7 +37,7 @@ Booking the interview inside the chat is what removes the phone call (the 60 % p
 ## 5. Tasks
 - [x] T1 Pure slot generation + capacity (AC-1, AC-7 logic).
 - [x] T2 DB + booking with capacity check + slot-taken path (AC-2).
-- [ ] T3 Engine signals + extraction prompt + templates: reschedule/cancel (AC-3, AC-4).
+- [x] T3 Engine signals + extraction prompt + templates: reschedule/cancel (AC-3, AC-4).
 - [ ] T4 `.ics` endpoint (AC-5) + confirmation message link.
 - [ ] T5 Day-before reminder in the scheduler (AC-6).
 - [ ] T6 Interviews API: week view, availability, attendance, analytics (AC-7, AC-8).

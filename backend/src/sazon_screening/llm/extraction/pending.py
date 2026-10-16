@@ -15,7 +15,7 @@ from sazon_screening.engine import ConversationState
 from sazon_screening.llm.phrasing.catalog import Labels, MessageCatalog
 from sazon_screening.llm.phrasing.labels import ENUM_GROUPS, area_label, field_values, slot_label
 from sazon_screening.llm.slots import SlotDisplay
-from sazon_screening.vocab import FieldName, Flag, PendingKind
+from sazon_screening.vocab import FieldName, Flag, PendingKind, Status
 
 
 class OptionView(BaseModel):
@@ -33,6 +33,9 @@ class PendingView(BaseModel):
     options: list[OptionView]
     # recap / correction: what is stored now, so "no, es Chamberí" can be mapped
     current_values: dict[FieldName, str]
+    # Spec 010: the interview they already have ("martes 20/10, 10:00"), so "¿puedo
+    # cambiarla?" can be read as a reschedule. None: no interview booked.
+    booked_interview: str | None = None
 
     def option_ids(self) -> set[str]:
         return {option.id for option in self.options}
@@ -61,11 +64,13 @@ def pending_view(
         if reviewing
         else {}
     )
+    booked = state.selected_slot_id
     return PendingView(
         kind=pending.kind,
         field=pending.field,
         options=_options(state, config, labels, slots),
         current_values=current,
+        booked_interview=slot_label(booked, slots, state.language) if booked else None,
     )
 
 
@@ -82,6 +87,8 @@ def _options(
             for option in pending.options
         ]
     if pending.kind is PendingKind.slot:
+        if state.status is not Status.in_progress:
+            return []  # booked or closed: nothing to pick until new slots are offered (010)
         return [
             OptionView(id=slot_id, label=slot_label(slot_id, slots, language))
             for slot_id in state.offered_slot_ids

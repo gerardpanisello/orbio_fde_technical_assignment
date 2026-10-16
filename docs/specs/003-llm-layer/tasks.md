@@ -456,3 +456,10 @@ Rules:
 - `extraction.v5.md` (`llm.yaml` points to v5): "el mes que viene" / "el mes al que vamos a entrar" / "next month" → offset 1 month; "en noviembre" / "a principios de noviembre" / "in November" → month 11.
 - **Decision — end of a month:** the extractor never knows today, so "a finales de mes" cannot be "offset 0 months" (that would resolve to today). It maps to **offset 1 month** (the start of next month, a few days away) and "a finales de noviembre" to month 12, because re-asking a clear month-level answer is exactly the bug being fixed; the recap shows "a partir de <mes>" and the candidate can correct it. "A mediados de noviembre" is not modelled as the 15th: it maps to month 11 (the 1st), shown as "a partir de noviembre".
 - The offline fake (`fake_rules.py`) understands "el mes que viene", "next month", "en <mes>" / "in <month>".
+
+## Spec 010 — interview reschedule / cancel signals (2026-10-16)
+- Wire schema: two plain booleans, `reschedule_interview` and `cancel_interview` (required, non-nullable). `mapping.py` copies them into `Signals`; a slot pick that comes with either is not a pick.
+- `extraction.v6.md` (`llm.yaml` points to v6, version 2026-10-16.2): a "Their interview" section. The pending view gains `booked_interview` (the booked slot's label, or null) and lists no slot options once the conversation is not in progress, so an old option id can never book again.
+- Cancelling the interview is not an opt-out unless the candidate also asks to stop; "¿dónde es?" stays a `faq_question`.
+- `test_extraction_prompt_names_every_schema_field` now checks the prompt in use (it read v1, which predates new fields).
+- The offline fake understands "cambiar la entrevista / otro día / quiero una cita / reschedule" and "cancela / anula / cancel my interview".

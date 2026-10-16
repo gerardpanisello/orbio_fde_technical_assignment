@@ -122,6 +122,8 @@ def signals(out: ExtractionOutput) -> Signals:
         off_topic=out.off_topic,
         abuse=out.abuse,
         language=Language(out.language) if out.language else None,
+        reschedule_interview=out.reschedule_interview,
+        cancel_interview=out.cancel_interview,
     )
 
 

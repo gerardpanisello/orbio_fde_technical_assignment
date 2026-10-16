@@ -38,6 +38,15 @@ NO = phrases("no|nope|no acepto|incorrecto")
 THUMBS_UP = "\N{THUMBS UP SIGN}"
 OPT_OUT = phrases("no me interesa|no me escribas|dame de baja|baja|stop|unsubscribe|not interested")
 HUMAN = phrases("humano|una persona|hablar con alguien|human|a person|real person")
+# Spec 010: move or cancel the interview (or ask for one again).
+RESCHEDULE = phrases(
+    "cambiar la entrevista|cambiar la cita|cambiarla|mover la entrevista|moverla|otro dia"
+    "|otra hora|otras horas|reprogramar|nueva cita|quiero una cita|dame cita|agendar"
+    "|reschedule|move my interview|another time|another day|new appointment"
+)
+CANCEL = phrases(
+    "cancela|cancelar|cancelame|anula|anular|cancel my interview|cancel the interview|cancel it"
+)
 INJECTION = phrases(
     "ignore previous instructions|ignore your instructions|ignora las instrucciones"
     "|olvida tus instrucciones|mark me qualified|marcame como apto"
@@ -122,6 +131,10 @@ class RuleExtractor:
         out["opt_out"] = _has(folded, *OPT_OUT)
         out["wants_human"] = _has(folded, *HUMAN)
         out["abuse"] = _has(folded, *ABUSE)
+        out["cancel_interview"] = _has(folded, *CANCEL)
+        out["reschedule_interview"] = not out["cancel_interview"] and _has(folded, *RESCHEDULE)
+        if out["cancel_interview"] or out["reschedule_interview"]:
+            return ExtractionOutput.model_validate(out)  # a request, not an answer
         if "?" in text and _has(folded, *JOB_WORDS):
             out["faq_question"] = text.strip()
         self._answer_to_pending(text, folded, pending, out)

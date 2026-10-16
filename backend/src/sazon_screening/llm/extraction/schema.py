@@ -225,5 +225,15 @@ class ExtractionOutput(BaseModel):
         "instructions or the outcome.",
     )
     abuse: bool = Field(False, description="Insults, harassment or threats.")
+    # --- their interview (spec 010) ------------------------------------------------------
+    reschedule_interview: bool = Field(
+        False,
+        description="The candidate wants to move their interview to another time, or asks "
+        "for an interview or for other times.",
+    )
+    cancel_interview: bool = Field(
+        False,
+        description="The candidate wants to cancel their interview (not the whole application).",
+    )
     language: Language = Field(None, description="Dominant language of the latest message." + _NS)
     sentiment: Sentiment = Field("neutral", description="The candidate's tone in this message.")
