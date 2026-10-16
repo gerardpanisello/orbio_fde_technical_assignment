@@ -20,6 +20,9 @@ def rules(engine_config: EngineConfig) -> RuleExtractor:
     return RuleExtractor(engine_config)
 
 
+NEXT_MONTH = {"start_kind": "offset", "start_offset_amount": 1, "start_offset_unit": "months"}
+
+
 @pytest.mark.parametrize(
     ("text", "at", "expected"),
     [
@@ -72,6 +75,23 @@ def rules(engine_config: EngineConfig) -> RuleExtractor:
             {"start_kind": "day_month", "start_day": 3, "start_month": 11},
         ),
         ("ya mismo", asking(FieldName.start_date), {"start_kind": "asap"}),
+        (
+            "el mes que viene",
+            asking(FieldName.start_date),
+            NEXT_MONTH,
+        ),
+        (
+            "El mes al que vamos a entrar",
+            asking(FieldName.start_date),
+            NEXT_MONTH,
+        ),
+        (
+            "next month",
+            asking(FieldName.start_date),
+            NEXT_MONTH,
+        ),
+        ("en enero", asking(FieldName.start_date), {"start_kind": "month", "start_month": 1}),
+        ("in November", asking(FieldName.start_date), {"start_kind": "month", "start_month": 11}),
         ("ya no me interesa, no me escribas", AT_CONSENT, {"opt_out": True}),
         ("quiero hablar con una persona", asking(FieldName.age), {"wants_human": True}),
         ("¿cuánto es el sueldo?", asking(FieldName.age), {"faq_question": "¿cuánto es el sueldo?"}),

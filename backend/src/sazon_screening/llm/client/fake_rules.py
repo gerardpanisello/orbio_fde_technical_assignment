@@ -85,6 +85,9 @@ _WEEKDAY_IDS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 WEEKDAYS = dict(zip(_DAYS.split() + _EN_DAYS.split(), _WEEKDAY_IDS * 2, strict=True))
 _MONTHS = "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre"
 MONTHS = {name: number for number, name in enumerate(_MONTHS.split(), start=1)}
+_EN_MONTHS = "january february march april may june july august september october november december"
+ALL_MONTHS = MONTHS | {name: number for number, name in enumerate(_EN_MONTHS.split(), start=1)}
+NEXT_MONTH = phrases("mes que viene|proximo mes|mes al que vamos a entrar|next month")
 NUMBER_WORDS = {"un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5}
 NUMBER_WORDS |= {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 ENGLISH = set(phrases("i|i'm|im|my|name|is|am|the|hi|hello|yes|have|years|old|want|can|start"))
@@ -226,6 +229,10 @@ class RuleExtractor:
             unit = "weeks" if offset.group(2).startswith(("sem", "week")) else "days"
             count = int(amount) if amount.isdigit() else NUMBER_WORDS[amount]
             out.update(start_kind="offset", start_offset_amount=count, start_offset_unit=unit)
+        elif _has(folded, *NEXT_MONTH):
+            out.update(start_kind="offset", start_offset_amount=1, start_offset_unit="months")
+        elif named := re.search(rf"\b(?:en|in) ({'|'.join(ALL_MONTHS)})\b", folded):
+            out.update(start_kind="month", start_month=ALL_MONTHS[named.group(1)])
         elif weekday:
             out.update(start_kind="next_weekday", start_weekday=weekday)
         elif asked and _has(folded, "manana", "tomorrow"):
