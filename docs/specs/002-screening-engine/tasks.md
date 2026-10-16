@@ -380,3 +380,11 @@ Rules:
   - Record the OQ decisions taken (plan §8) in spec §7 once the human has answered them.
   - *(all)*
   - *Note (impl):* all 37 AC checkboxes ticked (each has a marked test; the gate enforces it). There is no root README yet, so the "Engine" section went into `backend/README.md`; its code sample was executed to check the documented output. Plan §8 OQ decisions are recorded in spec §7, and decision row 7 now matches the updated FR-15. **Rename found during close-out:** `engine/step.py` → `engine/turn.py`. With lazy exports, importing the submodule `engine.step` rebinds the package attribute `step` to the module, so `from sazon_screening.engine import step` returned a module, not the function. `test_public_api.py` now imports every submodule first and asserts that the entry points are functions.
+
+## G. Amendment 2026-10-13: month-level start dates
+
+- [x] **T32 — `offset(n months)` and `month(m)` start dates (AC-41, AC-42).**
+  - Bug from a live run: "el mes que viene" and "El mes al que vamos a entrar" were re-asked for a concrete day; a month is a valid answer for a delivery driver.
+  - `inputs.py`: `Offset.unit` gains `"months"`; new variant `Month(month)`. `validators.py`: both resolve to the 1st of that month (today if it is the current month) and add flag `start_date_approximate`. `apply.py` clears the flag whenever a new start date is stored. `ShowRecap.start_date_approximate` carries it to the phrasing layer.
+  - Regenerated `candidate-record.schema.json` (new `Flag` value).
+  - *(FR-22)*

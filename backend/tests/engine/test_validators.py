@@ -11,6 +11,7 @@ from sazon_screening.engine.inputs import (
     Asap,
     DayMonth,
     ExperienceAnswer,
+    Month,
     NextWeekday,
     Offset,
     StartDateExpr,
@@ -242,3 +243,64 @@ class TestDayMonth:
     ) -> None:
         expr = DayMonth(day=day, month=month)
         assert validate_start_date(expr, today) == Rejected(ReaskReason.implausible_value)
+
+
+APPROXIMATE = (Flag.start_date_approximate,)
+
+
+class TestMonthLevelStartDate:
+    """ "el mes que viene", "en noviembre": a month is a valid answer for a driver."""
+
+    @pytest.mark.ac("AC-41")
+    @pytest.mark.parametrize(
+        ("amount", "expected"),
+        [
+            (1, date(2026, 11, 1)),  # "el mes que viene": the 1st of next month
+            (0, date(2026, 10, 12)),  # "este mes": the 1st is past, so today (not normalised)
+            (3, date(2027, 1, 1)),  # crosses the year
+            (14, date(2027, 12, 1)),
+        ],
+    )
+    def test_offset_in_months_is_the_first_of_that_month(
+        self, today: date, amount: int, expected: date
+    ) -> None:
+        expr = Offset(amount=amount, unit="months")
+        assert resolve_start_date(expr, today) == (expected, False)
+        assert validate_start_date(expr, today) == Accepted(expected, flags=APPROXIMATE)
+
+    @pytest.mark.ac("AC-41")
+    def test_offset_in_months_on_the_first_is_today(self) -> None:
+        first = date(2026, 11, 1)
+        expr = Offset(amount=0, unit="months")
+        assert validate_start_date(expr, first) == Accepted(first, flags=APPROXIMATE)
+
+    @pytest.mark.ac("AC-41")
+    def test_negative_or_absurd_month_offset_is_reasked(self, today: date) -> None:
+        negative = Offset(amount=-1, unit="months")
+        absurd = Offset(amount=10**6, unit="months")
+        assert validate_start_date(negative, today) == Rejected(ReaskReason.negative_value)
+        assert validate_start_date(absurd, today) == Rejected(ReaskReason.implausible_value)
+
+    @pytest.mark.ac("AC-42")
+    @pytest.mark.parametrize(
+        ("month", "expected"),
+        [
+            (11, date(2026, 11, 1)),  # "en noviembre" in October: this year
+            (10, date(2026, 10, 12)),  # the current month: today
+            (1, date(2027, 1, 1)),  # "en enero" in October: next year
+            (9, date(2027, 9, 1)),  # last month: next year's
+        ],
+    )
+    def test_month_is_the_first_of_its_next_occurrence(
+        self, today: date, month: int, expected: date
+    ) -> None:
+        expr = Month(month=month)
+        assert resolve_start_date(expr, today) == (expected, False)
+        assert validate_start_date(expr, today) == Accepted(expected, flags=APPROXIMATE)
+
+    @pytest.mark.ac("AC-42")
+    @pytest.mark.parametrize("month", [0, 13, -1])
+    def test_impossible_month_is_reasked_never_raises(self, today: date, month: int) -> None:
+        assert validate_start_date(Month(month=month), today) == Rejected(
+            ReaskReason.implausible_value
+        )

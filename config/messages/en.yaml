@@ -134,6 +134,7 @@ summary:
     surname_missing: Surname missing
     name_unclear: Name unclear
     start_date_normalised: Start date moved to today
+    start_date_approximate: Approximate start date (month only)
     human_requested: Asked for a person
     post_close_correction: Correction after closing
     system_failure: Technical failure

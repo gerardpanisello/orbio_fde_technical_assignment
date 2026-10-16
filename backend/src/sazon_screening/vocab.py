@@ -159,6 +159,7 @@ class Flag(StrEnum):
     surname_missing = "surname_missing"
     name_unclear = "name_unclear"
     start_date_normalised = "start_date_normalised"
+    start_date_approximate = "start_date_approximate"  # month-level ("el mes que viene")
     human_requested = "human_requested"
     post_close_correction = "post_close_correction"
     system_failure = "system_failure"

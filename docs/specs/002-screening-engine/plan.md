@@ -77,7 +77,7 @@ All boundary models use `ConfigDict(extra="forbid")`. Inputs, actions and config
 | `ReaskReason` | `unclear, not_recognised, surname_missing, invalid_characters, implausible_value, negative_value, missing_years, empty_selection, consent_required, slot_not_offered, extraction_failed, value_rejected` |
 | `DisqualificationReason` | `under_age, no_license, out_of_area` |
 | `ReviewReason` | `age_unclear, license_unclear, vehicle_unclear, location_unclear, human_requested, system_failure, abuse, recap_loop, post_close_correction, engine_error` |
-| `Flag` | `surname_missing, name_unclear, start_date_normalised, human_requested, post_close_correction, system_failure, abuse, do_not_contact, engine_error` |
+| `Flag` | `surname_missing, name_unclear, start_date_normalised, start_date_approximate, human_requested, post_close_correction, system_failure, abuse, do_not_contact, engine_error` |
 | `Bucket` | `high, medium, low` |
 
 ### 3.2 Flow tables (`engine/flow.py`)

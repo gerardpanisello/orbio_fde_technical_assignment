@@ -18,6 +18,7 @@ from sazon_screening.engine.inputs import (
     ConsentProposal,
     ExperienceAnswer,
     LocationAnswer,
+    Month,
     NameProposal,
     NextWeekday,
     NoSlotFits,
@@ -103,6 +104,8 @@ def test_every_proposal_accepts_the_unclear_marker(field: str) -> None:
         ({"kind": "absolute", "on": "2026-11-02"}, AbsoluteDate(on=date(2026, 11, 2))),
         ({"kind": "offset", "amount": 2, "unit": "weeks"}, Offset(amount=2, unit="weeks")),
         ({"kind": "next_weekday", "weekday": "mon"}, NextWeekday(weekday=Weekday.mon)),
+        ({"kind": "offset", "amount": 1, "unit": "months"}, Offset(amount=1, unit="months")),
+        ({"kind": "month", "month": 11}, Month(month=11)),
     ],
 )
 def test_each_start_date_kind_parses(raw: dict[str, Any], expected: object) -> None:
@@ -154,7 +157,7 @@ def test_candidate_turn_defaults_are_empty() -> None:
         {"field": "age", "value": {"age": 20, "approved": True}},
         {"field": "vehicle_type", "value": "scooter"},
         {"field": "start_date", "value": {"kind": "tomorrow"}},
-        {"field": "start_date", "value": {"kind": "offset", "amount": 2, "unit": "months"}},
+        {"field": "start_date", "value": {"kind": "offset", "amount": 2, "unit": "years"}},
     ],
 )
 def test_unknown_fields_and_extra_keys_are_rejected(raw: dict[str, Any]) -> None:

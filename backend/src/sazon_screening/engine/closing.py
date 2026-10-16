@@ -109,7 +109,15 @@ def show_recap(s: ConversationState, cfg: EngineConfig) -> ShowRecap | CloseNeed
     if s.recap_rounds > cfg.thresholds.max_recap_rounds:
         return close_needs_review(s, ReviewReason.recap_loop)
     set_pending(s, PendingKind.recap)
-    return ShowRecap(profile=s.profile.model_copy(deep=True))  # the state keeps changing
+    return recap_action(s)
+
+
+def recap_action(s: ConversationState) -> ShowRecap:
+    """The recap of what is stored now (a copy: the state keeps changing)."""
+    return ShowRecap(
+        profile=s.profile.model_copy(deep=True),
+        start_date_approximate=Flag.start_date_approximate in s.flags,
+    )
 
 
 def close_waitlisted(s: ConversationState, area_id: str) -> CloseWaitlisted:

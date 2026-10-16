@@ -57,9 +57,12 @@ class AbsoluteDate(_Input):
 
 
 class Offset(_Input):
+    """n days, weeks or months from today. Months are month-level: "el mes que viene" is
+    the 1st of next month (or today, if that is today), flagged `start_date_approximate`."""
+
     kind: Literal["offset"] = "offset"
     amount: int
-    unit: Literal["days", "weeks"]
+    unit: Literal["days", "weeks", "months"]
 
 
 class NextWeekday(_Input):
@@ -79,11 +82,23 @@ class DayMonth(_Input):
     month: int
 
 
+class Month(_Input):
+    """A month without a day ("en noviembre"): the 1st of its next occurrence, or today if
+    it is the current month. Month-level, so flagged `start_date_approximate`.
+
+    A plain int, like `DayMonth`: month 13 must become a re-ask, not sink the turn.
+    """
+
+    kind: Literal["month"] = "month"
+    month: int
+
+
 StartDateExpr = Annotated[
-    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth, Field(discriminator="kind")
+    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth | Month, Field(discriminator="kind")
 ]
 _StartDateOrUnclear = Annotated[
-    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth | Unclear, Field(discriminator="kind")
+    Asap | AbsoluteDate | Offset | NextWeekday | DayMonth | Month | Unclear,
+    Field(discriminator="kind"),
 ]
 
 

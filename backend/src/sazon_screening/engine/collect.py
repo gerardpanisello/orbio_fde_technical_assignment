@@ -17,13 +17,13 @@ from sazon_screening.engine.actions import (
     OfferSlots,
     PrimaryAction,
     ReaskField,
-    ShowRecap,
 )
 from sazon_screening.engine.apply import Applied, answers_pending, set_pending
 from sazon_screening.engine.closing import (
     close_needs_review,
     close_qualified_unscheduled,
     enter_scheduling,
+    recap_action,
     show_recap,
 )
 from sazon_screening.engine.flow import next_missing_field
@@ -200,7 +200,7 @@ def pending_action(s: ConversationState) -> PrimaryAction:
     if pending.kind is PendingKind.confirm_ambiguous:
         return ConfirmAmbiguous(field=name, options=list(pending.options))
     if pending.kind is PendingKind.recap:
-        return ShowRecap(profile=s.profile.model_copy(deep=True))
+        return recap_action(s)
     if pending.kind is PendingKind.correction_field:
         return AskCorrectionField()
     if pending.kind is PendingKind.slot:

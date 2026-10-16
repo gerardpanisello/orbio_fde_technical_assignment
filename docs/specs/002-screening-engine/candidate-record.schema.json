@@ -377,6 +377,7 @@
         "surname_missing",
         "name_unclear",
         "start_date_normalised",
+        "start_date_approximate",
         "human_requested",
         "post_close_correction",
         "system_failure",

@@ -61,6 +61,8 @@ class AskCorrectionField(_Action):
 class ShowRecap(_Action):
     type: Literal["show_recap"] = "show_recap"
     profile: Profile  # pass a copy: the state's profile keeps changing after this turn
+    # The start date is month-level ("el mes que viene"): show the month, not the 1st.
+    start_date_approximate: bool = False
 
 
 class OfferSlots(_Action):

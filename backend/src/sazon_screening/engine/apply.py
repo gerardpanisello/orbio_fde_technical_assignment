@@ -61,7 +61,7 @@ from sazon_screening.engine.validators import (
     validate_start_date,
     validate_vehicle,
 )
-from sazon_screening.vocab import FieldName, FieldStatus, PendingKind, ReaskReason, Stage
+from sazon_screening.vocab import FieldName, FieldStatus, Flag, PendingKind, ReaskReason, Stage
 
 Outcome = Accepted[object] | Rejected | NeedsConfirmation
 
@@ -242,6 +242,8 @@ def _apply_one(
     outcome = validate_proposal(s, proposal, cfg, today)
     if isinstance(outcome, Accepted):
         _store(s, name, outcome.value, cfg, applied)
+        if name is FieldName.start_date:  # describes the stored date: a new one resets it
+            s.flags = [f for f in s.flags if f is not Flag.start_date_approximate]
         for flag in outcome.flags:
             add_flag(s, flag)
     elif isinstance(outcome, NeedsConfirmation):

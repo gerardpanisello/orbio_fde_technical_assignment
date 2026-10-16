@@ -19,6 +19,7 @@ from sazon_screening.engine.inputs import (
     Asap,
     DayMonth,
     ExperienceAnswer,
+    Month,
     NextWeekday,
     Offset,
     StartDateExpr,
@@ -224,6 +225,9 @@ def resolve_start_date(expr: StartDateExpr, today: date) -> tuple[date, bool]:
 
     `next_weekday` is the next occurrence strictly after today: on a Monday, "el lunes"
     means next week's Monday. A date in the past is moved to today and flagged.
+    Month-level answers (`offset` in months, `month`) resolve to the 1st of that month,
+    or today when that month is the current one: that is the candidate's answer, not a
+    past date, so it is not flagged as normalised.
     """
     match expr:
         case Asap():
@@ -234,14 +238,29 @@ def resolve_start_date(expr: StartDateExpr, today: date) -> tuple[date, bool]:
             resolved = today + timedelta(days=amount)
         case Offset(amount=amount, unit="weeks"):
             resolved = today + timedelta(weeks=amount)
+        case Offset(amount=amount, unit="months"):
+            return max(_add_months(today.replace(day=1), amount), today), False
         case NextWeekday(weekday=weekday):
             days_ahead = (list(Weekday).index(weekday) - today.weekday()) % 7 or 7
             resolved = today + timedelta(days=days_ahead)
         case DayMonth(day=day, month=month):
             resolved = next_day_month(day, month, today)
+        case Month(month=month):
+            return max(next_day_month(1, month, today.replace(day=1)), today), False
     if resolved < today:
         return today, True
     return resolved, False
+
+
+def is_month_level(expr: StartDateExpr) -> bool:
+    """ "el mes que viene", "en noviembre": the recruiter sees the month, not a day."""
+    return isinstance(expr, Month) or (isinstance(expr, Offset) and expr.unit == "months")
+
+
+def _add_months(first_of_month: date, months: int) -> date:
+    """The 1st of the month `months` after `first_of_month` (ValueError past year 9999)."""
+    index = first_of_month.month - 1 + months
+    return date(first_of_month.year + index // 12, index % 12 + 1, 1)
 
 
 def next_day_month(day: int, month: int, today: date) -> date:
@@ -269,4 +288,7 @@ def validate_start_date(answer: StartDateExpr | Unclear, today: date) -> Accepte
         resolved, normalised = resolve_start_date(answer, today)
     except (OverflowError, ValueError):  # "in a billion weeks", 31/02: ask again
         return Rejected(ReaskReason.implausible_value)
-    return Accepted(resolved, flags=(Flag.start_date_normalised,) if normalised else ())
+    flags: tuple[Flag, ...] = (Flag.start_date_normalised,) if normalised else ()
+    if is_month_level(answer):
+        flags += (Flag.start_date_approximate,)
+    return Accepted(resolved, flags=flags)

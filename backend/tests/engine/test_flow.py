@@ -12,8 +12,9 @@ from sazon_screening.engine.actions import (
     CloseNeedsReview,
     CloseOptedOut,
     ReaskField,
+    ShowRecap,
 )
-from sazon_screening.engine.inputs import CandidateTurn, DayMonth, Signals
+from sazon_screening.engine.inputs import CandidateTurn, DayMonth, Month, Offset, Signals
 from sazon_screening.engine.state import ConversationState, Experience, Profile
 from sazon_screening.engine.turn import start, step
 from sazon_screening.vocab import (
@@ -268,3 +269,26 @@ class TestDayMonthStartDate:
         c = Convo(config).advance_to(Stage.start_date)
         c.say(start_date(DayMonth(day=3, month=11)))
         assert c.state.profile.start_date.value == date(2026, 11, 3)
+
+
+class TestMonthLevelStartDateFlow:
+    @pytest.mark.ac("AC-41")
+    def test_next_month_is_accepted_first_time_and_flagged(self, config: EngineConfig) -> None:
+        c = Convo(config).advance_to(Stage.start_date)
+        c.say(start_date(Offset(amount=1, unit="months")))
+        c.expect(ShowRecap, start_date_approximate=True)
+        assert c.state.profile.start_date.value == date(2026, 11, 1)
+        assert Flag.start_date_approximate in c.record().flags
+
+    @pytest.mark.ac("AC-42")
+    def test_an_exact_date_replaces_the_month_and_clears_the_flag(
+        self, config: EngineConfig
+    ) -> None:
+        c = Convo(config).advance_to(Stage.start_date)
+        c.say(start_date(Month(month=1)))
+        c.expect(ShowRecap, start_date_approximate=True)
+        assert c.state.profile.start_date.value == date(2027, 1, 1)
+        c.say(start_date(DayMonth(day=3, month=11)))
+        c.expect(ShowRecap, start_date_approximate=False)
+        assert c.state.profile.start_date.value == date(2026, 11, 3)
+        assert Flag.start_date_approximate not in c.state.flags

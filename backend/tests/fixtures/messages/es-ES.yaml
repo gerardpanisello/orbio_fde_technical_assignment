@@ -154,6 +154,7 @@ summary:
     surname_missing: Flag surname_missing
     name_unclear: Flag name_unclear
     start_date_normalised: Flag start_date_normalised
+    start_date_approximate: Flag start_date_approximate
     human_requested: Flag human_requested
     post_close_correction: Flag post_close_correction
     system_failure: Flag system_failure
