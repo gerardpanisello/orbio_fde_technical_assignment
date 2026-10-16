@@ -1,69 +1,126 @@
-"""Interview slots on offer (FR-5): the next working days at fixed times, from config.
+"""Interview slots on offer, from the recruiters' own agenda (spec 010 FR-1..3).
 
-Slot ids are ISO local date-times ("2026-10-13T10:00"), so a booked slot is readable as
-it is stored. Real calendars replace this in spec 010.
+The service asks this provider which slots to send with a turn: generated from the
+city's availability (the `interview_availability` table), minus slots already at
+capacity. The maths is pure (`sazon_screening.scheduling`); this module only reads the
+database and knows the timezones. Booking itself (the capacity check under a unique
+index) is in `repo.book_seat`, inside the turn's transaction.
 """
 
-from datetime import date, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from sazon_screening.config import load_yaml_model
+from sazon_screening.api import repo
+from sazon_screening.api.models import InterviewAvailability
+from sazon_screening.config.models import ServiceAreasConfig
 from sazon_screening.llm.slots import SlotDisplay
-from sazon_screening.vocab import Language
-
-SLOTS_FILE = "interview_slots.yaml"
-_ES_DAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
-Time = Annotated[str, StringConstraints(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
-
-
-class SlotConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    version: str
-    working_days: int = Field(gt=0, le=10)
-    times: list[Time] = Field(min_length=1)
-    max_slots: int | None = Field(default=None, gt=0, le=20)  # None: every day x every time
+from sazon_screening.scheduling import (
+    AvailabilitySettings,
+    InterviewConfig,
+    SlotTime,
+    city_timezone,
+    display,
+    load_interview_config,
+    offer,
+    parse_slot_id,
+)
 
 
 class SlotProvider:
-    def __init__(self, config: SlotConfig) -> None:
+    def __init__(self, config: InterviewConfig, service_areas: ServiceAreasConfig) -> None:
         self._config = config
+        self._areas = service_areas
 
-    def slots(self, today: date) -> list[SlotDisplay]:
-        """Every day x every time, or `max_slots` of them: one per day first, rotating the
-        times so the short list still covers mornings and afternoons, then the rest in order.
-        """
-        times, days = self._config.times, self._days(today)
-        every = [(day, time) for day in days for time in times]
-        limit = self._config.max_slots
-        if limit is None:
-            return [_slot(day, time) for day, time in every]
-        spread = [(day, times[index % len(times)]) for index, day in enumerate(days)]
-        chosen = (spread + [pair for pair in every if pair not in spread])[:limit]
-        return [_slot(day, time) for day, time in sorted(chosen)]
+    @property
+    def config(self) -> InterviewConfig:
+        return self._config
 
-    def _days(self, today: date) -> list[date]:
-        days: list[date] = []
-        day = today
-        while len(days) < self._config.working_days:
-            day += timedelta(days=1)
-            if day.weekday() < 5:
-                days.append(day)
-        return days
+    def timezone(self, city: str) -> ZoneInfo | None:
+        return city_timezone(self._areas, city)
+
+    async def init_availability(self, session: AsyncSession, now: datetime) -> list[str]:
+        """FR-1: seed every configured city that has no availability yet; never overwrite
+        what recruiters edited. Returns the cities it inserted."""
+        existing = {row.city for row in await repo.list_availability(session)}
+        added = [city for city in self._config.cities if city not in existing]
+        for city in added:
+            repo.add(session, availability_row(city, self._config.availability(city), now))
+        return added
+
+    async def offer(self, session: AsyncSession, city: str, now: datetime) -> list[SlotDisplay]:
+        """FR-2: the slots to offer a candidate in `city` now (none for an unknown city)."""
+        row = await repo.get_availability(session, city)
+        tz = self.timezone(city)
+        if row is None or tz is None:
+            return []
+        settings = settings_of(row)
+        taken = await repo.seats_taken_by_slot(session, city, since=now)
+        chosen = offer(city, settings, tz, now, taken, self._config.max_slots)
+        return [display(slot, settings.place) for slot in chosen]
+
+    async def describe(self, session: AsyncSession, slot_ids: list[str]) -> list[SlotDisplay]:
+        """Labels (and place) for slots offered or booked earlier, full or not."""
+        shown: list[SlotDisplay] = []
+        places: dict[str, str | None] = {}
+        for slot_id in dict.fromkeys(slot_ids):
+            slot = parse_slot_id(slot_id)
+            if slot is None:
+                continue
+            if slot.city not in places:
+                row = await repo.get_availability(session, slot.city)
+                places[slot.city] = row.place if row else None
+            shown.append(display(slot, places[slot.city]))
+        return shown
+
+    def preview(self, city: str, now: datetime) -> list[SlotDisplay]:
+        """The offer from the YAML alone, nothing booked: for evals and scripts (no DB)."""
+        tz = self.timezone(city)
+        if city not in self._config.cities or tz is None:
+            return []
+        settings = self._config.availability(city)
+        chosen = offer(city, settings, tz, now, {}, self._config.max_slots)
+        return [display(slot, settings.place) for slot in chosen]
+
+    def starts_at(self, slot: SlotTime) -> datetime | None:
+        tz = self.timezone(slot.city)
+        return slot.starts_at(tz) if tz else None
 
 
-def _slot(day: date, time: str) -> SlotDisplay:
-    return SlotDisplay(
-        id=f"{day.isoformat()}T{time}",
-        labels={
-            Language.es: f"{_ES_DAYS[day.weekday()]} {day:%d/%m}, {time}",
-            Language.en: f"{day:%a %d %b}, {time}",
-        },
+def settings_of(row: InterviewAvailability) -> AvailabilitySettings:
+    return AvailabilitySettings.model_validate(
+        {
+            "weekdays": row.weekdays_json,
+            "times": row.times_json,
+            "capacity": row.capacity,
+            "duration_min": row.duration_min,
+            "days_ahead": row.days_ahead,
+            "place": row.place,
+        }
     )
 
 
-def load_slot_provider(config_dir: Path) -> SlotProvider:
-    return SlotProvider(load_yaml_model(config_dir / SLOTS_FILE, SlotConfig))
+def availability_row(
+    city: str, settings: AvailabilitySettings, now: datetime
+) -> InterviewAvailability:
+    row = InterviewAvailability(city=city, updated_at=now)
+    apply_settings(row, settings, now)
+    return row
+
+
+def apply_settings(
+    row: InterviewAvailability, settings: AvailabilitySettings, now: datetime
+) -> None:
+    row.weekdays_json = [day.value for day in settings.weekdays]
+    row.times_json = list(settings.times)
+    row.capacity = settings.capacity
+    row.duration_min = settings.duration_min
+    row.days_ahead = settings.days_ahead
+    row.place = settings.place
+    row.updated_at = now
+
+
+def load_slot_provider(config_dir: Path, service_areas: ServiceAreasConfig) -> SlotProvider:
+    return SlotProvider(load_interview_config(config_dir, service_areas), service_areas)

@@ -13,9 +13,12 @@ from sqlalchemy import ColumnElement, CursorResult, Integer, Select, delete, fun
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api.models import (
+    SEAT_HOLDING,
     Conversation,
     DoNotContact,
     InboundSeen,
+    InterviewAvailability,
+    InterviewBooking,
     Message,
     RecruiterAction,
     SummaryRow,
@@ -33,7 +36,13 @@ async def get_conversation(session: AsyncSession, conversation_id: str) -> Conve
 
 def add(
     session: AsyncSession,
-    row: Conversation | Message | RecruiterAction | ZoneStaffing | InboundSeen,
+    row: Conversation
+    | Message
+    | RecruiterAction
+    | ZoneStaffing
+    | InboundSeen
+    | InterviewAvailability
+    | InterviewBooking,
 ) -> None:
     session.add(row)
 
@@ -288,3 +297,111 @@ async def turn_totals(session: AsyncSession) -> tuple[int, int, float]:
     cost = await session.scalar(select(func.coalesce(func.sum(Message.cost_usd), 0.0)))
     summary_cost = await session.scalar(select(func.coalesce(func.sum(SummaryRow.cost_usd), 0.0)))
     return int(turn_count), int(fallback_count), float(cost or 0) + float(summary_cost or 0)
+
+
+# --- interviews (spec 010) -------------------------------------------------------------
+
+
+async def list_availability(session: AsyncSession) -> Sequence[InterviewAvailability]:
+    return (await session.scalars(select(InterviewAvailability))).all()
+
+
+async def get_availability(session: AsyncSession, city: str) -> InterviewAvailability | None:
+    return await session.get(InterviewAvailability, city)
+
+
+async def seats_taken_by_slot(
+    session: AsyncSession, city: str, *, since: datetime
+) -> dict[str, int]:
+    """slot id -> seats held, for the city's slots starting after `since`."""
+    query = (
+        select(InterviewBooking.slot_id, func.count())
+        .where(
+            InterviewBooking.city == city,
+            InterviewBooking.status.in_(SEAT_HOLDING),
+            InterviewBooking.starts_at > since,
+        )
+        .group_by(InterviewBooking.slot_id)
+    )
+    return dict((await session.execute(query)).all())  # Result itself is not dict()-able
+
+
+async def seats_taken(session: AsyncSession, slot_id: str) -> set[int]:
+    query = select(InterviewBooking.seat).where(
+        InterviewBooking.slot_id == slot_id, InterviewBooking.status.in_(SEAT_HOLDING)
+    )
+    return set((await session.scalars(query)).all())
+
+
+async def active_booking(session: AsyncSession, conversation_id: str) -> InterviewBooking | None:
+    """The candidate's live booking (status `booked`), if any."""
+    query = select(InterviewBooking).where(
+        InterviewBooking.conversation_id == conversation_id, InterviewBooking.status == "booked"
+    )
+    return (await session.scalars(query)).first()
+
+
+async def bookings_for(session: AsyncSession, conversation_id: str) -> Sequence[InterviewBooking]:
+    """Every booking of a conversation, oldest first (the reschedule / cancel history)."""
+    query = (
+        select(InterviewBooking)
+        .where(InterviewBooking.conversation_id == conversation_id)
+        .order_by(InterviewBooking.id)
+    )
+    return (await session.scalars(query)).all()
+
+
+async def get_booking(session: AsyncSession, booking_id: int) -> InterviewBooking | None:
+    return await session.get(InterviewBooking, booking_id)
+
+
+async def bookings_between(
+    session: AsyncSession, city: str, start: datetime, end: datetime
+) -> Sequence[InterviewBooking]:
+    """Seat-holding bookings of a city with `start <= starts_at < end` (the week view)."""
+    query = (
+        select(InterviewBooking)
+        .where(
+            InterviewBooking.city == city,
+            InterviewBooking.status.in_(SEAT_HOLDING),
+            InterviewBooking.starts_at >= start,
+            InterviewBooking.starts_at < end,
+        )
+        .order_by(InterviewBooking.starts_at, InterviewBooking.seat)
+    )
+    return (await session.scalars(query)).all()
+
+
+async def reminder_candidates(
+    session: AsyncSession, *, after: datetime, before: datetime
+) -> Sequence[InterviewBooking]:
+    """Booked interviews starting in (after, before] whose reminder is not sent yet."""
+    query = select(InterviewBooking).where(
+        InterviewBooking.status == "booked",
+        InterviewBooking.reminder_sent_at.is_(None),
+        InterviewBooking.starts_at > after,
+        InterviewBooking.starts_at <= before,
+    )
+    return (await session.scalars(query)).all()
+
+
+async def claim_reminder(session: AsyncSession, booking_id: int, at: datetime) -> bool:
+    """Compare-and-set (FR-6): mark the reminder sent only if nobody did and the booking is
+    still live. False: already sent (or moved / cancelled), so it is never sent twice."""
+    query = (
+        update(InterviewBooking)
+        .where(
+            InterviewBooking.id == booking_id,
+            InterviewBooking.status == "booked",
+            InterviewBooking.reminder_sent_at.is_(None),
+        )
+        .values(reminder_sent_at=at)
+    )
+    result = cast(CursorResult[Any], await session.execute(query))
+    return result.rowcount == 1
+
+
+async def booking_counts(session: AsyncSession) -> dict[str, int]:
+    """status -> bookings (analytics)."""
+    query = select(InterviewBooking.status, func.count()).group_by(InterviewBooking.status)
+    return dict((await session.execute(query)).all())  # Result itself is not dict()-able

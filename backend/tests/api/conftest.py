@@ -129,12 +129,13 @@ async def service(
     service = ScreeningService(
         agent,
         sessions,
-        load_slot_provider(SHIPPED_CONFIG_DIR),
+        load_slot_provider(SHIPPED_CONFIG_DIR, agent.engine_config.service_areas),
         clock,
         staffing_seed,
         reengagement,
     )
     await service.init_zone_staffing()  # as the app does at startup
+    await service.init_interview_availability()
     return service
 
 

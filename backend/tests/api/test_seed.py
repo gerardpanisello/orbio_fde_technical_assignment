@@ -69,7 +69,7 @@ async def seeded_snapshot(
         service = ScreeningService(
             agent,
             sessions,
-            load_slot_provider(SHIPPED_CONFIG_DIR),
+            load_slot_provider(SHIPPED_CONFIG_DIR, agent.engine_config.service_areas),
             TickingClock(),
             staffing_seed,
             reengagement,

@@ -27,11 +27,16 @@ class TurnContextIn(_Frozen):
     """What the caller knows about this turn that the candidate did not say."""
 
     country_hint: Country | None = None  # e.g. from the phone prefix
-    slots: list[SlotDisplay] | None = None  # interview slots on offer (010; the demo for now)
+    slots: list[SlotDisplay] | None = None  # interview slots open now (spec 010): offered
+    # Slots offered or booked earlier (labels only, never offered again from here): the
+    # candidate may still pick one, or the confirmation names the booked one (spec 010).
+    known_slots: list[SlotDisplay] = []
     zone_full: bool = False  # the candidate's area is fully staffed (spec 015; from 004)
+    # Spec 010 FR-5: the .ics link a confirmation adds (WhatsApp, with a public base URL).
+    calendar_url: str | None = None
 
     def slot_map(self) -> dict[str, SlotDisplay]:
-        return {slot.id: slot for slot in self.slots or []}
+        return {slot.id: slot for slot in [*self.known_slots, *(self.slots or [])]}
 
 
 class TurnTrace(_Frozen):

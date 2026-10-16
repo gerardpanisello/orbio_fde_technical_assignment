@@ -72,12 +72,14 @@ def create_app(
         app.state.service = ScreeningService(
             screening_agent,
             app.state.sessions,
-            load_slot_provider(settings.llm.config_dir),
+            load_slot_provider(settings.llm.config_dir, areas),
             clock,
             load_zone_staffing(settings.llm.config_dir, areas),
             reengagement.scaled(settings.reengagement_time_scale),
+            settings.public_base_url,
         )
         await app.state.service.init_zone_staffing()  # spec 015: only into an empty table
+        await app.state.service.init_interview_availability()  # spec 010: missing cities only
         # Spec 016: the WhatsApp channel, only when enabled (tests pass a fake client).
         wa_client: WhatsAppClient | None = None
         app.state.whatsapp = None

@@ -34,12 +34,15 @@ class AppSettings(BaseModel):
     elevenlabs_voice_id: str | None = None  # overrides config/voice.yaml
     # Spec 016: the real WhatsApp channel. Off unless WHATSAPP_ENABLED=true.
     whatsapp: WhatsAppSettings = WhatsAppSettings()
+    # Spec 010 FR-5: the API's public address (e.g. https://sazon.example). When set,
+    # WhatsApp interview confirmations link the .ics invite; unset, the link is left out.
+    public_base_url: str | None = None
 
 
 def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
     """Read DATABASE_URL, APP_ENV, CORS_ORIGINS (comma-separated), REENGAGEMENT_SCHEDULER
-    (on/off), REENGAGEMENT_TIME_SCALE, ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID on top of
-    the LLM ones."""
+    (on/off), REENGAGEMENT_TIME_SCALE, ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID and
+    PUBLIC_BASE_URL on top of the LLM ones."""
     app_env = environ.get("APP_ENV", "").strip() or "dev"
     if app_env not in ("dev", "prod"):
         raise SettingsError(f"APP_ENV must be 'dev' or 'prod', got {app_env!r}")
@@ -57,6 +60,11 @@ def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
     if time_scale <= 0:
         raise SettingsError(f"REENGAGEMENT_TIME_SCALE must be positive, got {raw_scale!r}")
     eleven_key = environ.get("ELEVENLABS_API_KEY", "").strip()
+    public_base_url = environ.get("PUBLIC_BASE_URL", "").strip().rstrip("/")
+    if public_base_url and not public_base_url.startswith(("http://", "https://")):
+        raise SettingsError(
+            f"PUBLIC_BASE_URL must start with http:// or https://, got {public_base_url!r}"
+        )
     return AppSettings(
         llm=load_settings(environ),
         database_url=environ.get("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL,
@@ -69,4 +77,5 @@ def load_app_settings(environ: Mapping[str, str] = os.environ) -> AppSettings:
         elevenlabs_api_key=SecretStr(eleven_key) if eleven_key else None,
         elevenlabs_voice_id=environ.get("ELEVENLABS_VOICE_ID", "").strip() or None,
         whatsapp=load_whatsapp_settings(environ),
+        public_base_url=public_base_url or None,
     )

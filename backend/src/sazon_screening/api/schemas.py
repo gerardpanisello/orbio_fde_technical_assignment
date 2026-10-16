@@ -13,6 +13,7 @@ from sazon_screening.engine import CandidateRecord, ScoreResult
 from sazon_screening.llm.summary.facts import SummaryFact
 from sazon_screening.llm.summary.summarizer import NarrativeOutput
 from sazon_screening.reengagement import Planned, SendFollowUp
+from sazon_screening.scheduling import parse_slot_id
 from sazon_screening.vocab import (
     Availability,
     Bucket,
@@ -133,7 +134,8 @@ class CandidateRow(BaseModel):
     start_date_approximate: bool  # month-level ("el mes que viene"): show the month only
     language: Language
     channel: Channel  # spec 016: where the candidate talks to Sofi (never their number)
-    interview_slot: str | None  # ISO local date-time, e.g. "2026-10-13T10:00"
+    interview_slot: str | None  # ISO local date-time in the city, e.g. "2026-10-13T10:00"
+    interview_slot_id: str | None  # spec 010: the slot id, e.g. "madrid:2026-10-13T10:00"
     recruiter_status: RecruiterStatus
     recruiter_override: bool
     created_at: datetime
@@ -180,7 +182,8 @@ class CandidateRow(BaseModel):
                 "start_date_approximate": Flag.start_date_approximate in record.flags,
                 "language": row.language,
                 "channel": row.channel,
-                "interview_slot": row.interview_slot,
+                "interview_slot": _local_part(row.interview_slot),
+                "interview_slot_id": row.interview_slot,
                 "recruiter_status": row.recruiter_status,
                 "recruiter_override": row.recruiter_override,
                 "created_at": row.created_at,
@@ -188,6 +191,12 @@ class CandidateRow(BaseModel):
             }
         )
         return candidate, live
+
+
+def _local_part(slot_id: str | None) -> str | None:
+    """'madrid:2026-10-13T10:00' -> '2026-10-13T10:00' (the city's wall clock)."""
+    slot = parse_slot_id(slot_id) if slot_id else None
+    return f"{slot.day.isoformat()}T{slot.time}" if slot else slot_id
 
 
 class SummaryOut(BaseModel):

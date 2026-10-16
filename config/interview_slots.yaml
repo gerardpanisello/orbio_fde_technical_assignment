@@ -1,16 +1,65 @@
-# Grupo Sazón: interview slots the agent offers to qualified candidates (spec 004 FR-5).
+# Grupo Sazón: when and where we interview qualified candidates (spec 010).
 #
-# Ops can edit this file without touching code. It is read at startup.
-# A stand-in until real recruiter calendars are connected (spec 010).
+# This file is the FIRST-START SEED only. On startup, every city listed here that has no
+# availability in the database yet gets these settings; after that, recruiters edit them
+# in the dashboard ("Entrevistas -> Disponibilidad") and this file is not read again for
+# that city. To reset a city, edit it in the dashboard.
+#
+# The agent reads it at startup and refuses to start if something is wrong, with a
+# message naming the key. Bump `version` on every change.
 #
 # What you can change:
-#   - working_days: how many working days (Monday to Friday) ahead to offer, from tomorrow.
-#   - times: interview times offered on each of those days (24 h, local time of the city).
-#     Every day x every time is one possible slot.
 #   - max_slots: how many slots one message offers (spec 001: 2-3, it is a chat list).
-#     The agent offers one per day first, rotating the times, so the list mixes days
-#     and times. Leave it out to offer every day x every time.
-version: "2026-10-12.2"
-working_days: 3
-times: ["10:00", "17:00"]
+#     The agent offers one per day first, rotating the times, so the list mixes days and
+#     times. Full slots are never offered. Leave it out to offer every open slot.
+#   - reminder: the day-before reminder ("Te recuerdo tu entrevista mañana..."), sent at
+#     `at` local time the day before. Quiet hours (reengagement.yaml) still apply.
+#   - defaults: settings every city gets unless it overrides them:
+#       weekdays:     days with interviews (mon tue wed thu fri sat sun)
+#       times:        start times, 24 h, local time of the city
+#       capacity:     candidates per slot (interviewers in parallel), at least 1
+#       duration_min: length of one interview, in minutes
+#       days_ahead:   how many interview days ahead to offer, starting tomorrow
+#   - cities: one entry per served city id (service_areas.yaml), with its `place`
+#     (an address, or "Videollamada" and a link) and any override of the defaults.
+#
+# ALL ADDRESSES BELOW ARE FICTIONAL (demo data).
+version: "2026-10-16.1"
 max_slots: 3
+
+reminder:
+  enabled: true
+  at: "18:00"
+
+defaults:
+  weekdays: [mon, tue, wed, thu, fri]
+  times: ["10:00", "17:00"]
+  capacity: 2
+  duration_min: 30
+  days_ahead: 3
+
+cities:
+  madrid:
+    place: "Oficina Grupo Sazón Madrid, Calle del Ejemplo 12, 2.º (dirección ficticia)"
+    times: ["10:00", "12:00", "17:00"]
+    capacity: 3
+  barcelona:
+    place: "Oficina Grupo Sazón Barcelona, Carrer de la Prova 45 (dirección ficticia)"
+  valencia:
+    place: "Restaurante Sazón Ruzafa, Calle Imaginaria 8 (dirección ficticia)"
+  sevilla:
+    place: "Restaurante Sazón Triana, Calle Inventada 3 (dirección ficticia)"
+  malaga:
+    place: "Videollamada (enlace de ejemplo: https://meet.gruposazon.example/malaga)"
+    capacity: 1
+  cdmx:
+    place: "Oficina Grupo Sazón CDMX, Av. Ficticia 100, Col. Roma Norte (dirección ficticia)"
+    times: ["10:00", "13:00", "17:00"]
+    capacity: 3
+  guadalajara:
+    place: "Restaurante Sazón Providencia, Calle Ejemplo 250 (dirección ficticia)"
+  monterrey:
+    place: "Restaurante Sazón San Pedro, Av. Inventada 77 (dirección ficticia)"
+  puebla:
+    place: "Videollamada (enlace de ejemplo: https://meet.gruposazon.example/puebla)"
+    capacity: 1

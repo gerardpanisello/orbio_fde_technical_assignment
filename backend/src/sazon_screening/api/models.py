@@ -8,7 +8,17 @@ of them (denormalised) only so the dashboard can filter and sort in SQL.
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, Dialect, ForeignKey, String, Text, TypeDecorator
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Dialect,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    TypeDecorator,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -137,3 +147,72 @@ class DoNotContact(Base):
 
     phone_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+class InterviewAvailability(Base):
+    """When and where a city interviews (spec 010 FR-1). Seeded once per city from
+    config/interview_slots.yaml; then the source of truth, edited from the dashboard."""
+
+    __tablename__ = "interview_availability"
+
+    city: Mapped[str] = mapped_column(String(64), primary_key=True)  # service_areas.yaml id
+    weekdays_json: Mapped[list[str]] = mapped_column(JSON)  # ["mon", ...]
+    times_json: Mapped[list[str]] = mapped_column(JSON)  # ["10:00", ...], local time
+    capacity: Mapped[int]  # candidates per slot
+    duration_min: Mapped[int]
+    days_ahead: Mapped[int]
+    place: Mapped[str] = mapped_column(String(200))
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
+
+
+# A booking holds a seat while it is booked or after it happened; a cancelled or moved one
+# frees it. Both indexes below are partial on exactly these statuses.
+SEAT_HOLDING = ("booked", "attended", "no_show")
+_HOLDS_SEAT = text("status IN ('booked', 'attended', 'no_show')")
+_BOOKED = text("status = 'booked'")
+
+
+class InterviewBooking(Base):
+    """One interview booking (spec 010 FR-3). Never deleted: a move or a cancel changes the
+    status, so the history (reschedules, cancels, attendance) stays for the recruiter.
+
+    No double booking (AC-2): a booking takes seat n (0 <= n < capacity) of its slot, and
+    a UNIQUE index on (slot_id, seat) over seat-holding rows lets the database, not the
+    application, refuse a second booking of the same seat. Two conversations racing for
+    the last seat both try to insert it; one commit wins, the other gets an IntegrityError
+    (Postgres; SQLite reports a busy snapshot or the same error) and retries: it re-counts
+    the seats and finds the slot full. Partial unique indexes work on SQLite and Postgres.
+    """
+
+    __tablename__ = "interview_bookings"
+    __table_args__ = (
+        Index(
+            "uq_interview_seat",
+            "slot_id",
+            "seat",
+            unique=True,
+            sqlite_where=_HOLDS_SEAT,
+            postgresql_where=_HOLDS_SEAT,
+        ),
+        Index(  # one live booking per candidate
+            "uq_interview_conversation",
+            "conversation_id",
+            unique=True,
+            sqlite_where=_BOOKED,
+            postgresql_where=_BOOKED,
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True)
+    slot_id: Mapped[str] = mapped_column(String(96), index=True)  # "madrid:2026-10-20T10:00"
+    city: Mapped[str] = mapped_column(String(64), index=True)
+    starts_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+    duration_min: Mapped[int]
+    place: Mapped[str] = mapped_column(String(200))  # as it was when booked
+    seat: Mapped[int]
+    # booked | attended | no_show | cancelled | rescheduled (moved to a newer booking)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime)  # FR-6, once

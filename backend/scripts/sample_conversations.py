@@ -19,7 +19,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from statistics import mean
 
@@ -527,7 +527,9 @@ def main(argv: list[str] | None = None) -> int:
         environ["LLM_MODE"] = args.mode
     settings = load_settings(environ)
     agent = build_agent(settings)
-    slots = load_slot_provider(settings.config_dir).slots(TODAY)
+    # Spec 010: the Madrid agenda from the YAML, nothing booked (no database here).
+    provider = load_slot_provider(settings.config_dir, agent.engine_config.service_areas)
+    slots = provider.preview("madrid", datetime.combine(TODAY, time(9), tzinfo=UTC))
     if hasattr(sys.stdout, "reconfigure"):  # Windows consoles may not speak UTF-8
         sys.stdout.reconfigure(errors="replace")
     anyio.run(generate, agent, args, slots)

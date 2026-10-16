@@ -15,7 +15,7 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 
 import anyio
@@ -199,7 +199,9 @@ async def run(args: argparse.Namespace) -> RunReport:
     llm = load_llm_config(settings.config_dir)
     agent = build_agent(settings)
     personas = select(load_personas(), args.personas)
-    slots = load_slot_provider(settings.config_dir).slots(TODAY)
+    # Spec 010: the Madrid agenda from the YAML, nothing booked (evals have no database).
+    provider = load_slot_provider(settings.config_dir, agent.engine_config.service_areas)
+    slots = provider.preview("madrid", datetime.combine(TODAY, time(9), tzinfo=UTC))
     live = settings.llm_mode == "anthropic"
 
     simulator: Simulator

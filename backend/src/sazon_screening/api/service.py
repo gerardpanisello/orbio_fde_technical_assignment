@@ -17,10 +17,11 @@ from typing import Literal, Protocol
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
+from sazon_screening.api.bookings import SlotUnavailable, sync_booking
 from sazon_screening.api.db import Sessions
 from sazon_screening.api.models import (
     Conversation,
@@ -37,11 +38,13 @@ from sazon_screening.engine import (
     CandidateRecord,
     ConversationState,
     SilenceExpired,
+    SlotTaken,
     build_record,
 )
 from sazon_screening.llm.extraction.extractor import InboundMessage, TranscriptEntry
 from sazon_screening.llm.phrasing.phraser import OutboundMessage
 from sazon_screening.llm.pipeline import Event, ScreeningAgent
+from sazon_screening.llm.slots import SlotDisplay
 from sazon_screening.llm.summary.summarizer import Summary
 from sazon_screening.llm.trace import TurnContextIn, TurnResult
 from sazon_screening.reengagement import (
@@ -57,6 +60,10 @@ from sazon_screening.whatsapp.phone import phone_hash, phone_ref
 
 logger = logging.getLogger("sazon_screening.api")
 Clock = Callable[[], datetime]
+# Spec 010 AC-2: a booking that lost a race for a seat (unique index) is retried this many
+# times in all, re-counting the seats each time; a short pause lets the winner commit.
+BOOKING_ATTEMPTS = 3
+BOOKING_BACKOFF_S = 0.05
 ActionName = Literal["shortlist", "reject", "hire", "override", "note"]
 
 # FR-9: what each recruiter action does to `recruiter_status` (a note changes nothing).
@@ -136,6 +143,7 @@ class ScreeningService:
         clock: Clock = utc_now,
         staffing_seed: ZoneStaffingConfig | None = None,
         reengagement: ReengagementConfig | None = None,
+        public_base_url: str | None = None,
     ) -> None:
         self._agent = agent
         self._sessions = sessions
@@ -143,6 +151,8 @@ class ScreeningService:
         self._clock = clock
         self._staffing_seed = staffing_seed  # spec 015: written to an empty table at startup
         self._reengagement = reengagement  # spec 008, already time-scaled; None: no reminders
+        # Spec 010 FR-5: where candidates can reach the API (the .ics link on WhatsApp).
+        self._public_base_url = public_base_url.rstrip("/") if public_base_url else None
         # FR-4: one turn at a time per conversation. Per process: enough for one instance
         # (several instances need a DB row lock or a queue; deployment design, 014).
         self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -164,6 +174,7 @@ class ScreeningService:
             self._clock,
             self._staffing_seed,
             self._reengagement,
+            self._public_base_url,
         )
         service._deliveries = self._deliveries
         return service
@@ -178,6 +189,15 @@ class ScreeningService:
             return False
         async with self._sessions.begin() as session:
             return await insert_seed(session, self._staffing_seed, self._clock())
+
+    async def init_interview_availability(self) -> list[str]:
+        """Spec 010 FR-1: seed availability for configured cities without a row yet."""
+        async with self._sessions.begin() as session:
+            return await self._slots.init_availability(session, self._clock())
+
+    @property
+    def slots(self) -> SlotProvider:
+        return self._slots
 
     # --- candidate side ------------------------------------------------------------------
 
@@ -270,16 +290,16 @@ class ScreeningService:
         async with self._locks[conversation_id]:
             now = at or self._clock()
             state, history = await self._load(conversation_id)
-            zone_full = await self._zone_full(state, conversation_id)
+            context = await self._turn_context(state, conversation_id, now)
             result = await self._agent.handle_message(
                 state,
                 InboundMessage(text=text, kind=kind),
                 history,
                 today=now.date(),
-                context=self._context(state.country_hint, now, zone_full=zone_full),
+                context=context,
                 conversation_id=conversation_id,
             )
-            return await self._save_turn(conversation_id, text, result, now)
+            return await self._save_turn(conversation_id, text, result, now, before=state)
 
     async def send_event(
         self, conversation_id: str, event: Event, *, at: datetime | None = None
@@ -291,15 +311,14 @@ class ScreeningService:
     async def _event(self, conversation_id: str, event: Event, now: datetime) -> TurnOutcome:
         """`send_event` without the lock: the caller holds it."""
         state, _ = await self._load(conversation_id)
-        zone_full = await self._zone_full(state, conversation_id)
         result = await self._agent.handle_event(
             state,
             event,
             today=now.date(),
-            context=self._context(state.country_hint, now, zone_full=zone_full),
+            context=await self._turn_context(state, conversation_id, now),
             conversation_id=conversation_id,
         )
-        return await self._save_turn(conversation_id, None, result, now)
+        return await self._save_turn(conversation_id, None, result, now, before=state)
 
     # --- WhatsApp (spec 016) -------------------------------------------------------------
 
@@ -608,12 +627,49 @@ class ScreeningService:
             logger.exception("staffing lookup failed (conversation %s)", conversation_id)
             return False
 
-    def _context(
-        self, country_hint: Country | None, now: datetime, *, zone_full: bool = False
+    def _context(self, country_hint: Country | None, now: datetime) -> TurnContextIn:
+        """A new conversation: nothing known yet (no city, so no slots)."""
+        return TurnContextIn(country_hint=country_hint)
+
+    async def _turn_context(
+        self, state: ConversationState, conversation_id: str, now: datetime
     ) -> TurnContextIn:
+        """What the caller knows this turn: staffing (015) and interview slots (010).
+
+        Slots come from the candidate's city agenda, full ones left out (FR-2). A failed
+        read must not break the turn: no slots are offered, so a candidate confirming the
+        recap is `qualified_unscheduled` and a recruiter books them.
+        """
+        zone_full = await self._zone_full(state, conversation_id)
+        location = state.profile.location.value
+        city = location.city if location else None
+        slots: list[SlotDisplay] = []
+        known: list[SlotDisplay] = []
+        channel: str | None = None
+        try:
+            async with self._sessions() as session:
+                if city is not None:
+                    slots = await self._slots.offer(session, city, now)
+                earlier = [*state.offered_slot_ids, *filter(None, [state.selected_slot_id])]
+                known = await self._slots.describe(session, earlier)
+                row = await repo.get_conversation(session, conversation_id)
+                channel = row.channel if row else None
+        except Exception:
+            logger.exception("interview slots lookup failed (conversation %s)", conversation_id)
         return TurnContextIn(
-            country_hint=country_hint, slots=self._slots.slots(now.date()), zone_full=zone_full
+            country_hint=state.country_hint,
+            slots=slots,
+            known_slots=known,
+            zone_full=zone_full,
+            calendar_url=self._calendar_url(conversation_id, channel),
         )
+
+    def _calendar_url(self, conversation_id: str, channel: str | None) -> str | None:
+        """FR-5: WhatsApp confirmations link the .ics when the API is publicly reachable;
+        the web chat shows its own button from the conversation's booking."""
+        if self._public_base_url is None or channel != "whatsapp":
+            return None
+        return f"{self._public_base_url}{ics_path(conversation_id)}"
 
     async def _load(self, conversation_id: str) -> tuple[ConversationState, list[TranscriptEntry]]:
         async with self._sessions() as session:
@@ -623,11 +679,83 @@ class ScreeningService:
         return state, [_entry(m) for m in messages]
 
     async def _save_turn(
-        self, conversation_id: str, text: str | None, result: TurnResult, now: datetime
+        self,
+        conversation_id: str,
+        text: str | None,
+        result: TurnResult,
+        now: datetime,
+        *,
+        before: ConversationState | None = None,
+    ) -> TurnOutcome:
+        """Store the turn. If it books a slot that filled up meanwhile (FR-3, AC-2), the
+        engine is told (`slot_taken`, with the slots still open) and that turn is stored
+        instead: the candidate hears "that slot was just taken" and gets fresh slots."""
+        try:
+            return await self._commit_turn(conversation_id, text, result, now, before)
+        except SlotUnavailable as taken:
+            assert before is not None  # only a turn that changes the booking can raise it
+            logger.info("slot %s taken meanwhile (conversation %s)", taken.slot_id, conversation_id)
+            context = await self._turn_context(before, conversation_id, now)
+            open_ids = [slot.id for slot in context.slots or []]
+            retry = await self._agent.handle_event(
+                before,
+                SlotTaken(slot_id=taken.slot_id, slot_ids=open_ids),
+                today=now.date(),
+                context=context,
+                conversation_id=conversation_id,
+            )
+            return await self._commit_turn(conversation_id, text, retry, now, before)
+
+    async def _commit_turn(
+        self,
+        conversation_id: str,
+        text: str | None,
+        result: TurnResult,
+        now: datetime,
+        before: ConversationState | None,
+    ) -> TurnOutcome:
+        """One transaction: messages, state and booking. A lost race for a seat (unique
+        index; SQLite may report it as a busy snapshot) is retried with a fresh count."""
+        books = before is not None and before.selected_slot_id != result.state.selected_slot_id
+        attempt = 1
+        while True:
+            try:
+                return await self._write_turn(conversation_id, text, result, now, before)
+            except (IntegrityError, OperationalError) as error:
+                if not books:
+                    raise
+                if attempt == BOOKING_ATTEMPTS:
+                    raise SlotUnavailable(result.state.selected_slot_id or "") from error
+                logger.info(
+                    "booking race, retrying %d/%d (conversation %s): %s",
+                    attempt,
+                    BOOKING_ATTEMPTS,
+                    conversation_id,
+                    type(error).__name__,
+                )
+                await asyncio.sleep(BOOKING_BACKOFF_S * attempt)
+                attempt += 1
+
+    async def _write_turn(
+        self,
+        conversation_id: str,
+        text: str | None,
+        result: TurnResult,
+        now: datetime,
+        before: ConversationState | None,
     ) -> TurnOutcome:
         async with self._sessions.begin() as session:
             conversation = await self._get(session, conversation_id)
             previous = conversation.status
+            if before is not None:
+                await sync_booking(
+                    session,
+                    self._slots,
+                    conversation_id,
+                    before=before.selected_slot_id,
+                    after=result.state.selected_slot_id,
+                    now=now,
+                )
             self._add_messages(session, conversation_id, text, result, now)
             if text is not None:
                 self._candidate_wrote(conversation, now)
@@ -748,6 +876,11 @@ class ScreeningService:
         if conversation is None:
             raise ConversationNotFound(conversation_id)
         return conversation
+
+
+def ics_path(conversation_id: str) -> str:
+    """FR-5: where a candidate's calendar invite is served (relative to the API root)."""
+    return f"/api/interviews/{conversation_id}.ics"
 
 
 def _entry(message: Message) -> TranscriptEntry:

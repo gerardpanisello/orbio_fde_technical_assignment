@@ -42,7 +42,7 @@ async def test_happy_path_books_an_interview_from_the_slot_provider(
     async with sessions() as session:
         row = await repo.get_conversation(session, conversation_id)
     assert row is not None
-    assert row.interview_slot == "2026-10-13T10:00"  # first slot: the next working day
+    assert row.interview_slot == "madrid:2026-10-13T10:00"  # first slot: the next working day
     assert row.city == "madrid"
     assert row.full_name == "Lucía Martín"
     assert row.bucket is not None

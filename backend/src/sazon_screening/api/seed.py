@@ -183,6 +183,7 @@ PERSONAS = [
 async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -> list[str]:
     """Create `n` conversations; every persona appears once before any repeats."""
     await service.init_zone_staffing()  # the waitlist persona needs staffing data
+    await service.init_interview_availability()  # spec 010: the booked personas need it
     rng = random.Random(seed)
     weights = [p.weight for p in PERSONAS]
     chosen = PERSONAS[:n] + rng.choices(PERSONAS, weights=weights, k=max(0, n - len(PERSONAS)))
