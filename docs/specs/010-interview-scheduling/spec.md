@@ -35,7 +35,7 @@ Booking the interview inside the chat is what removes the phone call (the 60 % p
 - AC-9 (frontend) Week view, Disponibilidad tab, attendance buttons, chat "Añadir al calendario", drawer block.
 
 ## 5. Tasks
-- [ ] T1 Pure slot generation + capacity (AC-1, AC-7 logic).
+- [x] T1 Pure slot generation + capacity (AC-1, AC-7 logic).
 - [ ] T2 DB + booking with capacity check + slot-taken path (AC-2).
 - [ ] T3 Engine signals + extraction prompt + templates: reschedule/cancel (AC-3, AC-4).
 - [ ] T4 `.ics` endpoint (AC-5) + confirmation message link.

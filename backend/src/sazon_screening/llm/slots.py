@@ -1,7 +1,8 @@
-"""Interview slots as the caller (010 later; the demo for now) describes them.
+"""Interview slots as the caller (spec 010's scheduling) describes them.
 
 The engine only knows slot ids. Their human labels ("martes 10:00") are display data,
-used by extraction (to map "el martes" to an id) and by phrasing (to list them).
+used by extraction (to map "el martes" to an id) and by phrasing (to list them). `place`
+is where the interview is: the confirmation names it.
 """
 
 from pydantic import BaseModel, ConfigDict
@@ -14,6 +15,7 @@ class SlotDisplay(BaseModel):
 
     id: str
     labels: dict[Language, str]
+    place: str | None = None
 
     def label(self, language: Language) -> str:
         return self.labels.get(language) or self.id
