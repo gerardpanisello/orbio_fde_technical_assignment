@@ -18,7 +18,7 @@ from pydantic import ValidationError
 
 from sazon_screening.api import repo
 from sazon_screening.api.deps import ServiceDep, SessionDep
-from sazon_screening.api.models import SEAT_HOLDING, InterviewAvailability, InterviewBooking
+from sazon_screening.api.models import InterviewAvailability, InterviewBooking
 from sazon_screening.api.schemas import (
     AttendanceIn,
     AvailabilityOut,
@@ -29,6 +29,7 @@ from sazon_screening.api.schemas import (
     WeekOut,
     WeekSlotOut,
 )
+from sazon_screening.api.service import BookingNotFound
 from sazon_screening.api.slots import apply_settings, availability_row, settings_of
 from sazon_screening.config import EngineConfig
 from sazon_screening.scheduling import AvailabilitySettings, SlotTime, parse_slot_id, week_start
@@ -232,20 +233,11 @@ def _week_slot(
 
 
 @router.patch("/bookings/{booking_id}")
-async def mark_attendance(
-    booking_id: int, body: AttendanceIn, session: SessionDep, service: ServiceDep
-) -> BookingOut:
+async def mark_attendance(booking_id: int, body: AttendanceIn, service: ServiceDep) -> BookingOut:
     """FR-7: attended / no-show (feeds analytics `show_up_rate`, AC-8); `booked` undoes it.
     409 for a cancelled or moved booking, or one that has not started yet."""
-    booking = await repo.get_booking(session, booking_id)
-    if booking is None:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    if booking.status not in SEAT_HOLDING:
-        raise HTTPException(status_code=409, detail=f"The booking was {booking.status}")
-    now = service.now()
-    if body.status != "booked" and booking.starts_at > now:
-        raise HTTPException(status_code=409, detail="The interview has not happened yet")
-    booking.status = body.status
-    booking.updated_at = now
-    await session.commit()
+    try:
+        booking = await service.mark_attendance(booking_id, body.status)
+    except BookingNotFound:
+        raise HTTPException(status_code=404, detail="Booking not found") from None
     return BookingOut.of(booking, service.timezone_name(booking.city))

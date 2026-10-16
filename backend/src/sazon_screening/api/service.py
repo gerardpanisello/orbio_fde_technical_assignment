@@ -24,6 +24,7 @@ from sazon_screening.api import repo
 from sazon_screening.api.bookings import SlotUnavailable, sync_booking
 from sazon_screening.api.db import Sessions
 from sazon_screening.api.models import (
+    SEAT_HOLDING,
     Conversation,
     InboundSeen,
     InterviewBooking,
@@ -90,6 +91,13 @@ class ConversationNotFound(Exception):  # noqa: N818 - reads as the condition ->
 
 class NotAllowed(Exception):  # noqa: N818 - the request is valid but not now -> 409
     pass
+
+
+class BookingNotFound(Exception):  # noqa: N818 - reads as the condition -> 404
+    pass
+
+
+AttendanceStatus = Literal["attended", "no_show", "booked"]
 
 
 @dataclass(frozen=True)
@@ -609,6 +617,29 @@ class ScreeningService:
             conversation_id, channel, phone, reply, kind="reminder", opened=opened, now=now
         )
         return reply
+
+    async def mark_attendance(
+        self, booking_id: int, status: AttendanceStatus, *, at: datetime | None = None
+    ) -> InterviewBooking:
+        """FR-7: a recruiter marks a past interview attended / no-show; `booked` undoes it.
+        NotAllowed for a cancelled or moved booking, or one that has not started yet."""
+        now = at or self._clock()
+        async with self._sessions.begin() as session:
+            booking = await repo.get_booking(session, booking_id)
+            if booking is None:
+                raise BookingNotFound(booking_id)
+            if booking.status not in SEAT_HOLDING:
+                raise NotAllowed(f"the booking was {booking.status}")
+            if status != "booked" and booking.starts_at > now:
+                raise NotAllowed("the interview has not happened yet")
+            booking.status = status
+            booking.updated_at = now
+        return booking
+
+    async def past_bookings(self, now: datetime) -> list[int]:
+        """Live bookings whose interview has started (to mark them; the demo seed)."""
+        async with self._sessions() as session:
+            return [b.id for b in await repo.started_bookings(session, before=now)]
 
     def _reminder_due(self, booking: InterviewBooking, now: datetime) -> bool:
         tz = self._slots.timezone(booking.city)

@@ -11,6 +11,11 @@ Candidates who go quiet get the re-engagement reminders (spec 008) at the times 
 policy gives, replayed up to `now`: some come back and finish, some are left waiting,
 some are abandoned after the last reminder. Without a schedule (re-engagement off), a
 silence is the plain `silence_expired` of 004.
+
+Interviews (spec 010) are booked through the same chat, on the real agenda with its
+capacity: older candidates' interviews are in the past and are then marked attended or
+no-show (about three in four attend) for the show-up rate; recent ones fall in the
+coming days. Some candidates move their interview by chat and one cancels it.
 """
 
 import random
@@ -18,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sazon_screening.api.service import Channel, ScreeningService, TurnOutcome
+from sazon_screening.api.service import AttendanceStatus, Channel, ScreeningService, TurnOutcome
 from sazon_screening.engine import SilenceExpired
 from sazon_screening.vocab import Country, Language
 
@@ -124,6 +129,7 @@ class Persona:
 
 
 QUIET = (7 * 24, 14 * 24)  # long enough ago for every reminder and the abandon
+SOON = (2, 3 * 24)  # recent enough that the interview is still ahead (spec 010)
 
 PERSONAS = [
     Persona("booked_es", 6, lambda r: [*_screening(r), str(r.randint(1, 6))]),
@@ -177,7 +183,34 @@ PERSONAS = [
     Persona("nudged_waiting", 1, _first(4), nudges=1, started_hours_ago=(4, 20)),
     Persona("needs_review", 2, lambda r: [*_screening(r)[:3], "quiero hablar con una persona"]),
     Persona("opted_out", 2, lambda r: [*_screening(r)[:3], "no me interesa, dame de baja"]),
+    # Spec 010: interviews in the coming days, a move and a cancel by chat.
+    Persona(
+        "booked_soon_es",
+        4,
+        lambda r: [*_screening(r), str(r.randint(1, 3))],
+        started_hours_ago=SOON,
+    ),
+    Persona(
+        "booked_soon_mx",
+        2,
+        lambda r: [*_screening(r, mexico=True), str(r.randint(1, 3))],
+        country_hint=Country.MX,
+        started_hours_ago=SOON,
+    ),
+    Persona(
+        "rescheduled",
+        1,
+        lambda r: [*_screening(r), "1", "¿Puedo cambiar la entrevista a otro día?", "2"],
+        started_hours_ago=SOON,
+    ),
+    Persona(
+        "interview_cancelled",
+        1,
+        lambda r: [*_screening(r), "1", "Cancela la cita, por favor. Ya no puedo ir."],
+        started_hours_ago=(2, 6 * 24),
+    ),
 ]
+SHOW_UP = 0.75  # share of past interviews the seed marks attended (the rest: no-show)
 
 
 async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -> list[str]:
@@ -189,10 +222,19 @@ async def seed(service: ScreeningService, n: int, *, seed: int, now: datetime) -
     chosen = PERSONAS[:n] + rng.choices(PERSONAS, weights=weights, k=max(0, n - len(PERSONAS)))
     # Spec 016: every third candidate "came" through WhatsApp, so the dashboard shows both
     # channels. No phone numbers: nothing is ever sent to WhatsApp for demo data.
-    return [
+    ids = [
         await _play(service, persona, rng, now, channel="whatsapp" if i % 3 == 2 else "web")
         for i, persona in enumerate(chosen)
     ]
+    await _mark_attendance(service, rng, now)
+    return ids
+
+
+async def _mark_attendance(service: ScreeningService, rng: random.Random, now: datetime) -> None:
+    """Spec 010: past interviews are marked by "the recruiter", as on the Entrevistas page."""
+    for booking_id in await service.past_bookings(now):
+        status: AttendanceStatus = "attended" if rng.random() < SHOW_UP else "no_show"
+        await service.mark_attendance(booking_id, status, at=now)
 
 
 async def _play(

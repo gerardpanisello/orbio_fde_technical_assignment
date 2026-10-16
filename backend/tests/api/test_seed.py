@@ -45,6 +45,10 @@ EXPECTED_STATUS = {
     "reactivated_after_1": "interview_scheduled",
     "reactivated_after_2": "interview_scheduled",
     "nudged_waiting": "in_progress",
+    "booked_soon_es": "interview_scheduled",  # spec 010
+    "booked_soon_mx": "interview_scheduled",
+    "rescheduled": "interview_scheduled",
+    "interview_cancelled": "qualified_unscheduled",
 }
 
 Seeder = Callable[[int, int], Awaitable[list[tuple[Any, ...]]]]
@@ -228,3 +232,25 @@ async def test_the_seed_has_nudged_reactivated_and_abandoned_candidates(
     assert by_key["reactivated_after_2"][6] == 2
     assert by_key["nudged_waiting"][6] is None
     assert by_key["abandoned_at_vehicle"][6] is None  # never came back
+
+
+@pytest.mark.anyio
+async def test_the_seed_books_interviews_ahead_and_marks_past_ones(client: AsyncClient) -> None:
+    """Spec 010: the Entrevistas page and the show-up rate have something to show."""
+    assert (await client.post("/api/dev/seed", params={"n": 40, "seed": 42})).status_code == 201
+    interviews = (await client.get("/api/analytics")).json()["interviews"]
+    assert interviews["attended"] > 0
+    assert interviews["no_show"] > 0
+    assert interviews["rescheduled"] >= 1
+    assert interviews["cancelled"] >= 1
+    upcoming = 0
+    for city in ("madrid", "barcelona", "valencia", "sevilla", "malaga", "cdmx", "guadalajara"):
+        week = (await client.get("/api/interviews/week", params={"city": city})).json()
+        upcoming += sum(
+            b["status"] == "booked"
+            for day in week["days"]
+            for slot in day["slots"]
+            if not slot["past"]
+            for b in slot["bookings"]
+        )
+    assert upcoming >= 3

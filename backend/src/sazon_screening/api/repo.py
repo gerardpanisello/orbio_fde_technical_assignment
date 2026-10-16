@@ -401,6 +401,18 @@ async def claim_reminder(session: AsyncSession, booking_id: int, at: datetime) -
     return result.rowcount == 1
 
 
+async def started_bookings(
+    session: AsyncSession, *, before: datetime
+) -> Sequence[InterviewBooking]:
+    """Live (`booked`) bookings whose interview started before `before`, oldest first."""
+    query = (
+        select(InterviewBooking)
+        .where(InterviewBooking.status == "booked", InterviewBooking.starts_at < before)
+        .order_by(InterviewBooking.starts_at, InterviewBooking.id)
+    )
+    return (await session.scalars(query)).all()
+
+
 async def names_of(session: AsyncSession, conversation_ids: set[str]) -> dict[str, str | None]:
     """conversation id -> candidate name, for the week view."""
     if not conversation_ids:
