@@ -28,6 +28,8 @@ export type UiMessage = {
   delivery?: Delivery // candidate messages only
   /** Spec 008: a reminder sent while the candidate was silent (agent messages only). */
   followUpStep?: number | null
+  /** Spec 010: the day-before interview reminder. */
+  interviewReminder?: boolean
   requiresTemplate?: boolean
 }
 
@@ -43,6 +45,7 @@ function fromServer(message: ChatMessage): UiMessage {
     delivery: message.role === 'candidate' ? 'sent' : undefined,
     followUpStep: message.kind === 'follow_up' ? (message.follow_up_step ?? null) : undefined,
     requiresTemplate: message.requires_template,
+    interviewReminder: message.kind === 'reminder',
   }
 }
 

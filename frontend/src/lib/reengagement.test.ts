@@ -49,8 +49,9 @@ describe('formatRelative / nextStepText', () => {
 
 describe('shouldPoll', () => {
   const open = { phase: 'chat', status: 'in_progress' as const, hidden: false, busy: false, hasConversation: true }
-  it('polls an open, visible, idle conversation', () => {
+  it('polls an open, visible, idle conversation, and a booked one (interview reminder)', () => {
     expect(shouldPoll(open)).toBe(true)
+    expect(shouldPoll({ ...open, status: 'interview_scheduled' })).toBe(true)
   })
   it.each([
     ['tab hidden', { hidden: true }],

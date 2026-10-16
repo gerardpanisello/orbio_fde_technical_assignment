@@ -60,6 +60,7 @@ export function ChatPage() {
         chat={chat}
         slot={detail.data?.candidate.interview_slot ?? null}
         followUpTotal={followUpTotal(detail.data)}
+        booking={detail.data?.booking ?? null}
       />
     )
 

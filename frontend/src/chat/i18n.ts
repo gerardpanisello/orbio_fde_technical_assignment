@@ -12,6 +12,8 @@ type ChatText = {
   restoreFailed: string
   notice: string
   quickReplies: string
+  addToCalendar: string
+  interviewReminder: string
   banner: Record<Exclude<Status, 'in_progress'>, string>
 }
 
@@ -30,6 +32,8 @@ export const CHAT_TEXT: Record<Language, ChatText> = {
     notice:
       'Sofi es una asistente automática de Grupo Sazón. Tus datos solo se usan para este proceso de selección.',
     quickReplies: 'Respuestas rápidas',
+    addToCalendar: 'Añadir al calendario',
+    interviewReminder: 'Recordatorio de entrevista',
     banner: {
       interview_scheduled: 'Entrevista agendada',
       qualified_unscheduled: 'Solicitud completa: el equipo te escribirá para agendar',
@@ -53,6 +57,8 @@ export const CHAT_TEXT: Record<Language, ChatText> = {
     notice:
       'Sofi is an automated assistant from Grupo Sazón. Your data is only used for this hiring process.',
     quickReplies: 'Quick replies',
+    addToCalendar: 'Add to calendar',
+    interviewReminder: 'Interview reminder',
     banner: {
       interview_scheduled: 'Interview booked',
       qualified_unscheduled: 'Application complete: the team will message you to book',

@@ -56,6 +56,14 @@ export function MessageBubble({
           } ${first ? (mine ? 'rounded-tr-none' : 'rounded-tl-none') : ''}`}
         >
           {first && <Tail side={mine ? 'right' : 'left'} />}
+          {message.interviewReminder && (
+            <span className="mb-0.5 flex items-center gap-1.5 text-[11px] text-wa-meta">
+              {t.interviewReminder}
+              {message.requiresTemplate && (
+                <span className="rounded border border-wa-meta/30 px-1 text-[10px] leading-tight">plantilla WhatsApp</span>
+              )}
+            </span>
+          )}
           {followUp && (
             // Spec 008: a reminder Sofi sent on her own. The template tag is a demo hint for
             // reminders past WhatsApp's 24 h window (in production: an approved template).

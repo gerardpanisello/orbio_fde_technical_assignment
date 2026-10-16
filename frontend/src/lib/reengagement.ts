@@ -51,7 +51,11 @@ export type PollState = {
   hasConversation: boolean
 }
 
-/** The chat polls only while it is open, visible, idle and waiting on an open conversation. */
+/**
+ * The chat polls only while it is open, visible and idle, and the agent may still write on
+ * its own: re-engagement reminders (in progress) or the interview reminder (spec 010).
+ */
 export function shouldPoll(s: PollState): boolean {
-  return s.hasConversation && s.phase === 'chat' && s.status === 'in_progress' && !s.hidden && !s.busy
+  const live = s.status === 'in_progress' || s.status === 'interview_scheduled'
+  return s.hasConversation && s.phase === 'chat' && live && !s.hidden && !s.busy
 }

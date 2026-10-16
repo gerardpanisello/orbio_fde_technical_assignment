@@ -6,6 +6,7 @@ import { Spinner } from '../components/States'
 import { formatSlot } from '../lib/format'
 import { CHAT_TEXT } from './i18n'
 import { MessageBubble } from './MessageBubble'
+import type { Booking } from '../api/client'
 import { QuickReplies } from './QuickReplies'
 import { TypingIndicator } from './TypingIndicator'
 import type { useChat } from './useChat'
@@ -17,10 +18,13 @@ export function ChatWindow({
   chat,
   slot,
   followUpTotal = null,
+  booking = null,
 }: {
   chat: Chat
   slot: string | null
   followUpTotal?: number | null
+  /** Spec 010: the live booking, for the "Añadir al calendario" (.ics) button. */
+  booking?: Booking | null
 }) {
   const t = CHAT_TEXT[chat.language]
   const [draft, setDraft] = useState('')
@@ -29,7 +33,7 @@ export function ChatWindow({
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [messages, typing, status])
+  }, [messages, typing, status, booking?.ics_url])
 
   const last = messages.at(-1)
   const lastAgentIndex = messages.findLastIndex((m) => m.role === 'agent')
@@ -134,7 +138,7 @@ export function ChatWindow({
         {typing && <TypingIndicator />}
 
         {status !== 'in_progress' && !typing && chat.phase === 'chat' && (
-          <FinalBanner status={status} slot={slot} chat={chat} />
+          <FinalBanner status={status} slot={slot} chat={chat} booking={booking} />
         )}
         <div ref={bottom} />
       </div>
@@ -166,12 +170,24 @@ export function ChatWindow({
   )
 }
 
-function FinalBanner({ status, slot, chat }: { status: Chat['status']; slot: string | null; chat: Chat }) {
+function FinalBanner({
+  status,
+  slot,
+  chat,
+  booking,
+}: {
+  status: Chat['status']
+  slot: string | null
+  chat: Chat
+  booking: Booking | null
+}) {
   if (status === 'in_progress') return null
   const t = CHAT_TEXT[chat.language]
   const booked = status === 'interview_scheduled'
+  const live = booked && booking?.status === 'booked' ? booking : null
+  const when = live?.local_start ?? slot
   return (
-    <div className="mt-4 flex justify-center px-6" role="status">
+    <div className="mt-4 flex flex-col items-center gap-1.5 px-6" role="status">
       <div
         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${
           booked ? 'bg-[#d9fdd3] text-[#0b5d3b]' : 'bg-white/95 text-wa-meta'
@@ -183,9 +199,18 @@ function FinalBanner({ status, slot, chat }: { status: Chat['status']; slot: str
         />
         <span>
           {t.banner[status]}
-          {booked && slot && `: ${formatSlot(slot, chat.language)}`}
+          {booked && when && `: ${formatSlot(when, chat.language)}`}
         </span>
       </div>
+      {live && (
+        <a
+          href={live.ics_url}
+          download
+          className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-medium text-[#027eb5] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] hover:bg-stone-50"
+        >
+          <Icon name="download" className="size-4" /> {t.addToCalendar}
+        </a>
+      )}
     </div>
   )
 }
