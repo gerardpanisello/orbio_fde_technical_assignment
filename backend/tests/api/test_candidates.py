@@ -51,6 +51,16 @@ async def ids(client: AsyncClient) -> dict[str, str]:
     }
 
 
+@pytest.mark.anyio
+async def test_a_month_level_start_date_is_marked_approximate(client: AsyncClient) -> None:
+    """ "el mes que viene" is stored as the 1st; the dashboard must show the month only."""
+    texts = [("el mes que viene" if text == "en 3 semanas" else text) for text in MEXICO]
+    conversation_id = await converse(client, texts, country_hint="MX")
+    rows = {row["id"]: row for row in (await client.get("/api/candidates")).json()}
+    row = rows[conversation_id]
+    assert (row["start_date"], row["start_date_approximate"]) == ("2026-11-01", True)
+
+
 async def names(client: AsyncClient, **params: str) -> list[str | None]:
     response = await client.get("/api/candidates", params=params)
     assert response.status_code == 200
@@ -70,6 +80,7 @@ async def test_list_rows_carry_what_the_dashboard_shows(
     assert lucia["experience_years"] == 3
     assert lucia["platforms"] == ["glovo"]
     assert lucia["start_date"] == "2026-10-19"
+    assert lucia["start_date_approximate"] is False
     assert lucia["interview_slot"] == "2026-10-13T10:00"
     assert lucia["recruiter_status"] == "new"
     assert lucia["bucket"] in ("high", "medium", "low")

@@ -18,6 +18,7 @@ from sazon_screening.vocab import (
     Bucket,
     Country,
     DisqualificationReason,
+    Flag,
     Language,
     ScheduleSlot,
     Status,
@@ -129,6 +130,7 @@ class CandidateRow(BaseModel):
     experience_years: int | None
     platforms: list[str] | None
     start_date: date | None
+    start_date_approximate: bool  # month-level ("el mes que viene"): show the month only
     language: Language
     channel: Channel  # spec 016: where the candidate talks to Sofi (never their number)
     interview_slot: str | None  # ISO local date-time, e.g. "2026-10-13T10:00"
@@ -175,6 +177,7 @@ class CandidateRow(BaseModel):
                 "experience_years": experience.years if experience else None,
                 "platforms": experience.platforms if experience else None,
                 "start_date": fields.start_date.value,
+                "start_date_approximate": Flag.start_date_approximate in record.flags,
                 "language": row.language,
                 "channel": row.channel,
                 "interview_slot": row.interview_slot,
