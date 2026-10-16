@@ -15,7 +15,7 @@ from sazon_screening.engine import ConversationState
 from sazon_screening.llm.phrasing.catalog import Labels, MessageCatalog
 from sazon_screening.llm.phrasing.labels import ENUM_GROUPS, area_label, field_values, slot_label
 from sazon_screening.llm.slots import SlotDisplay
-from sazon_screening.vocab import FieldName, PendingKind
+from sazon_screening.vocab import FieldName, Flag, PendingKind
 
 
 class OptionView(BaseModel):
@@ -50,7 +50,14 @@ def pending_view(
     labels = catalog.for_language(state.language).labels
     reviewing = pending.kind in (PendingKind.recap, PendingKind.correction_field)
     current = (
-        field_values(state.profile, config, state.language, labels, today=today)
+        field_values(
+            state.profile,
+            config,
+            state.language,
+            labels,
+            today=today,
+            start_date_approximate=Flag.start_date_approximate in state.flags,
+        )
         if reviewing
         else {}
     )

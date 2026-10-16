@@ -1,7 +1,7 @@
 """T16/T17: the shipped template text and its rendering (FR-2, FR-12, FR-13, FR-16)."""
 
 import re
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -15,6 +15,7 @@ from sazon_screening.engine import (
     PrimaryAction,
     ReaskField,
     Redirect,
+    ShowRecap,
 )
 from sazon_screening.engine.state import Experience, Profile, Slot
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
@@ -323,3 +324,41 @@ def test_recap_start_date_without_today_still_names_the_weekday(
     labels = catalog.for_register(Register.es_ES).labels
     values = field_values(profile, engine_config, language_of(Register.es_ES), labels)
     assert values[FieldName.start_date] == "lunes 12/10/2026"
+
+
+@pytest.mark.parametrize(
+    ("register", "month", "expected"),
+    [
+        (Register.es_ES, 11, "a partir de noviembre"),
+        (Register.es_MX, 1, "a partir de enero"),
+        (Register.en, 11, "from November"),
+    ],
+)
+def test_recap_shows_a_month_level_start_date_as_the_month(
+    catalog: MessageCatalog,
+    engine_config: EngineConfig,
+    register: Register,
+    month: int,
+    expected: str,
+) -> None:
+    """Live run 2026-10-13: "el mes que viene" is a month, not "domingo 01/11/2026"."""
+    profile = Profile()
+    year = TODAY.year + (month < TODAY.month)
+    profile.start_date = Slot(status=FieldStatus.valid, value=date(year, month, 1))
+    recap = ShowRecap(profile=profile, start_date_approximate=True)
+    text = render_template(
+        action(recap, register=register), ctx(today=TODAY), catalog, engine_config
+    )
+    start_line = next(line for line in text.splitlines() if expected in line)
+    assert start_line.endswith(f": {expected}")  # the month only, no dd/mm/yyyy
+
+
+def test_recap_without_the_flag_still_shows_the_day(
+    catalog: MessageCatalog, engine_config: EngineConfig
+) -> None:
+    profile = Profile()
+    profile.start_date = Slot(status=FieldStatus.valid, value=date(2026, 11, 1))
+    recap = action(ShowRecap(profile=profile))
+    text = render_template(recap, ctx(today=TODAY), catalog, engine_config)
+    assert "domingo 01/11/2026" in text
+    assert "a partir de" not in text

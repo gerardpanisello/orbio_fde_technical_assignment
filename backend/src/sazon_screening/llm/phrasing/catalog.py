@@ -101,9 +101,15 @@ class Labels(_Strict):
     weekdays: dict[Weekday, str]  # "miércoles": the recap names the start day
     today: str  # "hoy", before a start date that is today
     tomorrow: str  # "mañana", before a start date that is tomorrow
+    months: dict[int, str]  # 1-12: "noviembre", for a month-level start date
+    from_month: str  # "a partir de {month}": a month-level start date (no day)
 
     @model_validator(mode="after")
     def _every_value(self) -> Self:
+        if set(self.months) != set(range(1, 13)):
+            raise ValueError("labels.months: needs exactly the months 1 to 12")
+        if "{month}" not in self.from_month:
+            raise ValueError("labels.from_month: needs the {month} placeholder")
         for name, enum in (
             ("vehicle_type", VehicleType),
             ("availability", Availability),

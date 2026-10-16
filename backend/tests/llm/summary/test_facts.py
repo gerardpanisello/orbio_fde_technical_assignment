@@ -3,11 +3,11 @@
 import pytest
 
 from sazon_screening.config import EngineConfig
-from sazon_screening.engine import CandidateRecord
+from sazon_screening.engine import CandidateRecord, Month, Offset
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
 from sazon_screening.llm.summary.facts import SummaryFact, render_facts
-from sazon_screening.vocab import Language, Status
-from tests.engine.builders import Convo, name
+from sazon_screening.vocab import Flag, Language, Stage, Status
+from tests.engine.builders import Convo, name, start_date
 
 TERMINAL = [
     Status.interview_scheduled,
@@ -93,3 +93,27 @@ def test_opted_out_has_no_personal_data(
     assert [fact.key for fact in facts] == ["status", "drop_off_stage", "do_not_contact"]
     assert all("Ana" not in fact.value for fact in facts)
     assert facts[-1].value == catalog.for_language(language).labels.yes_no["yes"]
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [(Language.es, "a partir de noviembre"), (Language.en, "from November")],
+)
+def test_month_level_start_date_reads_as_the_month(
+    catalog: MessageCatalog, engine_config: EngineConfig, language: Language, expected: str
+) -> None:
+    convo = Convo(engine_config).advance_to(Stage.start_date)
+    record = convo.say(start_date(Offset(amount=1, unit="months"))).record()
+    assert Flag.start_date_approximate in record.flags
+    facts = by_key(render_facts(record, language, catalog, engine_config))
+    assert facts["field.start_date"] == expected
+
+
+def test_exact_start_date_still_reads_as_a_date(
+    catalog: MessageCatalog, engine_config: EngineConfig
+) -> None:
+    convo = Convo(engine_config).advance_to(Stage.start_date)
+    convo.say(start_date(Month(month=11)))
+    record = convo.say(start_date(Offset(amount=3, unit="days"))).record()
+    facts = by_key(render_facts(record, Language.es, catalog, engine_config))
+    assert facts["field.start_date"] == "jueves 15/10/2026"

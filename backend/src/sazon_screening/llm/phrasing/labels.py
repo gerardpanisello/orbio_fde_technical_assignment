@@ -71,11 +71,13 @@ def field_values(
     labels: Labels,
     *,
     today: date | None = None,
+    start_date_approximate: bool = False,
 ) -> dict[FieldName, str]:
     """Stored values as short text, in profile order. Missing or unclear fields are left out.
 
     Used for the recap (the candidate checks it) and for the extractor's view of what is
-    stored (so "no, es Chamberí" can be mapped).
+    stored (so "no, es Chamberí" can be mapped). `start_date_approximate` (the engine's
+    flag) shows a month-level start date as "a partir de noviembre", not "1/11/2026".
     """
     values: dict[FieldName, str] = {}
     if (name := profile.full_name.value) is not None:
@@ -100,7 +102,11 @@ def field_values(
             experience.years, experience.platforms, labels
         )
     if (start := profile.start_date.value) is not None:
-        values[FieldName.start_date] = _start_text(start, today, labels)
+        values[FieldName.start_date] = (
+            labels.from_month.format(month=labels.months[start.month])
+            if start_date_approximate
+            else _start_text(start, today, labels)
+        )
     return values
 
 

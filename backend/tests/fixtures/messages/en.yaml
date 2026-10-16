@@ -44,6 +44,8 @@ labels:
   weekdays: {mon: Monday, tue: Tuesday, wed: Wednesday, thu: Thursday, fri: Friday, sat: Saturday, sun: Sunday}
   today: today
   tomorrow: tomorrow
+  months: {1: January, 2: February, 3: March, 4: April, 5: May, 6: June, 7: July, 8: August, 9: September, 10: October, 11: November, 12: December}
+  from_month: "from {month}"
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
   ask_field:

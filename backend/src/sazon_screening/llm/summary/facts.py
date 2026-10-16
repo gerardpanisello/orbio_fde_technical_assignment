@@ -66,9 +66,11 @@ def _field_facts(
     """The candidate's answers, worded exactly as the recap showed them."""
     labels = catalog.for_language(language).labels
     profile = Profile.model_validate(record.fields.model_dump())
+    approximate = Flag.start_date_approximate in record.flags
+    values = field_values(profile, config, language, labels, start_date_approximate=approximate)
     return [
         SummaryFact(key=f"field.{name.value}", label=labels.fields[name].capitalize(), value=value)
-        for name, value in field_values(profile, config, language, labels).items()
+        for name, value in values.items()
     ]
 
 

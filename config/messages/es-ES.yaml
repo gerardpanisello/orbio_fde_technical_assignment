@@ -42,6 +42,8 @@ labels:
   weekdays: {mon: lunes, tue: martes, wed: miércoles, thu: jueves, fri: viernes, sat: sábado, sun: domingo}
   today: hoy
   tomorrow: mañana
+  months: {1: enero, 2: febrero, 3: marzo, 4: abril, 5: mayo, 6: junio, 7: julio, 8: agosto, 9: septiembre, 10: octubre, 11: noviembre, 12: diciembre}
+  from_month: "a partir de {month}"
 
 templates:
   greeting: "¡Hola! Soy Sofi, la asistente virtual (automática) de Grupo Sazón 👋 Te haré unas preguntas rápidas (3 min) sobre el puesto de repartidor/a. Política de privacidad: {privacy_url} ¿Aceptas que usemos tus datos para este proceso?"

@@ -44,6 +44,8 @@ labels:
   weekdays: {mon: lunes, tue: martes, wed: miércoles, thu: jueves, fri: viernes, sat: sábado, sun: domingo}
   today: hoy
   tomorrow: mañana
+  months: {1: enero, 2: febrero, 3: marzo, 4: abril, 5: mayo, 6: junio, 7: julio, 8: agosto, 9: septiembre, 10: octubre, 11: noviembre, 12: diciembre}
+  from_month: "a partir de {month}"
 templates:
   greeting: 'Hi, I am Sofi, an automated assistant. Privacy: {privacy_url} Do you accept?'
   ask_field:

@@ -130,8 +130,15 @@ def _primary(
             return templates.confirm_ambiguous.format(options=_numbered(names))
         case ConfirmValue(value=value):
             return templates.confirm_value.format(years=value.years)
-        case ShowRecap(profile=profile):
-            values = field_values(profile, config, language, entry.labels, today=ctx.today)
+        case ShowRecap(profile=profile, start_date_approximate=approximate):
+            values = field_values(
+                profile,
+                config,
+                language,
+                entry.labels,
+                today=ctx.today,
+                start_date_approximate=approximate,
+            )
             lines = [
                 f"• {entry.labels.fields[name].capitalize()}: {v}" for name, v in values.items()
             ]

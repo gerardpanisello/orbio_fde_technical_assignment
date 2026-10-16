@@ -121,3 +121,17 @@ def test_the_greeting_passes_the_guard(
     act = action(AskField(field=FieldName.consent), register=register)
     text = render_template(act, ctx(is_greeting=True), catalog, engine_config)
     assert check(text, act, ctx(is_greeting=True), LengthCaps()) == [], text
+
+
+def test_month_labels_must_cover_every_month(tmp_path: Path) -> None:
+    directory = copy_fixture(tmp_path)
+    edit(directory, "es-MX.yaml", lambda d: d["labels"]["months"].pop(12))
+    with pytest.raises(ConfigError, match=r"es-MX\.yaml: .*labels\.months"):
+        load_catalog(directory)
+
+
+def test_from_month_needs_its_placeholder(tmp_path: Path) -> None:
+    directory = copy_fixture(tmp_path)
+    edit(directory, "en.yaml", lambda d: d["labels"].update(from_month="from"))
+    with pytest.raises(ConfigError, match=r"en\.yaml: .*from_month"):
+        load_catalog(directory)
