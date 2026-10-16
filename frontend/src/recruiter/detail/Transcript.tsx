@@ -40,6 +40,7 @@ export function Transcript({
                 <span className="flex items-center gap-1.5">
                   {agent ? 'Sofi' : 'Candidato'}
                   {faq && <FaqChip turn={faq} />}
+                  {m.kind === 'reminder' && <span className="font-normal normal-case">· Recordatorio de entrevista</span>}
                   {m.kind === 'follow_up' && m.follow_up_step != null && (
                     <span className="font-normal normal-case">
                       · {followUpLabel(m.follow_up_step, followUpTotal)}

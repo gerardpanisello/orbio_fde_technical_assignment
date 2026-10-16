@@ -12,6 +12,7 @@ import { formatDateTime, formatSlot } from '../lib/format'
 import { LANGUAGE, STAGE, placeLabel } from '../lib/labels'
 import { followUpTotal } from '../lib/reengagement'
 import { ActionsPanel } from './detail/ActionsPanel'
+import { BookingCard } from './detail/BookingCard'
 import { SummaryCard } from './detail/SummaryCard'
 import { TechnicalTab } from './detail/TechnicalTab'
 import { Transcript } from './detail/Transcript'
@@ -139,6 +140,7 @@ function DrawerBody({
           <div className="space-y-4">
             <Reasons record={record} />
             <ActionsPanel detail={detail} />
+            <BookingCard detail={detail} />
             <SummaryCard detail={detail} />
             {(detail.reengagement.follow_ups_sent > 0 || detail.reengagement.next) && (
               <section className="card p-4">

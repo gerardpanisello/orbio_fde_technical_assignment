@@ -168,6 +168,8 @@ function Dashboard({ a, refreshing }: { a: Analytics; refreshing: boolean }) {
         <FaqCard faq={a.faq} />
 
         <ReengagementCard re={a.reengagement} />
+
+        <InterviewsCard iv={a.interviews} />
       </div>
     </div>
   )
@@ -299,6 +301,36 @@ function ReengagementCard({ re }: { re: Analytics['reengagement'] }) {
         </>
       )}
     </ChartCard>
+  )
+}
+
+/** Spec 010 FR-7: interviews booked by Sofi and whether candidates showed up. Figures only, no chart. */
+function InterviewsCard({ iv }: { iv: Analytics['interviews'] }) {
+  const marked = iv.attended + iv.no_show
+  const empty = iv.booked + iv.rescheduled + iv.cancelled === 0
+  return (
+    <section className="card p-4 lg:col-span-2">
+      <h2 className="text-sm font-semibold text-stone-900">Entrevistas</h2>
+      <p className="mt-0.5 mb-3 text-xs text-stone-500">
+        Agendadas en el chat. La asistencia la marca el equipo en Entrevistas; los cambios y cancelaciones los pide el candidato.
+      </p>
+      {empty ? (
+        <NoData text="Aún no hay entrevistas agendadas." />
+      ) : (
+        <dl className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <MiniStat label="Agendadas" value={String(iv.booked)} />
+          <MiniStat label="Asistieron" value={String(iv.attended)} />
+          <MiniStat label="No se presentaron" value={String(iv.no_show)} />
+          <MiniStat
+            label="Tasa de asistencia"
+            value={marked ? formatPercent(iv.show_up_rate) : '—'}
+            hint={marked ? `de ${marked} marcadas` : 'sin marcar'}
+          />
+          <MiniStat label="Cambiadas de hora" value={String(iv.rescheduled)} />
+          <MiniStat label="Canceladas" value={String(iv.cancelled)} />
+        </dl>
+      )}
+    </section>
   )
 }
 
