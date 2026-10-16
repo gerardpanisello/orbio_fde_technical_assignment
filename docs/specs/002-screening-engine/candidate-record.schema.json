@@ -384,7 +384,9 @@
         "abuse",
         "do_not_contact",
         "engine_error",
-        "correction_unclear"
+        "correction_unclear",
+        "interview_rescheduled",
+        "interview_cancelled"
       ],
       "title": "Flag",
       "type": "string"

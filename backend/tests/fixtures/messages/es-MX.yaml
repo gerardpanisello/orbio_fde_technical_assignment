@@ -88,6 +88,18 @@ templates:
 
     Which one?'
   confirm_interview: 'Booked: {slot}.'
+  keep_interview: 'Kept: {slot}.'
+  close_interview_cancelled: Interview cancelled.
+  offer_slots_taken: 'Taken. Pick another:
+
+    {slots}
+
+    Which one?'
+  offer_slots_reschedule: 'Moving it. Pick a slot:
+
+    {slots}
+
+    Which one?'
   close_disqualified:
     under_age: Sorry, under_age.
     no_license: Sorry, no_license.
@@ -111,3 +123,9 @@ templates:
     progress_one: "One question left."
     progress_done: "Almost done."
     recap_question: "Is the summary right?"
+  interview:
+    reminder: "Interview tomorrow at {time} at {place}."
+    calendar_link: "Calendar: {url}"
+    calendar_summary: "Interview"
+    calendar_description: "Interview description."
+    place_to_confirm: "a place to confirm"

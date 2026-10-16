@@ -23,6 +23,7 @@ from sazon_screening.engine import (
     ConfirmInterview,
     ConfirmValue,
     EngineAction,
+    KeepInterview,
     OfferSlots,
     Preface,
     PrimaryAction,
@@ -143,13 +144,25 @@ def _primary(
                 f"• {entry.labels.fields[name].capitalize()}: {v}" for name, v in values.items()
             ]
             return templates.show_recap.format(recap="\n".join(lines))
-        case OfferSlots(slot_ids=slot_ids):
+        case OfferSlots(slot_ids=slot_ids, reason=reason):
             names = [slot_label(slot_id, ctx.slots, language) for slot_id in slot_ids]
-            return templates.offer_slots.format(slots=_numbered(names))
+            offer = {
+                None: templates.offer_slots,
+                "slot_taken": templates.offer_slots_taken,
+                "reschedule": templates.offer_slots_reschedule,
+            }[reason]
+            return offer.format(slots=_numbered(names))
         case CloseDisqualified(reason=reason):
             return templates.close_disqualified[reason]
         case ConfirmInterview(slot_id=slot_id):
-            return templates.confirm_interview.format(slot=slot_label(slot_id, ctx.slots, language))
+            display = ctx.slots.get(slot_id)
+            place = display.place if display and display.place else None
+            return templates.confirm_interview.format(
+                slot=slot_label(slot_id, ctx.slots, language),
+                place=place or templates.interview.place_to_confirm,
+            )
+        case KeepInterview(slot_id=slot_id):
+            return templates.keep_interview.format(slot=slot_label(slot_id, ctx.slots, language))
         case CloseWaitlisted(area_id=area_id):
             return templates.close_waitlisted.format(zone=area_label(area_id, config, language))
     return _fixed_text(primary, entry)
@@ -163,6 +176,7 @@ def _fixed_text(primary: PrimaryAction, entry: RegisterCatalog) -> str:
         "close_needs_review": templates.close_needs_review,
         "close_opted_out": templates.close_opted_out,
         "close_qualified_unscheduled": templates.close_qualified_unscheduled,
+        "close_interview_cancelled": templates.close_interview_cancelled,
         "handoff_to_human": templates.handoff_to_human,
         "closed_ack": templates.closed_ack,
     }

@@ -167,6 +167,8 @@ class Flag(StrEnum):
     do_not_contact = "do_not_contact"
     engine_error = "engine_error"
     correction_unclear = "correction_unclear"  # a recap correction could not be read
+    interview_rescheduled = "interview_rescheduled"  # moved by chat to another slot (010)
+    interview_cancelled = "interview_cancelled"  # cancelled by chat (010)
 
 
 class Bucket(StrEnum):

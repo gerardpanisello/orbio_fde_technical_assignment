@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Mexico vocabulary: licencia de manejo,
 # carro, colonia. Recruiter summary labels live in es-ES.yaml and en.yaml.
-version: "2026-10-12.5"
+version: "2026-10-16.1"
 register: es-MX
 
 labels:
@@ -68,7 +68,11 @@ templates:
   ask_correction_field: "Sin problema. ¿Qué dato quieres cambiar?"
   show_recap: "Repasemos tus datos:\n{recap}\n¿Está todo bien?"
   offer_slots: "¡Todo listo! Estos son los horarios disponibles para tu entrevista:\n{slots}\n¿Cuál te queda mejor?"
-  confirm_interview: "¡Perfecto! Tu entrevista quedó agendada: {slot}. ¡Nos vemos!"
+  offer_slots_taken: "Uy, ese horario se acaba de ocupar. Estos son los que siguen libres:\n{slots}\n¿Cuál te queda mejor?"
+  offer_slots_reschedule: "Claro, la cambiamos. Mientras eliges, tu entrevista actual sigue en pie. Estos son los horarios disponibles:\n{slots}\n¿Cuál te queda mejor?"
+  confirm_interview: "¡Perfecto! Tu entrevista quedó agendada: {slot}, en {place}. ¡Nos vemos!"
+  keep_interview: "Va, mantenemos tu entrevista del {slot}. Si más adelante quieres cambiarla, escríbeme."
+  close_interview_cancelled: "Listo, cancelé tu entrevista. Si más adelante quieres otra fecha, escríbeme y te busco un espacio."
   close_disqualified:
     under_age: "Gracias por tu interés. Para este puesto hay que ser mayor de edad, así que por ahora no podemos seguir con tu solicitud. Te deseamos mucha suerte."
     no_license: "Gracias por tu interés. Para este puesto se necesita licencia de manejo vigente, así que por ahora no podemos seguir. Si la sacas, escríbenos y retomamos tu solicitud."
@@ -92,3 +96,9 @@ templates:
     progress_one: "Solo nos falta una pregunta."
     progress_done: "Ya casi terminamos."
     recap_question: "¿Está todo bien en el resumen de tus datos?"
+  interview:
+    reminder: "Te recuerdo tu entrevista mañana a las {time} en {place}. Si no puedes, avísame y la cambiamos."
+    calendar_link: "Agrégala a tu calendario: {url}"
+    calendar_summary: "Entrevista Grupo Sazón — repartidor/a"
+    calendar_description: "Entrevista para el puesto de repartidor/a en Grupo Sazón. Si no puedes ir, escríbele a Sofi por el chat y la cambiamos."
+    place_to_confirm: "un lugar que te confirmamos por aquí"

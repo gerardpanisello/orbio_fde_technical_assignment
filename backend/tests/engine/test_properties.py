@@ -36,6 +36,9 @@ ALLOWED = (
     | {(S.disqualified, S.needs_review)}  # post-close correction (AC-26b)
     | {(S.interview_scheduled, S.needs_review), (S.qualified_unscheduled, S.needs_review)}  # AC-26c
     | {(S.waitlisted, S.needs_review)}  # AC-26c applies to waitlisted candidates too (spec 015)
+    # Spec 010: move a booked interview (back to scheduling), cancel it, or ask for one again.
+    | {(S.interview_scheduled, S.in_progress), (S.interview_scheduled, S.qualified_unscheduled)}
+    | {(S.qualified_unscheduled, S.in_progress)}
     | {(closed, S.opted_out) for closed in Status if closed is not S.opted_out}
 )
 
@@ -72,6 +75,7 @@ def test_engine_invariants(config: EngineConfig, turns: list[TurnInput]) -> None
             assert leaked_state(state) == {}
             assert leaked_record(build_record(state, config), config) == {}
         assert all(count <= limit for count in state.reasks.values()), state.reasks
+        _check_booking(before, state, action)
         record = build_record(state, config)
         json.dumps(record.model_dump(mode="json"))
     _check_deterministic(config, turns, history)
@@ -88,6 +92,25 @@ def _check_action(config: EngineConfig, state: ConversationState, action: Engine
         default_country=config.screening.default_country,
     )
     assert action.register is expected
+
+
+def _check_booking(
+    before: ConversationState, state: ConversationState, action: EngineAction
+) -> None:
+    """Spec 010: the caller stores bookings from `selected_slot_id`, so it must be exact."""
+    if state.status is Status.interview_scheduled:
+        assert state.selected_slot_id is not None
+    if state.status in (Status.qualified_unscheduled, Status.waitlisted):
+        assert state.selected_slot_id is None  # no interview is held for them
+    if state.selected_slot_id not in (None, before.selected_slot_id):
+        # a new booking only ever comes from a pick among the slots just offered
+        assert state.status is Status.interview_scheduled
+        assert state.selected_slot_id in before.offered_slot_ids
+        assert action.primary.type == "confirm_interview"
+    if action.primary.type == "offer_slots":
+        offered = getattr(action.primary, "slot_ids", [])
+        assert offered, "an offer is never empty"
+        assert state.selected_slot_id not in offered  # never offer their own slot back
 
 
 def _check_deterministic(

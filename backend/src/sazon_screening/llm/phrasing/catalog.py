@@ -49,7 +49,11 @@ PLACEHOLDERS: dict[str, frozenset[str]] = {
     "confirm_value": frozenset({"years"}),
     "show_recap": frozenset({"recap"}),
     "offer_slots": frozenset({"slots"}),
-    "confirm_interview": frozenset({"slot"}),
+    "offer_slots_taken": frozenset({"slots"}),
+    "offer_slots_reschedule": frozenset({"slots"}),
+    "confirm_interview": frozenset({"slot", "place"}),  # {place} optional (spec 010)
+    "keep_interview": frozenset({"slot"}),
+    "interview": frozenset({"time", "place", "url"}),
     "close_waitlisted": frozenset({"zone"}),
     "prefaces": frozenset({"fields"}),
     "follow_up": frozenset({"progress", "question", "remaining"}),
@@ -154,6 +158,16 @@ class FollowUps(_Strict):
     recap_question: str  # the recap itself is too long for a reminder
 
 
+class InterviewTexts(_Strict):
+    """Spec 010: texts around a booked interview that are not engine actions."""
+
+    reminder: str  # the day before: "{time}" local and "{place}" (FR-6)
+    calendar_link: str  # appended to a WhatsApp confirmation: "{url}" of the .ics (FR-5)
+    calendar_summary: str  # the .ics event title
+    calendar_description: str  # the .ics event description
+    place_to_confirm: str  # {place} of the confirmation when the place is not known
+
+
 class Templates(_Strict):
     greeting: str
     ask_field: dict[FieldName, str]
@@ -163,7 +177,11 @@ class Templates(_Strict):
     ask_correction_field: str
     show_recap: str
     offer_slots: str
+    offer_slots_taken: str  # spec 010: the picked slot filled up meanwhile
+    offer_slots_reschedule: str  # spec 010: moving a booked interview
     confirm_interview: str
+    keep_interview: str  # spec 010: a reschedule found nothing, the booking stays
+    close_interview_cancelled: str  # spec 010
     close_disqualified: dict[DisqualificationReason, str]
     close_needs_review: str
     close_opted_out: str
@@ -174,6 +192,7 @@ class Templates(_Strict):
     prefaces: Prefaces
     media_not_supported: str
     follow_up: FollowUps
+    interview: InterviewTexts
 
     @field_validator("ask_field")
     @classmethod

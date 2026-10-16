@@ -18,6 +18,7 @@ from sazon_screening.engine.actions import (
     CloseQualifiedUnscheduled,
     CloseWaitlisted,
     HandoffToHuman,
+    KeepInterview,
     OfferSlots,
     Preface,
     ShowRecap,
@@ -102,6 +103,19 @@ def close_qualified_unscheduled(s: ConversationState) -> CloseQualifiedUnschedul
     return CloseQualifiedUnscheduled()
 
 
+def close_unbooked(s: ConversationState) -> KeepInterview | CloseQualifiedUnscheduled:
+    """Scheduling ended without a new pick (none fits, re-asks used up, silence).
+
+    Spec 010: if the candidate was moving an interview they had booked, that booking
+    stays (`keep_interview`); otherwise they are qualified without an interview.
+    """
+    if s.selected_slot_id is not None:
+        s.status = Status.interview_scheduled
+        s.drop_off_stage = s.stage
+        return KeepInterview(slot_id=s.selected_slot_id)
+    return close_qualified_unscheduled(s)
+
+
 def show_recap(s: ConversationState, cfg: EngineConfig) -> ShowRecap | CloseNeedsReview:
     """Show every value for confirmation (FR-25); too many rounds go to a recruiter."""
     s.recap_rounds += 1
@@ -129,23 +143,26 @@ def close_waitlisted(s: ConversationState, area_id: str) -> CloseWaitlisted:
 
 def enter_scheduling(
     s: ConversationState, t: CandidateTurn
-) -> OfferSlots | CloseQualifiedUnscheduled | CloseWaitlisted:
+) -> OfferSlots | CloseQualifiedUnscheduled | CloseWaitlisted | KeepInterview:
     """Offer the slots 010 sent with this turn (or the ones offered before) (FR-26).
 
     If the caller says the candidate's area is full (spec 015 FR-4), no slots are offered:
     the candidate is waitlisted. The caller decides "full" from live staffing; the engine
-    only acts on the flag, and only here.
+    only acts on the flag, and only here. A candidate who already has an interview
+    (moving it, spec 010) is never waitlisted: their booking stands.
     """
     location = s.profile.location.value
     area_id = location.area_id if location is not None else None
-    if t.context.zone_full and area_id is not None:
+    if t.context.zone_full and area_id is not None and s.selected_slot_id is None:
         return close_waitlisted(s, area_id)
-    slots = t.context.offered_slots or s.offered_slot_ids
+    offered = t.context.offered_slots or s.offered_slot_ids
+    slots = [slot for slot in offered if slot != s.selected_slot_id]  # moving: a new one
     if not slots:
-        return close_qualified_unscheduled(s)
-    s.offered_slot_ids = list(slots)
+        return close_unbooked(s)
+    s.offered_slot_ids = slots
     set_pending(s, PendingKind.slot, FieldName.slot)
-    return OfferSlots(slot_ids=list(slots))
+    moving = s.selected_slot_id is not None
+    return OfferSlots(slot_ids=list(slots), reason="reschedule" if moving else None)
 
 
 def handoff(s: ConversationState) -> HandoffToHuman:

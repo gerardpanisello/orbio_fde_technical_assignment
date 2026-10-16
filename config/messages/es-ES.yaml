@@ -12,7 +12,7 @@
 #   - never mention pay, conditions or promises;
 #   - only the {placeholders} already used in each message.
 # Spain vocabulary: carné de conducir, coche, barrio.
-version: "2026-10-12.5"
+version: "2026-10-16.1"
 register: es-ES
 
 labels:
@@ -78,7 +78,11 @@ templates:
   ask_correction_field: "Sin problema. ¿Qué dato quieres cambiar?"
   show_recap: "Repasemos tus datos:\n{recap}\n¿Está todo bien?"
   offer_slots: "¡Todo listo! Estas son las horas disponibles para tu entrevista:\n{slots}\n¿Cuál te viene mejor?"
-  confirm_interview: "¡Perfecto! Tu entrevista queda agendada: {slot}. ¡Nos vemos!"
+  offer_slots_taken: "Vaya, ese hueco se acaba de ocupar. Estas son las horas que quedan libres:\n{slots}\n¿Cuál te viene mejor?"
+  offer_slots_reschedule: "Sin problema, la cambiamos. Mientras eliges, tu entrevista actual sigue en pie. Estas son las horas disponibles:\n{slots}\n¿Cuál te viene mejor?"
+  confirm_interview: "¡Perfecto! Tu entrevista queda agendada: {slot}, en {place}. ¡Nos vemos!"
+  keep_interview: "Vale, mantenemos tu entrevista del {slot}. Si más adelante quieres cambiarla, escríbeme."
+  close_interview_cancelled: "Hecho, he cancelado tu entrevista. Si más adelante quieres otra fecha, escríbeme y te busco hueco."
   close_disqualified:
     under_age: "Gracias por tu interés. Para este puesto hay que ser mayor de edad, así que por ahora no podemos seguir con tu solicitud. Te deseamos mucha suerte."
     no_license: "Gracias por tu interés. Para este puesto hace falta carné de conducir en vigor, así que por ahora no podemos seguir. Si lo sacas, escríbenos y retomamos tu solicitud."
@@ -102,6 +106,12 @@ templates:
     progress_one: "Solo nos falta una pregunta."
     progress_done: "Ya casi está."
     recap_question: "¿Está todo bien en el resumen de tus datos?"
+  interview:
+    reminder: "Te recuerdo tu entrevista mañana a las {time} en {place}. Si no puedes, dime y la cambiamos."
+    calendar_link: "Añádela a tu calendario: {url}"
+    calendar_summary: "Entrevista Grupo Sazón — repartidor/a"
+    calendar_description: "Entrevista para el puesto de repartidor/a en Grupo Sazón. Si no puedes ir, escribe a Sofi por el chat y la cambiamos."
+    place_to_confirm: "un lugar que te confirmamos por aquí"
 
 # Recruiter-facing labels for the summary (Spanish recruiters).
 summary:
@@ -154,6 +164,8 @@ summary:
     do_not_contact: No contactar
     engine_error: Error interno
     correction_unclear: Corrección no entendida
+    interview_rescheduled: Entrevista cambiada por chat
+    interview_cancelled: Entrevista cancelada por chat
   stages:
     consent: Consentimiento
     name: Nombre

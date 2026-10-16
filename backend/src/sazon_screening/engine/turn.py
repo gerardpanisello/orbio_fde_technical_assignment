@@ -25,7 +25,7 @@ from sazon_screening.engine.apply import apply_proposals
 from sazon_screening.engine.closing import (
     close_disqualified,
     close_needs_review,
-    close_qualified_unscheduled,
+    close_unbooked,
     handoff,
     on_closed,
     opt_out,
@@ -44,10 +44,12 @@ from sazon_screening.engine.inputs import (
     NoSlotFits,
     SilenceExpired,
     SlotSelected,
+    SlotTaken,
     TurnInput,
 )
+from sazon_screening.engine.interview import on_interview_request, on_slot_taken
 from sazon_screening.engine.rules import hard_rule_failure, sync_license_requirement
-from sazon_screening.engine.state import ConversationState
+from sazon_screening.engine.state import ConversationState, add_flag
 from sazon_screening.vocab import (
     Country,
     FieldName,
@@ -109,6 +111,8 @@ def step_unchecked(
             primary = on_silence(s)
         case SlotSelected() | NoSlotFits():
             primary = on_slot_event(s, turn, config)
+        case SlotTaken():
+            primary = on_slot_taken(s, turn)
     return s, finish(s, primary, prefaces, config)
 
 
@@ -131,6 +135,12 @@ def on_candidate_turn(
         s.country_hint = t.context.country_hint
     if signals.opt_out:
         return opt_out(s)
+
+    # Move or cancel the booked interview (spec 010, ADR 0005 amendment 2026-10-16).
+    if (interview := on_interview_request(s, t)) is not None:
+        if signals.faq_question:
+            prefaces.append(AnswerFaq())
+        return interview
 
     # Closed conversations: answer FAQs, keep the data as it is (FR-15).
     if s.status in _CLOSED:
@@ -201,7 +211,7 @@ def on_silence(s: ConversationState) -> PrimaryAction:
     if s.status is not Status.in_progress:
         return NoMessage()
     if s.stage is Stage.scheduling:  # qualified: never "abandoned" (Spec 001 §6)
-        return close_qualified_unscheduled(s)
+        return close_unbooked(s)  # moving a booking (010): the booked slot stays
     s.status = Status.abandoned
     s.drop_off_stage = s.stage
     return NoMessage()
@@ -216,15 +226,17 @@ def on_slot_event(
     if s.pending.kind is not PendingKind.slot:
         return pending_action(s)  # a stale event: nothing changes, ask what we were asking
     if isinstance(event, NoSlotFits):
-        return close_qualified_unscheduled(s)
+        return close_unbooked(s)  # moving a booking (010): "none fits" keeps it
     if event.slot_id in s.offered_slot_ids:
+        if s.selected_slot_id not in (None, event.slot_id):
+            add_flag(s, Flag.interview_rescheduled)  # 010: the caller moves the booking
         s.selected_slot_id = event.slot_id
         s.status = Status.interview_scheduled
         s.drop_off_stage = s.stage  # every close records where the conversation ended
         return ConfirmInterview(slot_id=event.slot_id)
     offered = tuple(s.offered_slot_ids)
     reask = reask_or_exhaust(s, FieldName.slot, ReaskReason.slot_not_offered, offered, cfg)
-    return reask or close_qualified_unscheduled(s)
+    return reask or close_unbooked(s)
 
 
 _CLOSED = frozenset(

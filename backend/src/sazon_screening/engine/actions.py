@@ -68,11 +68,27 @@ class ShowRecap(_Action):
 class OfferSlots(_Action):
     type: Literal["offer_slots"] = "offer_slots"
     slot_ids: list[str]
+    # Spec 010: why these slots: the first offer (None), the picked one just filled up
+    # ("slot_taken"), or the candidate is moving a booked interview ("reschedule").
+    reason: Literal["slot_taken", "reschedule"] | None = None
 
 
 class ConfirmInterview(_Action):
     type: Literal["confirm_interview"] = "confirm_interview"
     slot_id: str
+
+
+class KeepInterview(_Action):
+    """Spec 010: a reschedule found no new slot (or none fitted): the booked one stays."""
+
+    type: Literal["keep_interview"] = "keep_interview"
+    slot_id: str
+
+
+class CloseInterviewCancelled(_Action):
+    """Spec 010: the candidate cancelled their interview; they stay qualified."""
+
+    type: Literal["close_interview_cancelled"] = "close_interview_cancelled"
 
 
 class CloseDisqualified(_Action):
@@ -125,6 +141,8 @@ PrimaryAction = Annotated[
     | ShowRecap
     | OfferSlots
     | ConfirmInterview
+    | KeepInterview
+    | CloseInterviewCancelled
     | CloseDisqualified
     | CloseNeedsReview
     | CloseOptedOut

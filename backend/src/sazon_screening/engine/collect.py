@@ -21,7 +21,7 @@ from sazon_screening.engine.actions import (
 from sazon_screening.engine.apply import Applied, answers_pending, set_pending
 from sazon_screening.engine.closing import (
     close_needs_review,
-    close_qualified_unscheduled,
+    close_unbooked,
     enter_scheduling,
     recap_action,
     show_recap,
@@ -133,7 +133,7 @@ def on_slot_answer(
     if attempt.kind == "failed":
         offered = tuple(s.offered_slot_ids)
         reask = reask_or_exhaust(s, FieldName.slot, attempt.reason, offered, cfg)
-        return reask or close_qualified_unscheduled(s)
+        return reask or close_unbooked(s)
     return pending_action(s)
 
 

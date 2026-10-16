@@ -14,6 +14,7 @@ from sazon_screening.engine.actions import (
     AskField,
     ClosedAck,
     CloseDisqualified,
+    CloseInterviewCancelled,
     CloseNeedsReview,
     CloseOptedOut,
     CloseQualifiedUnscheduled,
@@ -23,6 +24,7 @@ from sazon_screening.engine.actions import (
     ConfirmValue,
     EngineAction,
     HandoffToHuman,
+    KeepInterview,
     NoMessage,
     OfferSlots,
     Preface,
@@ -126,6 +128,8 @@ ALL_PRIMARY: list[Any] = [
     ShowRecap(profile=filled_state().profile),
     OfferSlots(slot_ids=["s1", "s2"]),
     ConfirmInterview(slot_id="s1"),
+    KeepInterview(slot_id="s1"),
+    CloseInterviewCancelled(),
     CloseDisqualified(reason=DisqualificationReason.under_age),
     CloseNeedsReview(reasons=[ReviewReason.location_unclear]),
     CloseOptedOut(),
@@ -154,6 +158,8 @@ class TestActions:
             "show_recap",
             "offer_slots",
             "confirm_interview",
+            "keep_interview",  # spec 010 (ADR 0005 amendment)
+            "close_interview_cancelled",  # spec 010
             "close_disqualified",
             "close_needs_review",
             "close_opted_out",

@@ -3,6 +3,8 @@
 **Status:** Implemented (2026-10-11). All 37 ACs covered by marked tests (`backend/tests/test_ac_coverage.py`); implementation notes in [tasks.md](tasks.md).
 **Related:** ADR-0005 (turn contract), ADR-0002 (hybrid state machine), ADR-0004 (hard rules + soft scoring), Spec 001 ([process-design.md](../001-process-design/process-design.md), the source of truth)
 
+> **Amended by spec 010 (2026-10-16)** — [interview scheduling](../010-interview-scheduling/spec.md), ADR 0005 "Amendments": signals `reschedule_interview` / `cancel_interview`, event `slot_taken`, actions `keep_interview` / `close_interview_cancelled`, `offer_slots.reason`, flags `interview_rescheduled` / `interview_cancelled` (FR-26 extended; AC-43..45).
+
 > **Amended by spec 015 (2026-10-12)** — [zone occupancy](../015-zone-occupancy/spec.md), ADR 0005 "Amendments": new status `waitlisted` and primary action `close_waitlisted(area_id)` (recap confirmed while `TurnContext.zone_full` is true: no slots, never a rejection; closed like `qualified_unscheduled`, so FR-15 / AC-26c apply). FR-30 gains a sixth factor, **zone demand** (`field: location`, `reason_code: zone_demand`, value = area occupancy %), from `occupancy` passed by the caller; `null` occupancy (no staffing data) scores 0. `waitlisted` records are scored too. The ACs below are unchanged: the fixture config adds zone-demand bands but tests that pass no occupancy keep their scores.
 
 ## 1. Problem / Why
@@ -157,6 +159,11 @@ Unless stated otherwise: default config (license required for all vehicles, min 
 **Amendment 2026-10-13: month-level start dates (bug: "el mes que viene" was re-asked for a day)**
 - [x] AC-41: Given `today` = 2026-10-12, then `offset(1 months)` resolves to 2026-11-01, `offset(3 months)` to 2027-01-01 and `offset(0 months)` to 2026-10-12 (today, not flagged `start_date_normalised`), each with flag `start_date_approximate`; given `today` = 2026-11-01, `offset(0 months)` is 2026-11-01; a negative month offset → `reask_field(start_date, negative_value)`. Answered at the start-date question, `offset(1 months)` is accepted on the first try and the next action is `show_recap` with `start_date_approximate = true`.
 - [x] AC-42: Given `today` = 2026-10-12, then `month(11)` resolves to 2026-11-01, `month(10)` to 2026-10-12 and `month(1)` to 2027-01-01, each with flag `start_date_approximate`; `month(13)` → `reask_field(start_date, implausible_value)`. When an exact start date (`day_month(3, 11)`) later replaces a month-level one, the flag is cleared and the recap shows `start_date_approximate = false`.
+
+**Amendment 2026-10-16: move or cancel a booked interview (spec 010, ADR 0005 amendment)**
+- [x] AC-43: Given `interview_scheduled` with slot `s1`, when `reschedule_interview` arrives with offered slots {s1, s2, s3}, then the action is `offer_slots([s2, s3], reason = reschedule)`, status = `in_progress` and `selected_slot_id` is still `s1`; `slot_selected(s3)` then gives `confirm_interview(s3)`, `selected_slot_id = s3` and flag `interview_rescheduled`. Instead, `no_slot_fits`, used-up re-asks, `silence_expired`, or no other open slot give `keep_interview(s1)` with status `interview_scheduled`.
+- [x] AC-44: Given `interview_scheduled` (or moving it), when `cancel_interview` arrives, then status = `qualified_unscheduled`, `selected_slot_id = null`, flag `interview_cancelled`, action `close_interview_cancelled`, and the record is still scored. On a status without a booking (`qualified_unscheduled`, `waitlisted`, `disqualified`) it changes nothing (`closed_ack`). A later `reschedule_interview` on `qualified_unscheduled` offers slots again (`reason = null`).
+- [x] AC-45: Given pending `slot` with {s1, s2}, when `slot_taken(s1, [s1, s2, s3])` arrives, then the action is `offer_slots([s2, s3], reason = slot_taken)` and status stays `in_progress`; with no slot left it is `qualified_unscheduled` (or `keep_interview` when moving a booking).
 
 ## 7. Decisions (resolved open questions, 2026-10-11)
 | # | Question | Decision |

@@ -22,6 +22,7 @@ from sazon_screening.engine import (
     NoSlotFits,
     SilenceExpired,
     SlotSelected,
+    SlotTaken,
     TurnContext,
     TurnInput,
     register_for,
@@ -68,7 +69,7 @@ from sazon_screening.llm.trace import (
 from sazon_screening.vocab import Country, Language
 
 logger = logging.getLogger("sazon_screening.llm")
-Event = SilenceExpired | SlotSelected | NoSlotFits
+Event = SilenceExpired | SlotSelected | NoSlotFits | SlotTaken
 _NO_CONTEXT = TurnContextIn()
 
 

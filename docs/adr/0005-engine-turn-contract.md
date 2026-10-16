@@ -51,3 +51,33 @@ A breaking change to the contract, as the Consequences above anticipate:
 
 Channels and phrasing (003, 013) must handle the new action; the message catalog's
 startup check fails if a register has no `close_waitlisted` template.
+
+### 2026-10-16: move or cancel a booked interview, and a slot taken meanwhile (spec 010)
+Another breaking change, kept minimal. The engine still decides only the flow; which
+slots are open and the booking itself stay with the caller (004/010).
+- **Signals:** `reschedule_interview`, `cancel_interview` (extraction prompt v6). Read only
+  where there is something to act on, before the closed-conversation handling:
+  - `reschedule_interview` on `interview_scheduled` -> back to `in_progress` / scheduling
+    with the slots the caller sent in `TurnContext.offered_slots`, minus the booked one
+    (`offer_slots`, `reason: "reschedule"`). `selected_slot_id` keeps the booked slot until
+    a new `slot_selected`: "none fits", running out of re-asks or `silence_expired` keep
+    it (`keep_interview(slot_id)`, status back to `interview_scheduled`). A new pick sets
+    flag `interview_rescheduled`. On `qualified_unscheduled` (e.g. after a cancel) the same
+    signal offers slots again (`reason: null`): a qualified candidate asking for an
+    interview gets one. While choosing a slot it re-offers fresh slots.
+  - `cancel_interview` on `interview_scheduled` (or while moving it) -> `selected_slot_id =
+    null`, status `qualified_unscheduled`, flag `interview_cancelled`, action
+    `close_interview_cancelled`. While choosing a first slot it means "none fits". On any
+    other status it changes nothing (normal handling).
+  - `opt_out` still wins over both.
+- **Event:** `slot_taken(slot_id, slot_ids)`. The caller sends it instead of the pick's
+  `slot_selected` when storing the booking found the slot full (FR-3). From pending
+  `slot`: `offer_slots` with `slot_ids` minus the taken (and the booked) one, `reason:
+  "slot_taken"`; nothing open -> `keep_interview` (moving) or `qualified_unscheduled`.
+- **Actions:** `keep_interview(slot_id)`, `close_interview_cancelled`; `offer_slots` gains
+  `reason: null | "slot_taken" | "reschedule"`. Per-register templates for all of them.
+- **Caller contract:** a booking is created when `selected_slot_id` changes to a new id and
+  released when it changes to `null` (cancel, opt-out). The engine never offers the booked
+  slot back, and `interview_scheduled` always has a `selected_slot_id`
+  (property-tested invariants).
+- **Re-asks:** a new offer (reschedule, re-booking) starts the slot re-ask counter again.

@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-12.5"
+version: "2026-10-16.1"
 register: en
 
 labels:
@@ -68,7 +68,11 @@ templates:
   ask_correction_field: "No problem. Which detail would you like to change?"
   show_recap: "Let's go over your details:\n{recap}\nIs everything correct?"
   offer_slots: "All done! These are the available times for your interview:\n{slots}\nWhich one works best for you?"
-  confirm_interview: "Perfect! Your interview is booked: {slot}. See you then!"
+  offer_slots_taken: "Sorry, that time has just been taken. These are the times still free:\n{slots}\nWhich one works best for you?"
+  offer_slots_reschedule: "No problem, let's move it. Your current interview stands until you pick a new time. These are the available times:\n{slots}\nWhich one works best for you?"
+  confirm_interview: "Perfect! Your interview is booked: {slot}, at {place}. See you then!"
+  keep_interview: "Okay, we'll keep your interview on {slot}. If you'd like to change it later, just message me."
+  close_interview_cancelled: "Done, I've cancelled your interview. If you'd like another time later, just message me and I'll find you a slot."
   close_disqualified:
     under_age: "Thanks for your interest. This job requires being of legal age, so we can't continue with your application for now. We wish you the best of luck."
     no_license: "Thanks for your interest. This job requires a valid driving licence, so we can't continue for now. If you get one, write to us and we'll pick up your application again."
@@ -92,6 +96,12 @@ templates:
     progress_one: "Only one question to go."
     progress_done: "Almost done."
     recap_question: "Is everything right in the summary of your details?"
+  interview:
+    reminder: "A reminder: your interview is tomorrow at {time} at {place}. If you can't make it, tell me and we'll move it."
+    calendar_link: "Add it to your calendar: {url}"
+    calendar_summary: "Grupo Sazón interview — delivery driver"
+    calendar_description: "Interview for the delivery driver job at Grupo Sazón. If you can't make it, message Sofi in the chat and we'll move it."
+    place_to_confirm: "a place we'll confirm here"
 
 # Recruiter-facing labels for the summary (English).
 summary:
@@ -144,6 +154,8 @@ summary:
     do_not_contact: Do not contact
     engine_error: Internal error
     correction_unclear: Correction not understood
+    interview_rescheduled: Interview moved by chat
+    interview_cancelled: Interview cancelled by chat
   stages:
     consent: Consent
     name: Name

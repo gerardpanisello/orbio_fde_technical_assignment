@@ -248,6 +248,10 @@ class Signals(_Input):
     abuse: bool = False
     extraction_failed: bool = False
     language: Language | None = None
+    # Spec 010: the candidate wants to move or cancel the interview they booked. The
+    # engine acts on them only when there is an interview to move or cancel.
+    reschedule_interview: bool = False
+    cancel_interview: bool = False
 
 
 class TurnContext(_Input):
@@ -281,6 +285,17 @@ class NoSlotFits(_Input):
     kind: Literal["no_slot_fits"] = "no_slot_fits"
 
 
+class SlotTaken(_Input):
+    """Spec 010 FR-3: the candidate picked `slot_id`, but it filled up before the booking
+    was stored. Sent by the caller instead of `slot_selected`, with the slots that are still
+    open now (`slot_ids`), so the engine offers those instead."""
+
+    kind: Literal["slot_taken"] = "slot_taken"
+    slot_id: str
+    slot_ids: list[str] = []
+
+
 TurnInput = Annotated[
-    CandidateTurn | SilenceExpired | SlotSelected | NoSlotFits, Field(discriminator="kind")
+    CandidateTurn | SilenceExpired | SlotSelected | NoSlotFits | SlotTaken,
+    Field(discriminator="kind"),
 ]

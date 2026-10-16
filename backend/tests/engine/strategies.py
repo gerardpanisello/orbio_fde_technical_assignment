@@ -31,6 +31,7 @@ from sazon_screening.engine.inputs import (
     Signals,
     SilenceExpired,
     SlotSelected,
+    SlotTaken,
     StartDateProposal,
     TurnContext,
     TurnInput,
@@ -155,6 +156,8 @@ def signals() -> st.SearchStrategy[Signals]:
         abuse=_rare(),
         extraction_failed=_rare(),
         language=st.none() | st.sampled_from(list(Language)),
+        reschedule_interview=_rare(),  # spec 010
+        cancel_interview=_rare(),
     )
 
 
@@ -181,6 +184,11 @@ def events() -> st.SearchStrategy[TurnInput]:
         st.just(SilenceExpired()),
         st.builds(SlotSelected, slot_id=st.sampled_from([*SLOT_IDS, "s9"])),
         st.just(NoSlotFits()),
+        st.builds(  # spec 010: the pick filled up meanwhile
+            SlotTaken,
+            slot_id=st.sampled_from(SLOT_IDS),
+            slot_ids=st.lists(st.sampled_from(SLOT_IDS), max_size=3, unique=True),
+        ),
     )
 
 
