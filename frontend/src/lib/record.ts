@@ -1,7 +1,7 @@
 /** Turns the engine's CandidateRecord (spec 002) into short Spanish display values. */
 import type { AreaLabels, CandidateRecord, ScoreFactor } from '../api/client'
 import type { components } from '../api/schema'
-import { formatDate } from './format'
+import { formatDate, formatStartDate } from './format'
 import { zoneDemandText } from './zones'
 import { AVAILABILITY, FACTOR, FIELD, SCHEDULE, VEHICLE, list, placeLabel, platformLabel } from './labels'
 
@@ -28,11 +28,12 @@ export function fieldRows(record: CandidateRecord, areas: AreaLabels | undefined
     key,
     label: FIELD[key],
     status: record.fields[key].status,
-    value: fieldValue(record.fields, key, areas),
+    value: fieldValue(record, key, areas),
   }))
 }
 
-function fieldValue(fields: Fields, key: FieldKey, areas: AreaLabels | undefined): string {
+function fieldValue(record: CandidateRecord, key: FieldKey, areas: AreaLabels | undefined): string {
+  const fields = record.fields
   switch (key) {
     case 'full_name':
       return fields.full_name.value ?? '—'
@@ -67,7 +68,7 @@ function fieldValue(fields: Fields, key: FieldKey, areas: AreaLabels | undefined
         : years
     }
     case 'start_date':
-      return formatDate(fields.start_date.value)
+      return formatStartDate(fields.start_date.value, record.flags.includes('start_date_approximate'))
   }
 }
 

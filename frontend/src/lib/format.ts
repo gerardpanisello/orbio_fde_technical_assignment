@@ -51,6 +51,32 @@ export function formatDateTime(iso: string): string {
   })
 }
 
+const MONTHS_ES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+/**
+ * A start date: "15/10/2026", or "a partir de noviembre" when the candidate only gave a
+ * month ("el mes que viene"; flag `start_date_approximate`): the stored 1st is not a day
+ * they chose.
+ */
+export function formatStartDate(isoDate: string | null | undefined, approximate: boolean): string {
+  if (!isoDate || !approximate) return formatDate(isoDate)
+  const month = Number(isoDate.slice(5, 7))
+  return `a partir de ${MONTHS_ES[month - 1]}`
+}
+
 /** ISO date ("2026-10-15") -> "15/10/2026". */
 export function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return '—'

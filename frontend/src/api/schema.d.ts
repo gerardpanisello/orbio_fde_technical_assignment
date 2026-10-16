@@ -558,6 +558,8 @@ export interface components {
             platforms: string[] | null;
             /** Start Date */
             start_date: string | null;
+            /** Start Date Approximate */
+            start_date_approximate: boolean;
             language: components["schemas"]["Language"];
             /**
              * Channel
@@ -710,7 +712,7 @@ export interface components {
          * Flag
          * @enum {string}
          */
-        Flag: "surname_missing" | "name_unclear" | "start_date_normalised" | "human_requested" | "post_close_correction" | "system_failure" | "abuse" | "do_not_contact" | "engine_error" | "correction_unclear";
+        Flag: "surname_missing" | "name_unclear" | "start_date_normalised" | "start_date_approximate" | "human_requested" | "post_close_correction" | "system_failure" | "abuse" | "do_not_contact" | "engine_error" | "correction_unclear";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */

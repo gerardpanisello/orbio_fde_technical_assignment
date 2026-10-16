@@ -1,4 +1,4 @@
-import { formatDate, formatDuration, formatSlot, timeAgo } from './format'
+import { formatDate, formatDuration, formatSlot, formatStartDate, timeAgo } from './format'
 
 describe('format', () => {
   it('formats an interview slot as weekday dd/mm, hh:mm without timezone shifts', () => {
@@ -14,5 +14,12 @@ describe('format', () => {
     const now = new Date('2026-10-12T12:00:00Z')
     expect(timeAgo('2026-10-12T09:00:00Z', now)).toBe('hace 3 h')
     expect(timeAgo('2026-10-10T12:00:00Z', now)).toBe('hace 2 d')
+  })
+
+  it('shows a month-level start date as the month only', () => {
+    expect(formatStartDate('2026-11-01', true)).toBe('a partir de noviembre')
+    expect(formatStartDate('2027-01-01', true)).toBe('a partir de enero')
+    expect(formatStartDate('2026-11-01', false)).toBe('01/11/2026')
+    expect(formatStartDate(null, true)).toBe('—')
   })
 })

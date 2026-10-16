@@ -1,6 +1,6 @@
 import type { AreaLabels, CandidateRow } from '../api/client'
 import { ChannelBadge, PriorityPill, RecruiterTag, StatusBadge } from '../components/Badges'
-import { formatDate, formatSlot, timeAgo } from '../lib/format'
+import { formatSlot, formatStartDate, timeAgo } from '../lib/format'
 import { AVAILABILITY, DISQUALIFICATION, VEHICLE, list, placeLabel } from '../lib/labels'
 
 const COLUMNS = [
@@ -112,7 +112,7 @@ export function CandidateTable({
                     : `${row.experience_years} años`}
               </td>
               <td className="px-3 py-2 whitespace-nowrap text-stone-700 tabular-nums">
-                {formatDate(row.start_date)}
+                {formatStartDate(row.start_date, row.start_date_approximate)}
               </td>
               <td className="px-3 py-2 whitespace-nowrap text-stone-700">
                 {row.interview_slot ? formatSlot(row.interview_slot) : '—'}

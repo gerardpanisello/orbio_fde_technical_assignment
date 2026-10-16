@@ -57,6 +57,7 @@ export const FLAG: Record<S['Flag'], string> = {
   surname_missing: 'Falta el apellido',
   name_unclear: 'Nombre no claro',
   start_date_normalised: 'Fecha de inicio ajustada a hoy',
+  start_date_approximate: 'Fecha de inicio aproximada (solo el mes)',
   human_requested: 'Pidió una persona',
   post_close_correction: 'Corrección tras el cierre',
   system_failure: 'Fallo técnico',
