@@ -12,6 +12,7 @@
 #     WhatsApp Manager. `hello_world` (en_US) is the template every test number has:
 #     fine to see the flow work, NOT a real reminder. Keep `placeholder: true` while it
 #     is in use, so every send logs a warning; set it to false with a real template.
+#   - reminder_template: the same for the day-before interview reminder (spec 010).
 #   - list_button: the button that opens a list of more than 3 options (max 20 chars).
 #   - country_prefixes: international dialling prefix -> country hint for a new
 #     conversation (the candidate can still say they live elsewhere).
@@ -21,6 +22,13 @@ follow_up_template:
   name: hello_world
   language: en_US
   placeholder: true
+
+# Spec 010: the day-before interview reminder outside the 24 h window. Optional: without
+# it the follow-up template above is used. Same rules (approved name, placeholder flag).
+# reminder_template:
+#   name: interview_reminder
+#   language: es_ES
+#   placeholder: false
 
 list_button:
   es: "Ver opciones"

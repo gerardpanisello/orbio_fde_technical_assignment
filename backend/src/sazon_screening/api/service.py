@@ -26,6 +26,7 @@ from sazon_screening.api.db import Sessions
 from sazon_screening.api.models import (
     Conversation,
     InboundSeen,
+    InterviewBooking,
     Message,
     RecruiterAction,
     SummaryRow,
@@ -57,6 +58,7 @@ from sazon_screening.reengagement import (
     timezone_for,
 )
 from sazon_screening.scheduling.ics import CalendarEvent, build_ics
+from sazon_screening.scheduling.reminder import reminder_due
 from sazon_screening.vocab import Country, Language, Status
 from sazon_screening.whatsapp.phone import phone_hash, phone_ref
 
@@ -114,7 +116,7 @@ class Reengaged:
 
 
 Channel = Literal["web", "whatsapp"]
-DeliveryKind = Literal["reply", "follow_up", "close"]
+DeliveryKind = Literal["reply", "follow_up", "close", "reminder"]  # reminder: spec 010
 
 
 @dataclass(frozen=True)
@@ -549,6 +551,108 @@ class ScreeningService:
             country=Country(row.country) if row.country else None,
             default_country=config.screening.default_country,
         )
+
+    # --- interview reminders (spec 010 FR-6) ---------------------------------------------
+
+    async def due_interview_reminders(self, now: datetime) -> list[int]:
+        """Bookings whose day-before reminder is due. A cheap pre-check; each one is checked
+        again, and claimed, by `send_interview_reminder`."""
+        if not self._slots.config.reminder.enabled:
+            return []
+        async with self._sessions() as session:
+            rows = await repo.reminder_candidates(
+                session, after=now, before=now + timedelta(days=2)
+            )
+        return [row.id for row in rows if self._reminder_due(row, now)]
+
+    async def send_interview_reminder(
+        self, booking_id: int, *, at: datetime | None = None
+    ) -> OutboundMessage | None:
+        """Send one booking's reminder if it is due: stored in the transcript and pushed
+        through the conversation's channel (WhatsApp: the approved template outside the
+        24 h window). At most once per booking (compare-and-set), under the conversation's
+        lock so it never races a candidate's message. None: not due or already sent."""
+        now = at or self._clock()
+        async with self._sessions() as session:
+            booking = await repo.get_booking(session, booking_id)
+        if booking is None:
+            return None
+        conversation_id = booking.conversation_id
+        async with self._locks[conversation_id], self._sessions.begin() as session:
+            booking = await repo.get_booking(session, booking_id)
+            if booking is None or not self._reminder_due(booking, now):
+                return None
+            if not await repo.claim_reminder(session, booking_id, now):
+                logger.info("interview reminder already sent (conversation %s)", conversation_id)
+                return None
+            row = await self._get(session, conversation_id)
+            state = ConversationState.model_validate(row.state_json)
+            tz = self._slots.timezone(booking.city)
+            local = booking.starts_at.astimezone(tz) if tz else booking.starts_at
+            reply = self._agent.interview_reminder(
+                state, time=local.strftime("%H:%M"), place=booking.place
+            )
+            repo.add(
+                session,
+                Message(
+                    conversation_id=conversation_id,
+                    role="agent",
+                    kind="reminder",
+                    text=reply.text,
+                    quick_replies_json=[],
+                    created_at=now,
+                ),
+            )
+            channel, phone, opened = row.channel, row.phone, row.last_candidate_at
+        logger.info("interview reminder sent (conversation %s)", conversation_id)
+        await self._deliver(
+            conversation_id, channel, phone, reply, kind="reminder", opened=opened, now=now
+        )
+        return reply
+
+    def _reminder_due(self, booking: InterviewBooking, now: datetime) -> bool:
+        tz = self._slots.timezone(booking.city)
+        if booking.status != "booked" or booking.reminder_sent_at is not None or tz is None:
+            return False
+        cfg = self._reengagement
+        return reminder_due(
+            starts_at=booking.starts_at,
+            booked_at=booking.created_at,
+            now=now,
+            tz=tz,
+            config=self._slots.config.reminder,
+            quiet_hours=cfg.quiet_hours if cfg is not None else None,
+        )
+
+    async def _deliver(
+        self,
+        conversation_id: str,
+        channel: str,
+        phone: str | None,
+        reply: OutboundMessage,
+        *,
+        kind: DeliveryKind,
+        opened: datetime | None,
+        now: datetime,
+    ) -> None:
+        """Push a message through the conversation's channel (the web chat pulls instead).
+        Never raises: the message is already stored."""
+        delivery = self._deliveries.get(channel)
+        if delivery is None:
+            return
+        window = self._reengagement.window if self._reengagement else timedelta(hours=24)
+        try:
+            await delivery.deliver(
+                Outbound(
+                    conversation_id=conversation_id,
+                    phone=phone,
+                    reply=reply,
+                    kind=kind,
+                    outside_window=opened is None or now > opened + window,
+                )
+            )
+        except Exception:
+            logger.exception("%s delivery failed (conversation %s)", kind, conversation_id)
 
     # --- summaries (FR-8, FR-14) ---------------------------------------------------------
 

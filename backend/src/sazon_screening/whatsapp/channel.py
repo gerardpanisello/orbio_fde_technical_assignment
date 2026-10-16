@@ -131,7 +131,8 @@ class WhatsAppChannel:
         return await self._send(payload, conversation_id, wa_id)
 
     async def deliver(self, outbound: Outbound) -> None:
-        """The service's delivery hook (re-engagement, spec 008 + 016 FR-6)."""
+        """The service's delivery hook (re-engagement, spec 008 + 016 FR-6; the interview
+        reminder, spec 010 FR-6)."""
         cid, phone = outbound.conversation_id, outbound.phone
         try:
             if phone is None:  # opted out (number erased), or demo data without a number
@@ -145,19 +146,22 @@ class WhatsAppChannel:
             if not outbound.outside_window:
                 await self.send_reply(cid, phone, outbound.reply)
                 return
-            if outbound.kind != "follow_up":
+            if outbound.kind not in ("follow_up", "reminder"):
                 logger.warning(
                     "WhatsApp %s not sent: outside the 24 h window and only the follow-up "
-                    "template is configured (conversation %s)",
+                    "and reminder templates are configured (conversation %s)",
                     outbound.kind,
                     cid,
                 )
                 return
             template = self._config.follow_up_template
+            if outbound.kind == "reminder" and self._config.reminder_template is not None:
+                template = self._config.reminder_template  # spec 010 FR-6
             if template.placeholder:
                 logger.warning(
-                    "WhatsApp follow-up sent as placeholder template '%s': configure a real "
+                    "WhatsApp %s sent as placeholder template '%s': configure a real "
                     "approved template (conversation %s)",
+                    outbound.kind,
                     template.name,
                     cid,
                 )

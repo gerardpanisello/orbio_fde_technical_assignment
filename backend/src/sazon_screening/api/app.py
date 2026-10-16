@@ -95,7 +95,8 @@ def create_app(
             app.state.service, tick_seconds=reengagement.tick_seconds
         )
         loop = None
-        if settings.reengagement_scheduler and reengagement.enabled:
+        reminders = app.state.service.slots.config.reminder.enabled  # spec 010 FR-6
+        if settings.reengagement_scheduler and (reengagement.enabled or reminders):
             loop = asyncio.create_task(app.state.scheduler.run(), name="reengagement")
         yield
         if loop is not None:

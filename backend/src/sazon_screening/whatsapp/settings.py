@@ -93,6 +93,8 @@ class TemplateRef(_Strict):
 class WhatsAppConfig(_Strict):
     version: str
     follow_up_template: TemplateRef
+    # Spec 010 FR-6: the interview reminder outside the 24 h window; unset: the follow-up one.
+    reminder_template: TemplateRef | None = None
     list_button: dict[Language, str]
     country_prefixes: dict[str, Country]
 

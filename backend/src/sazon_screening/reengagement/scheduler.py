@@ -1,5 +1,7 @@
 """The in-process re-engagement loop (spec 008 FR-7), started in the API lifespan.
 
+It also sends the day-before interview reminders (spec 010 FR-6) on the same tick.
+
 Every `tick_seconds` it asks the service which conversations have a due step and runs
 each one through `ScreeningService.reengage`, which takes the conversation's lock and
 claims the step with a compare-and-set: a candidate's message and a reminder never race,
@@ -52,7 +54,20 @@ class ReengagementScheduler:
                     conversation_id,
                 )
             done.append(outcome)
+        await self.send_interview_reminders(now)
         return done
+
+    async def send_interview_reminders(self, now: datetime) -> int:
+        """Spec 010 FR-6: the day-before reminders, on the same tick. Returns how many went
+        out; one failing booking is logged and skipped."""
+        sent = 0
+        for booking_id in await self._service.due_interview_reminders(now):
+            try:
+                if await self._service.send_interview_reminder(booking_id, at=now) is not None:
+                    sent += 1
+            except Exception:
+                logger.exception("interview reminder failed (booking %s)", booking_id)
+        return sent
 
     async def run(self) -> None:
         """Tick forever; cancelled at shutdown."""

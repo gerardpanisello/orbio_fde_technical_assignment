@@ -31,7 +31,7 @@ from sazon_screening.whatsapp.channel import WhatsAppChannel
 from sazon_screening.whatsapp.client import FakeWhatsAppClient
 from sazon_screening.whatsapp.inbound import Inbound, sign
 from sazon_screening.whatsapp.phone import phone_hash
-from sazon_screening.whatsapp.settings import WhatsAppSettings, load_whatsapp_config
+from sazon_screening.whatsapp.settings import TemplateRef, WhatsAppSettings, load_whatsapp_config
 from tests.api.conftest import START, TickingClock
 from tests.paths import SHIPPED_CONFIG_DIR
 
@@ -643,3 +643,35 @@ async def test_demo_seed_has_both_channels_and_no_numbers(client: AsyncClient) -
     await client.post("/api/dev/seed", params={"n": 6})
     rows = (await client.get("/api/candidates")).json()
     assert {r["channel"] for r in rows} == {"web", "whatsapp"}
+
+
+# --- spec 010: the interview reminder --------------------------------------------------------
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("010:AC-6")
+async def test_an_interview_reminder_is_text_inside_the_window_and_a_template_outside(
+    service: ScreeningService, graph: FakeWhatsAppClient
+) -> None:
+    config = load_whatsapp_config(SHIPPED_CONFIG_DIR)
+    channel = WhatsAppChannel(service, graph, config)
+    cid, _ = await service.start_whatsapp(ES_PHONE, "Hola", at=START)
+    reply = OutboundMessage(
+        text="Te recuerdo tu entrevista mañana a las 10:00 en X.",
+        quick_replies=[],
+        language=Language.es,
+        register=Register.es_ES,
+    )
+    reminder = Outbound(conversation_id=cid, phone=ES_PHONE, reply=reply, kind="reminder")
+    await channel.deliver(reminder)
+    assert graph.messages()[-1]["text"]["body"].startswith("Te recuerdo tu entrevista")
+    await channel.deliver(replace(reminder, outside_window=True))
+    assert graph.messages()[-1]["template"]["name"] == "hello_world"  # the follow-up one
+    own = config.model_copy(
+        update={"reminder_template": TemplateRef(name="interview_reminder", language="es_ES")}
+    )
+    await WhatsAppChannel(service, graph, own).deliver(replace(reminder, outside_window=True))
+    assert graph.messages()[-1]["template"] == {
+        "name": "interview_reminder",
+        "language": {"code": "es_ES"},
+    }

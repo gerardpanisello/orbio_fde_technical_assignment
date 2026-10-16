@@ -260,6 +260,26 @@ class ScreeningAgent:
         )
         return FollowUpResult(reply=reply, trace=trace)
 
+    def interview_reminder(
+        self, state: ConversationState, *, time: str, place: str
+    ) -> OutboundMessage:
+        """Spec 010 FR-6: the day-before reminder, from the template (no model call: it is
+        short, fixed and may be a WhatsApp template), in the candidate's register."""
+        location = state.profile.location.value
+        register = register_for(
+            state.language,
+            location.country if location else None,
+            state.country_hint,
+            default_country=self._engine_config.screening.default_country,
+        )
+        texts = self._catalog.for_register(register).templates.interview
+        return OutboundMessage(
+            text=texts.reminder.format(time=time, place=place),
+            quick_replies=[],
+            language=state.language,
+            register=register,
+        )
+
     async def summarise(
         self,
         record: CandidateRecord,

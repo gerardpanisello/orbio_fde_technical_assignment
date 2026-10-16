@@ -84,7 +84,7 @@ class Message(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # transcript order
     conversation_id: Mapped[str] = mapped_column(ForeignKey("conversations.id"), index=True)
     role: Mapped[str] = mapped_column(String(16))  # "candidate" | "agent"
-    kind: Mapped[str] = mapped_column(String(16), default="reply")  # "reply" | "follow_up" (008)
+    kind: Mapped[str] = mapped_column(String(16), default="reply")  # reply|follow_up|reminder
     follow_up_step: Mapped[int | None]  # 1-based, follow-ups only
     text: Mapped[str] = mapped_column(Text)
     quick_replies_json: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)

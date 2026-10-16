@@ -57,7 +57,7 @@ class QuickReplyOut(BaseModel):
     label: str
 
 
-MessageKind = Literal["reply", "follow_up"]
+MessageKind = Literal["reply", "follow_up", "reminder"]
 
 
 class MessageOut(BaseModel):
@@ -66,7 +66,8 @@ class MessageOut(BaseModel):
     text: str
     quick_replies: list[QuickReplyOut]
     created_at: datetime
-    # Spec 008: "follow_up" is a reminder Sofi sent after a silence (agent messages only).
+    # Spec 008: "follow_up" is a reminder Sofi sent after a silence (agent messages only);
+    # spec 010: "reminder" is the day-before interview reminder.
     kind: MessageKind = "reply"
     follow_up_step: int | None = None  # 1-based within that silence; None for replies
     requires_template: bool = False  # past WhatsApp's 24 h window: an approved template
@@ -80,7 +81,7 @@ class MessageOut(BaseModel):
             text=row.text,
             quick_replies=[QuickReplyOut(**q) for q in row.quick_replies_json],
             created_at=row.created_at,
-            kind="follow_up" if row.kind == "follow_up" else "reply",
+            kind=row.kind if row.kind in ("follow_up", "reminder") else "reply",
             follow_up_step=row.follow_up_step,
             requires_template=bool(follow_up.get("requires_template", False)),
         )
