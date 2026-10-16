@@ -23,6 +23,7 @@ const base: Analytics = {
   by_channel: {},
   faq: { asked: 0, answered: 0, unanswered_rate: 0, top_questions: [] },
   reengagement: { follow_ups_sent: 0, conversations_nudged: 0, reactivated: 0, reactivation_rate: 0, by_step: [] },
+  interviews: { booked: 0, attended: 0, no_show: 0, show_up_rate: 0, rescheduled: 0, cancelled: 0 },
 }
 
 describe('buildFunnel', () => {

@@ -214,6 +214,111 @@ export interface paths {
         patch: operations["update_zone_api_zones__area_id__patch"];
         trace?: never;
     };
+    "/api/interviews/{conversation_id}.ics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Interview Ics
+         * @description FR-5: the booked interview as an iCalendar invite (candidate and recruiter). 404 when
+         *     the conversation does not exist or has no booked interview.
+         */
+        get: operations["interview_ics_api_interviews__conversation_id__ics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Availability
+         * @description Every served city with an agenda, in service_areas.yaml order.
+         */
+        get: operations["list_availability_api_interviews_availability_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/availability/{city_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Availability
+         * @description AC-7: validated as a whole (times HH:MM, capacity >= 1, ...; else 422). Bookings
+         *     already made keep their slot; only slots offered from now on change. A served city
+         *     without an agenda yet starts from the config defaults.
+         */
+        patch: operations["update_availability_api_interviews_availability__city_id__patch"];
+        trace?: never;
+    };
+    "/api/interviews/week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Week
+         * @description FR-7: Monday to Sunday of the week containing `start` (default: this week, local),
+         *     each agenda slot with its capacity and the candidates booked in it.
+         */
+        get: operations["week_api_interviews_week_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/interviews/bookings/{booking_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Mark Attendance
+         * @description FR-7: attended / no-show (feeds analytics `show_up_rate`, AC-8); `booked` undoes it.
+         *     409 for a cancelled or moved booking, or one that has not started yet.
+         */
+        patch: operations["mark_attendance_api_interviews_bookings__booking_id__patch"];
+        trace?: never;
+    };
     "/api/meta/areas": {
         parameters: {
             query?: never;
@@ -465,6 +570,7 @@ export interface components {
             };
             faq: components["schemas"]["FaqAnalytics"];
             reengagement: components["schemas"]["ReengagementAnalytics"];
+            interviews: components["schemas"]["InterviewAnalytics"];
         };
         /** AreaLabels */
         AreaLabels: {
@@ -478,10 +584,120 @@ export interface components {
             };
         };
         /**
+         * AttendanceIn
+         * @description Mark a past interview; `booked` undoes a mark.
+         */
+        AttendanceIn: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "attended" | "no_show" | "booked";
+        };
+        /**
          * Availability
          * @enum {string}
          */
         Availability: "full_time" | "part_time" | "weekends";
+        /**
+         * AvailabilityOut
+         * @description One city's interview agenda ("Entrevistas -> Disponibilidad").
+         */
+        AvailabilityOut: {
+            /** City */
+            city: string;
+            /** City Name */
+            city_name: string;
+            country: components["schemas"]["Country"];
+            /** Timezone */
+            timezone: string;
+            /** Weekdays */
+            weekdays: components["schemas"]["Weekday"][];
+            /** Times */
+            times: string[];
+            /** Capacity */
+            capacity: number;
+            /** Duration Min */
+            duration_min: number;
+            /** Days Ahead */
+            days_ahead: number;
+            /** Place */
+            place: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * AvailabilityPatchIn
+         * @description Any subset of the settings; the result is validated as a whole (times HH:MM,
+         *     capacity >= 1, ...). Only slots offered from now on change: bookings stay.
+         */
+        AvailabilityPatchIn: {
+            /** Weekdays */
+            weekdays?: components["schemas"]["Weekday"][] | null;
+            /** Times */
+            times?: string[] | null;
+            /** Capacity */
+            capacity?: number | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Days Ahead */
+            days_ahead?: number | null;
+            /** Place */
+            place?: string | null;
+        };
+        /**
+         * BookingOut
+         * @description One interview booking (spec 010). Times are UTC; `local_start` is the wall clock in
+         *     the city (`timezone`), which is what candidates and recruiters read.
+         */
+        BookingOut: {
+            /** Id */
+            id: number;
+            /** Slot Id */
+            slot_id: string;
+            /** City */
+            city: string;
+            /** Local Start */
+            local_start: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /** Duration Min */
+            duration_min: number;
+            /** Place */
+            place: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "booked" | "attended" | "no_show" | "cancelled" | "rescheduled";
+            /** Ics Url */
+            ics_url: string;
+            /** Reminder Sent At */
+            reminder_sent_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /**
          * Bucket
          * @enum {string}
@@ -490,6 +706,12 @@ export interface components {
         /** CandidateDetail */
         CandidateDetail: {
             candidate: components["schemas"]["CandidateRow"];
+            booking?: components["schemas"]["BookingOut"] | null;
+            /**
+             * Bookings
+             * @default []
+             */
+            bookings: components["schemas"]["BookingOut"][];
             record: components["schemas"]["CandidateRecord"];
             live_score: components["schemas"]["ScoreResult"] | null;
             summary: components["schemas"]["SummaryOut"] | null;
@@ -568,6 +790,8 @@ export interface components {
             channel: "web" | "whatsapp";
             /** Interview Slot */
             interview_slot: string | null;
+            /** Interview Slot Id */
+            interview_slot_id: string | null;
             /**
              * Recruiter Status
              * @enum {string}
@@ -594,6 +818,7 @@ export interface components {
             language: components["schemas"]["Language"];
             /** Messages */
             messages: components["schemas"]["MessageOut"][];
+            booking?: components["schemas"]["BookingOut"] | null;
         };
         /**
          * Country
@@ -712,11 +937,30 @@ export interface components {
          * Flag
          * @enum {string}
          */
-        Flag: "surname_missing" | "name_unclear" | "start_date_normalised" | "start_date_approximate" | "human_requested" | "post_close_correction" | "system_failure" | "abuse" | "do_not_contact" | "engine_error" | "correction_unclear";
+        Flag: "surname_missing" | "name_unclear" | "start_date_normalised" | "start_date_approximate" | "human_requested" | "post_close_correction" | "system_failure" | "abuse" | "do_not_contact" | "engine_error" | "correction_unclear" | "interview_rescheduled" | "interview_cancelled";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * InterviewAnalytics
+         * @description Spec 010 FR-7. `booked`: interviews holding a seat (upcoming, attended or no-show);
+         *     `show_up_rate`: attended / (attended + no_show), 0 when none is marked yet.
+         */
+        InterviewAnalytics: {
+            /** Booked */
+            booked: number;
+            /** Attended */
+            attended: number;
+            /** No Show */
+            no_show: number;
+            /** Show Up Rate */
+            show_up_rate: number;
+            /** Rescheduled */
+            rescheduled: number;
+            /** Cancelled */
+            cancelled: number;
         };
         JsonValue: unknown;
         /**
@@ -759,7 +1003,7 @@ export interface components {
              * @default reply
              * @enum {string}
              */
-            kind: "reply" | "follow_up";
+            kind: "reply" | "follow_up" | "reminder";
             /** Follow Up Step */
             follow_up_step?: number | null;
             /**
@@ -999,7 +1243,7 @@ export interface components {
              * @default reply
              * @enum {string}
              */
-            kind: "reply" | "follow_up";
+            kind: "reply" | "follow_up" | "reminder";
             /** Action */
             action: string | null;
             /** Client */
@@ -1066,6 +1310,80 @@ export interface components {
             /** Accepted */
             accepted: number;
         };
+        /** WeekBookingOut */
+        WeekBookingOut: {
+            /** Booking Id */
+            booking_id: number;
+            /** Conversation Id */
+            conversation_id: string;
+            /** Full Name */
+            full_name: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "booked" | "attended" | "no_show";
+            /** Seat */
+            seat: number;
+        };
+        /** WeekDayOut */
+        WeekDayOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            weekday: components["schemas"]["Weekday"];
+            /** Slots */
+            slots: components["schemas"]["WeekSlotOut"][];
+        };
+        /**
+         * WeekOut
+         * @description Seven days from Monday, in the city's local time.
+         */
+        WeekOut: {
+            /** City */
+            city: string;
+            /** City Name */
+            city_name: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Start
+             * Format: date
+             */
+            start: string;
+            /** Days */
+            days: components["schemas"]["WeekDayOut"][];
+        };
+        /** WeekSlotOut */
+        WeekSlotOut: {
+            /** Slot Id */
+            slot_id: string;
+            /** Time */
+            time: string;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
+            /** Capacity */
+            capacity: number;
+            /** Booked */
+            booked: number;
+            /** In Agenda */
+            in_agenda: boolean;
+            /** Past */
+            past: boolean;
+            /** Bookings */
+            bookings: components["schemas"]["WeekBookingOut"][];
+        };
+        /**
+         * Weekday
+         * @description Declaration order matches `date.weekday()` (Monday = 0).
+         * @enum {string}
+         */
+        Weekday: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
         /**
          * ZoneOut
          * @description One served area: a zone, or a city served as a whole (then `id == city`).
@@ -1492,6 +1810,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ZoneOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    interview_ics_api_interviews__conversation_id__ics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/calendar": unknown;
+                };
+            };
+            /** @description No interview */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_availability_api_interviews_availability_get: {
+        parameters: {
+            query?: {
+                lang?: components["schemas"]["Language"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_availability_api_interviews_availability__city_id__patch: {
+        parameters: {
+            query?: {
+                lang?: components["schemas"]["Language"];
+            };
+            header?: never;
+            path: {
+                city_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AvailabilityPatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailabilityOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    week_api_interviews_week_get: {
+        parameters: {
+            query: {
+                city: string;
+                start?: string | null;
+                lang?: components["schemas"]["Language"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeekOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_attendance_api_interviews_bookings__booking_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                booking_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingOut"];
                 };
             };
             /** @description Validation Error */

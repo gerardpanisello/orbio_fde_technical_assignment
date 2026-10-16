@@ -10,6 +10,9 @@ export const keys = {
   analytics: ['analytics'] as const,
   areas: ['areas'] as const,
   zones: ['zones'] as const,
+  availability: ['availability'] as const,
+  week: (city: string, start: string) => ['week', city, start] as const,
+  allWeeks: ['week'] as const,
 }
 
 /** City/zone display names from config/service_areas.yaml; they never change at runtime. */

@@ -65,6 +65,8 @@ export const FLAG: Record<S['Flag'], string> = {
   do_not_contact: 'No contactar',
   engine_error: 'Error interno',
   correction_unclear: 'Corrección no entendida',
+  interview_rescheduled: 'Cambió la hora de la entrevista',
+  interview_cancelled: 'Canceló la entrevista',
 }
 
 /** Conversation stages, in flow order (vocab.Stage declaration order). */

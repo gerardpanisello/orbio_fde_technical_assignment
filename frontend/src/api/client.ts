@@ -29,6 +29,13 @@ export type ScoreFactor = Schemas['ScoreFactor']
 export type ScoreResult = Schemas['ScoreResult']
 export type Zone = Schemas['ZoneOut']
 export type AdvanceResult = Schemas['AdvanceOut']
+export type Booking = Schemas['BookingOut']
+export type Availability = Schemas['AvailabilityOut']
+export type AvailabilityPatch = Schemas['AvailabilityPatchIn']
+export type Week = Schemas['WeekOut']
+export type WeekSlot = Schemas['WeekSlotOut']
+export type WeekBooking = Schemas['WeekBookingOut']
+export type AttendanceStatus = 'booked' | 'attended' | 'no_show'
 export type ZonePatch = Schemas['ZonePatchIn']
 export type VoiceStatus = Schemas['VoiceStatus']
 
@@ -121,6 +128,16 @@ export const api = {
     post<RecruiterAction>(`/api/candidates/${id}/actions`, { action, note }),
   analytics: () => request<Analytics>('/api/analytics'),
   areaLabels: () => request<AreaLabels>('/api/meta/areas?lang=es'),
+  // interviews (spec 010)
+  availability: () => request<Availability[]>('/api/interviews/availability?lang=es'),
+  updateAvailability: (city: string, body: AvailabilityPatch) =>
+    patch<Availability>(`/api/interviews/availability/${encodeURIComponent(city)}?lang=es`, body),
+  week: (city: string, start?: string) =>
+    request<Week>(
+      `/api/interviews/week?city=${encodeURIComponent(city)}&lang=es${start ? `&start=${start}` : ''}`,
+    ),
+  markAttendance: (bookingId: number, status: AttendanceStatus) =>
+    patch<Booking>(`/api/interviews/bookings/${bookingId}`, { status }),
   listZones: () => request<Zone[]>('/api/zones?lang=es'),
   updateZone: (id: string, body: ZonePatch) =>
     patch<Zone>(`/api/zones/${encodeURIComponent(id)}?lang=es`, body),
