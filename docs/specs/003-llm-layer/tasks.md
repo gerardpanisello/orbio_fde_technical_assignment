@@ -449,3 +449,10 @@ Rules:
 - **Bug 2 (fixed):** years given per platform ("2 en Glovo y uno en Uber Eats") left `experience_years` empty → endless re-ask. `extraction.v2.md` sums them; `llm.yaml` points to v2.
 - **Measured (one full ES screening, 9 turns, consent → booked interview):** ≈ **$0.017 per candidate** (ADR 0001 estimated $0.05) → ~$17/week at 1,000 candidates. Latency **~3.7–5 s per turn** (target p50 < 3 s: missed; phrasing with Sonnet dominates). Improvement options: phrasing on Haiku for simple asks, streaming the reply, or running extraction + phrasing of the FAQ preface in parallel.
 - Graceful degradation verified live: with extraction failing, the candidate still got sensible messages and the conversation went to `needs_review` (`system_failure`).
+
+## Live finding — month-level start dates (2026-10-16)
+- **Bug (fixed):** "el mes que viene" and "El mes al que vamos a entrar" were re-asked for a concrete day. A month is a valid answer for a delivery driver (spec 002 FR-22, AC-41, AC-42).
+- Wire schema: `start_kind` gains `"month"`, `start_offset_unit` gains `"months"` (still all-required, non-nullable). `builders.py` maps them to `Month(m)` / `Offset(n, "months")`.
+- `extraction.v5.md` (`llm.yaml` points to v5): "el mes que viene" / "el mes al que vamos a entrar" / "next month" → offset 1 month; "en noviembre" / "a principios de noviembre" / "in November" → month 11.
+- **Decision — end of a month:** the extractor never knows today, so "a finales de mes" cannot be "offset 0 months" (that would resolve to today). It maps to **offset 1 month** (the start of next month, a few days away) and "a finales de noviembre" to month 12, because re-asking a clear month-level answer is exactly the bug being fixed; the recap shows "a partir de <mes>" and the candidate can correct it. "A mediados de noviembre" is not modelled as the 15th: it maps to month 11 (the 1st), shown as "a partir de noviembre".
+- The offline fake (`fake_rules.py`) understands "el mes que viene", "next month", "en <mes>" / "in <month>".

@@ -100,10 +100,12 @@ Schedules = Annotated[
 ]
 Platforms = Annotated[list[str] | None, *_list_of()]
 StartKind = Annotated[
-    Literal["asap", "absolute", "day_month", "offset", "next_weekday"] | None,
-    *_choice("asap", "absolute", "day_month", "offset", "next_weekday"),
+    Literal["asap", "absolute", "day_month", "offset", "next_weekday", "month"] | None,
+    *_choice("asap", "absolute", "day_month", "offset", "next_weekday", "month"),
 ]
-OffsetUnit = Annotated[Literal["days", "weeks"] | None, *_choice("days", "weeks")]
+OffsetUnit = Annotated[
+    Literal["days", "weeks", "months"] | None, *_choice("days", "weeks", "months")
+]
 Weekday = Annotated[
     Literal["mon", "tue", "wed", "thu", "fri", "sat", "sun"] | None,
     *_choice("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
@@ -177,9 +179,11 @@ class ExtractionOutput(BaseModel):
         description="YYYY-MM-DD, only for start_kind 'absolute' (a full date WITH year)." + _NS,
     )
     start_day: Number = Field(None, description="Day of month, for start_kind 'day_month'." + _NN)
-    start_month: Number = Field(None, description="Month 1-12, for start_kind 'day_month'." + _NN)
+    start_month: Number = Field(
+        None, description="Month 1-12, for start_kind 'day_month' or 'month'." + _NN
+    )
     start_offset_amount: Number = Field(
-        None, description="Number of days or weeks from now, for start_kind 'offset'." + _NN
+        None, description="Number of days, weeks or months from now, for start_kind 'offset'." + _NN
     )
     start_offset_unit: OffsetUnit = Field(
         None, description="Unit of the offset, for start_kind 'offset'." + _NS

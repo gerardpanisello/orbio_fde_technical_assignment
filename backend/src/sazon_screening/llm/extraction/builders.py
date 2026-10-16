@@ -24,6 +24,7 @@ from sazon_screening.engine import (
     LicenseProposal,
     LocationAnswer,
     LocationProposal,
+    Month,
     NameProposal,
     NextWeekday,
     Offset,
@@ -159,6 +160,8 @@ def _start_expression(out: ExtractionOutput) -> StartDateExpr:
             return Offset(amount=out.start_offset_amount, unit=out.start_offset_unit)
         case "next_weekday" if out.start_weekday is not None:
             return NextWeekday(weekday=Weekday(out.start_weekday))
+        case "month" if out.start_month is not None:
+            return Month(month=out.start_month)
     raise DropError("invalid_date")
 
 

@@ -23,6 +23,7 @@ from sazon_screening.engine import (
     LicenseProposal,
     LocationAnswer,
     LocationProposal,
+    Month,
     NameProposal,
     NextWeekday,
     NoSlotFits,
@@ -221,6 +222,11 @@ class TestStartDate:
             ),
             ({"start_kind": "asap"}, Asap()),
             (
+                {"start_kind": "offset", "start_offset_amount": 1, "start_offset_unit": "months"},
+                Offset(amount=1, unit="months"),
+            ),
+            ({"start_kind": "month", "start_month": 11}, Month(month=11)),
+            (
                 {"start_kind": "day_month", "start_day": 3, "start_month": 11},
                 DayMonth(day=3, month=11),
             ),
@@ -252,6 +258,7 @@ class TestStartDate:
             {"start_kind": "day_month", "start_day": 3},
             {"start_kind": "offset", "start_offset_amount": 2},
             {"start_kind": "next_weekday"},
+            {"start_kind": "month"},
         ],
     )
     def test_incomplete_expression_is_dropped_and_unclear_when_pending(
