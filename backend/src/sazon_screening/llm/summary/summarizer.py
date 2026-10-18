@@ -20,6 +20,7 @@ from sazon_screening.llm.client.retry import Clock, Deadline, SystemClock, call_
 from sazon_screening.llm.delimit import tagged
 from sazon_screening.llm.extraction.extractor import TranscriptEntry
 from sazon_screening.llm.phrasing.catalog import MessageCatalog, SummaryLabels
+from sazon_screening.llm.phrasing.language import dominant_language
 from sazon_screening.llm.prompts import PromptRegistry
 from sazon_screening.llm.settings import LLMConfig
 from sazon_screening.llm.summary.facts import SummaryFact, render_facts
@@ -133,6 +134,14 @@ class Summarizer:
         telemetry = telemetry_from(request, result, self._config.prices)
         log_call(telemetry, conversation_id=conversation_id)
         narrative = result.value if result.ok else None
+        if narrative is not None and not _in_language(narrative, language):
+            # Spec 017: a Catalan (or English) chat must not leak into a Spanish note.
+            logger.warning(
+                "summary narrative not in %s, facts only (conversation %s)",
+                language.value,
+                conversation_id,
+            )
+            narrative = None
         return self._summary(record, language, facts, narrative), [telemetry]
 
     def _request(
@@ -196,3 +205,9 @@ def render_markdown(
             lines.append(f"**{words.facts['observations']}:**")
             lines += [f"- {note}" for note in narrative.observations]
     return "\n".join(lines)
+
+
+def _in_language(narrative: NarrativeOutput, language: Language) -> bool:
+    """The recruiter's language, or too short to tell (never rejects mixed or short text)."""
+    text = " ".join([narrative.overview, narrative.sentiment_reason, *narrative.observations])
+    return dominant_language(text) in (None, language)

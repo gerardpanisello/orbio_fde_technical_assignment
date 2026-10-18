@@ -428,3 +428,20 @@ def test_the_phrasing_prompt_writes_natural_catalan() -> None:
     text = PromptRegistry().load(prompt_id).text
     for cue in ("ca-ES (Catalan)", '"encantat"', "carnet de conduir", "l'entrevista", "la teva"):
         assert cue in text, cue
+
+
+@pytest.mark.ac("017:AC-3")
+def test_a_greeting_without_the_automated_disclosure_falls_back(catalog: MessageCatalog) -> None:
+    """Live check 017: the model once dropped "(automàtica)" from the Catalan greeting."""
+    act = action(AskField(field=FieldName.consent), register=Register.ca_ES)
+    greeting = ctx(is_greeting=True)
+    url = greeting.privacy_url
+    dropped = (
+        "Hola! Sóc la Sofi, l'assistent virtual de Grupo Sazón. Et faré unes preguntes "
+        f"ràpides. Política de privacitat: {url} Acceptes que fem servir les teves dades?"
+    )
+    kept = dropped.replace("virtual de", "virtual (automàtica) de")
+    assert Violation.missing_disclosure in check(dropped, act, greeting, LengthCaps())
+    assert check(kept, act, greeting, LengthCaps()) == []
+    no_link = kept.replace(url, "")
+    assert Violation.missing_disclosure in check(no_link, act, greeting, LengthCaps())

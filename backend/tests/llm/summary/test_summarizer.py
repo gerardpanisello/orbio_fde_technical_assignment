@@ -160,3 +160,26 @@ async def test_the_recruiter_can_ask_for_english(
 )
 def test_summary_due(previous: Status | None, new: Status, due: bool) -> None:
     assert summary_due(previous, new) is due
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("017:AC-6")
+async def test_a_narrative_in_the_candidates_catalan_is_not_shown_to_a_spanish_recruiter(
+    summarizer: Summarizer, scripted: FakeLLMClient, engine_config: EngineConfig
+) -> None:
+    """Live check 017: the model once wrote the note in Catalan; the facts stand alone."""
+    catalan = NarrativeOutput(
+        overview="La candidata va completar la conversa de forma ràpida i ordenada, "
+        "responent totes les preguntes i confirmant les seves dades.",
+        sentiment="positive",
+        sentiment_reason="Respon amb col·laboració i confirma les dades sense objeccions.",
+        observations=["Indica que estudia i només busca mitja jornada de tardes."],
+    )
+    scripted.push(Role.summary, Scripted(value=catalan))
+    record = record_for(Status.interview_scheduled, engine_config)
+    summary, _ = await summarizer.summarise(record, TRANSCRIPT, Language.es)
+    assert summary.generated_by == "template"
+    assert summary.narrative is None
+    scripted.push(Role.summary, Scripted(value=NARRATIVE))
+    spanish, _ = await summarizer.summarise(record, TRANSCRIPT, Language.es)
+    assert spanish.narrative == NARRATIVE

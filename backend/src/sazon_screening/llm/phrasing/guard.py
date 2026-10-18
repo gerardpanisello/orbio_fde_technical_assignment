@@ -28,6 +28,7 @@ class Violation(StrEnum):
     masculine_form = "masculine_form"
     name_overused = "name_overused"
     pending_question = "pending_question"  # a follow-up must end with the pending ask (008)
+    missing_disclosure = "missing_disclosure"  # greeting without "automated" or the privacy link
 
 
 # A currency sign or name, or an amount per hour: what an invented pay promise looks like.
@@ -56,6 +57,7 @@ _MASCULINE_SELF = re.compile(
     re.IGNORECASE,
 )
 _GENDERED = (Language.es, Language.ca)  # Sofi's own words show her gender
+_AUTOMATED = re.compile(r"autom[aáà]tic|automated", re.IGNORECASE)
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 _EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿⭐⭕]")
 _MAX_EMOJI = 1
@@ -85,6 +87,8 @@ def check(
         found.append(Violation.emoji)
     if not ctx.is_greeting and _GREETING.search(text):
         found.append(Violation.repeated_greeting)
+    if ctx.is_greeting and not _discloses(text, ctx.privacy_url):
+        found.append(Violation.missing_disclosure)
     if action.language in _GENDERED and _MASCULINE_SELF.search(text):
         found.append(Violation.masculine_form)
     if _name_overused(text, ctx, reference):
@@ -126,6 +130,13 @@ def check_follow_up(
     if language_check and dominant_language(text) not in (None, language):
         found.append(Violation.wrong_language)
     return found
+
+
+def _discloses(text: str, privacy_url: str) -> bool:
+    """The first message says Sofi is automated ("automática", "automàtica", "automated")
+    and links the privacy notice; a rewording that drops either is not sent (spec 017 live
+    check: "(automàtica)" went missing once)."""
+    return bool(_AUTOMATED.search(text)) and privacy_url in text
 
 
 def _squash(text: str) -> str:

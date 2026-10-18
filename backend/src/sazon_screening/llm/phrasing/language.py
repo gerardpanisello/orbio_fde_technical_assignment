@@ -32,6 +32,8 @@ els amb per perquè dels pel pels però com ja molt més està estàs són què 
 quins quines quan quant quants quanta hi ho tens pots vols vulguis gràcies perfecte
 acord teu teva teus teves et em ens aquest aquesta aquests això doncs també fins
 vull puc tinc ets sóc és bé avui demà mentre llavors entesos
+seu seva seus seves només dades totes tots sense feina nosaltres vosaltres cal hem heu
+pot poden tenir fer res algú gaire mitja als vaig conversa
 """
 # Words Catalan shares with Spanish or English: no evidence either way against Catalan.
 _SHARED_WITH_CATALAN = "el la les de del que en un una no es te me mi al sí hola tu a i on has"
