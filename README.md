@@ -4,7 +4,7 @@ A messaging agent that screens delivery-driver applicants for **Grupo Sazón** (
 
 | The client's problem | What this does about it |
 |---|---|
-| 60% of candidates don't answer the screening call | Screening happens **asynchronously in a chat**: the candidate answers when it suits them, in Spanish (Spain or Mexico) or English. Qualified candidates **book their interview inside the chat**. |
+| 60% of candidates don't answer the screening call | Screening happens **asynchronously in a chat**: the candidate answers when it suits them, in Spanish (Spain or Mexico), English or Catalan. Qualified candidates **book their interview inside the chat**. |
 | 80% of recruiter time goes to unqualified candidates | **Knock-out questions come first** (age, license, service area). Every qualified candidate gets an **explainable priority score**, so recruiters call the best ones first. |
 | 13 recruiters × 15 calls/day | Measured cost **≈ $0.017 per screening** (≈ $17/week at 1,000 applications). |
 
@@ -35,6 +35,8 @@ Open http://localhost:5173:
 **Fake vs real LLM.** By default everything runs **offline** (`LLM_MODE=fake`): rule-based extraction and template replies, no API key needed. To use Claude, copy `.env.example` to `.env`, set `LLM_MODE=anthropic` and `ANTHROPIC_API_KEY`, then start the API with `uv run --env-file ../.env uvicorn sazon_screening.api.app:create_app --factory --port 8000`.
 
 **Real WhatsApp (optional).** Off by default. With a free Meta developer app and its test number, Sofi answers on WhatsApp from your own phone: reply buttons, lists, voice-note handling, reminders through WhatsApp, and a WhatsApp badge and filter in the dashboard. Step-by-step for Windows (Meta app, tunnel, webhook, troubleshooting): [docs/whatsapp-setup.md](docs/whatsapp-setup.md).
+
+**Catalan.** Candidates can start in Català (start screen) or switch mid-chat; Sofi answers in natural Catalan (`config/messages/ca-ES.yaml`, Catalan FAQ answers), while recruiter summaries stay in Spanish or English and show "Idioma del candidato: Catalán". Spec: [017](docs/specs/017-catalan/spec.md).
 
 **Voice (optional).** **"Hablar con Sofi"** on the home page (`/voz`) runs the same screening by voice: the browser turns speech into text (Web Speech API: **Chrome or Edge**, with a microphone; other browsers get a link to the chat), each turn goes through the normal conversation API, and Sofi's reply is shown and spoken. Tap the mic and talk (it stops at a pause) or hold it while talking; it reopens by itself after Sofi speaks. Her voice is the browser's own by default; for a natural voice, set `ELEVENLABS_API_KEY` in `.env` and start the API with `--env-file` (the key stays on the server, `POST /api/voice/tts` proxies ElevenLabs; voice ids per language in `config/voice.yaml`, or `ELEVENLABS_VOICE_ID`). If ElevenLabs fails, the page falls back to the browser voice; the header shows which one is in use. Spec: [013](docs/specs/013-voice-agent/spec.md).
 

@@ -25,9 +25,18 @@ Grupo Sazón has locations in Barcelona; many candidates there prefer Catalan. A
 - AC-6 Existing ES/EN tests stay green; record schema regenerated if the enum changes.
 
 ## 4. Tasks
-- [ ] T1 vocab/engine (`ca`, `ca-ES` register rules), schema, record schema regen.
-- [ ] T2 Extraction prompt + mapping; fake rules basic Catalan.
-- [ ] T3 `ca-ES.yaml` templates, labels, dates, guard stopwords; phrasing prompt note.
-- [ ] T4 FAQ `ca` answers + variants.
-- [ ] T5 Frontend: start screen "Català", labels, voice `ca-ES`; regenerate types.
-- [ ] T6 Live check (AC-1, AC-2, AC-4), README/ROADMAP, sample conversation in Catalan.
+- [x] T1 vocab/engine (`ca`, `ca-ES` register rules), schema, record schema regen.
+- [x] T2 Extraction prompt + mapping; fake rules basic Catalan.
+- [x] T3 `ca-ES.yaml` templates, labels, dates, guard stopwords; phrasing prompt note.
+- [x] T4 FAQ `ca` answers + variants.
+- [x] T5 Frontend: start screen "Català", labels, voice `ca-ES`; regenerate types.
+- [x] T6 Live check (AC-1, AC-2, AC-4), README/ROADMAP, sample conversation in Catalan.
+
+## 5. Notes (implementation, 2026-10-19)
+- **Prompts:** extraction.v7 (`language` may be `ca`; Catalan-only cues such as "tinc", "visc", "vull", "sóc", "d'acord", "amb", "els", "a la tarda", "l'any"; a Catalan place name never makes a message Catalan), phrasing.v7 (ca-ES register row, feminine forms, apostrophes, no Spanish calques), summary.v2 (the note is always in the recruiter's language). `llm.yaml` 2026-10-19.2. Wire schema still all-required/non-nullable.
+- **Fallbacks:** Catalan is optional only for display data (place names, slot labels: fall back to es). Every message template and every FAQ answer (`ca-ES`, required) is Catalan; the last-resort message too.
+- **Guard:** the language check counts Catalan-only words against Spanish-only words, so a Catalan reply is never rejected as Spanish and a Spanish reply in a Catalan chat falls back to the Catalan template. "Hi ha" is not the English "Hi"; "Bona tarda!" is a repeated greeting; "encantat" is a masculine form. Every greeting must keep "automated" and the privacy link (the live run once dropped "(automàtica)").
+- **Summary:** recruiter summaries are es/en only (`lang=ca` is 422). The live run once wrote the note in Catalan, so a narrative in another language is now dropped (facts only) and logged.
+- **Voice (FR-7), verified 2026-10-19 on elevenlabs.io/docs/models:** Catalan (ca) is listed for `eleven_v4`, `eleven_v4_turbo`, `eleven_v3` and `eleven_v3_conversational`; it is not listed for `eleven_multilingual_v2` (our default) or `eleven_flash_v2_5`. `config/voice.yaml` therefore has `models: {ca: eleven_v4_turbo}` (the docs' recommendation for real-time agents); Catalan uses the `es` voice id unless a `ca` one is set. Not tested against the real API (no ElevenLabs key in this environment); without a key the browser speaks with a `ca-ES` voice, and recognition runs in `ca-ES`.
+- **Live check (real model):** a full Catalan screening (with "quant es cobra?" answered from `pay-es` in Catalan) and an ES→CA switch both reached `interview_scheduled` with every Sofi message in Catalan; sample: [l-catalan](../../sample-conversations/l-catalan.md).
+- **Known limits:** interview places (`interview_slots.yaml`) are single-language client data, so a Catalan confirmation shows "(dirección ficticia)" from the demo address (English chats already did); a per-language place would fix it. FAQ analytics label a Catalan question with the entry's Spanish question. Analytics have no per-language breakdown yet, so there is nothing to extend for FR-8 beyond the drawer label.

@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, time
 from pathlib import Path
@@ -63,6 +64,7 @@ class Scenario:
     language: Language = Language.es
     country_hint: Country | None = None
     silent_at_end: bool = False  # goes quiet after the script: the silence timer fires
+    slots_city: str = "madrid"  # whose interview agenda (and place) the candidate is offered
 
 
 SCENARIOS = [
@@ -265,6 +267,31 @@ SCENARIOS = [
             "tengo 21 años",
         ],
         silent_at_end=True,
+    ),
+    Scenario(
+        "l-catalan",
+        "Catalan speaker, Barcelona",
+        "Spec 017: a Barcelona candidate answers in Catalan, asks about pay mid-flow "
+        '("quant es cobra?") and books an interview; every message from Sofi is Catalan '
+        "and the recruiter summary stays in Spanish.",
+        [
+            "Sí, d'acord, endavant",
+            "Em dic Laia Puig Serra",
+            "tinc 24 anys",
+            "vaig amb moto, una scooter de 125",
+            "sí, tinc el carnet A2",
+            "visc a Gràcia, Barcelona",
+            "mitja jornada, que també estudio",
+            "millor a la tarda",
+            "un any a Glovo",
+            "quant es cobra?",
+            "a partir del mes que ve",
+            "sí, tot correcte",
+            Tap(1, "la primera"),
+        ],
+        language=Language.ca,
+        country_hint=Country.ES,
+        slots_city="barcelona",
     ),
 ]
 
@@ -499,13 +526,15 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 
 async def generate(
-    agent: ScreeningAgent, args: argparse.Namespace, context_slots: list[SlotDisplay]
+    agent: ScreeningAgent, args: argparse.Namespace, slots_for: Callable[[str], list[SlotDisplay]]
 ) -> list[Run]:
     chosen = [s for s in SCENARIOS if not args.only or s.key in args.only]
     runs: list[Run] = []
     args.out.mkdir(parents=True, exist_ok=True)
     for scenario in chosen:
-        context = TurnContextIn(country_hint=scenario.country_hint, slots=context_slots)
+        context = TurnContextIn(
+            country_hint=scenario.country_hint, slots=slots_for(scenario.slots_city)
+        )
         run = await play(agent, scenario, context)
         path = args.out / f"{scenario.key}.md"
         path.write_text(render(run), encoding="utf-8", newline="\n")
@@ -527,12 +556,15 @@ def main(argv: list[str] | None = None) -> int:
         environ["LLM_MODE"] = args.mode
     settings = load_settings(environ)
     agent = build_agent(settings)
-    # Spec 010: the Madrid agenda from the YAML, nothing booked (no database here).
+    # Spec 010: the city's agenda from the YAML, nothing booked (no database here).
     provider = load_slot_provider(settings.config_dir, agent.engine_config.service_areas)
-    slots = provider.preview("madrid", datetime.combine(TODAY, time(9), tzinfo=UTC))
+
+    def slots_for(city: str) -> list[SlotDisplay]:
+        return provider.preview(city, datetime.combine(TODAY, time(9), tzinfo=UTC))
+
     if hasattr(sys.stdout, "reconfigure"):  # Windows consoles may not speak UTF-8
         sys.stdout.reconfigure(errors="replace")
-    anyio.run(generate, agent, args, slots)
+    anyio.run(generate, agent, args, slots_for)
     return 0
 
 
