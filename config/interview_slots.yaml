@@ -24,7 +24,7 @@
 #     (an address, or "Videollamada" and a link) and any override of the defaults.
 #
 # ALL ADDRESSES BELOW ARE FICTIONAL (demo data).
-version: "2026-10-19.1"
+version: "2026-10-16.1"
 max_slots: 3
 
 reminder:
@@ -44,7 +44,7 @@ cities:
     times: ["10:00", "12:00", "17:00"]
     capacity: 3
   barcelona:
-    place: "Oficina Grupo Sazón Barcelona, Carrer de la Prova 45"  # fictional; no Spanish note: Catalan chats show it
+    place: "Oficina Grupo Sazón Barcelona, Carrer de la Prova 45 (dirección ficticia)"
   valencia:
     place: "Restaurante Sazón Ruzafa, Calle Imaginaria 8 (dirección ficticia)"
   sevilla:
