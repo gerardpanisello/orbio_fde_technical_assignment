@@ -2,7 +2,7 @@
 #
 # Same rules as es-ES.yaml (read its header). Also holds the English recruiter
 # summary labels.
-version: "2026-10-16.1"
+version: "2026-10-19.1"
 register: en
 
 labels:
@@ -177,5 +177,5 @@ summary:
     start_date_proximity: Early start
     zone_demand: Demand in their area
     unknown: Unknown
-  languages: {es: Spanish, en: English}
+  languages: {es: Spanish, en: English, ca: Catalan}
   sentiments: {positive: Positive, neutral: Neutral, negative: Negative}

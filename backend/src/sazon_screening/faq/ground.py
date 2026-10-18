@@ -63,7 +63,7 @@ def answer_question(
         hits=hits,
         outcome="answered",
         entry_ids=[entry.id for entry in kept],
-        entry_question=kept[0].first_question(language),
+        entry_question=kept[0].first_question(language.fallback),  # ca: recruiters read es
     )
     approved = tuple(entry.answer_for(register) for entry in kept)
     return trace, FaqGrounding(answer=approved[0], approved=approved)

@@ -1,0 +1,120 @@
+# Sofi's messages for candidates who write in Catalan (ca-ES register, spec 017).
+#
+# These templates are what candidates read when the AI is down or slow, and in the
+# offline demo. The AI phrasing uses them as the reference for content and tone.
+# Ops can edit the wording here without touching code; the agent checks this file at
+# startup and refuses to start if a message is missing.
+#
+# Rules every message must keep (checked by tests):
+#   - tu, warm and short: at most 300 characters (600 for the recap and the slot list);
+#   - exactly one question when we ask something, none when we close;
+#   - at most one emoji, and none when we tell someone they cannot continue;
+#   - never mention pay, conditions or promises;
+#   - only the {placeholders} already used in each message.
+# Natural Catalan, not Spanish with accents: carnet de conduir, cotxe, barri, feina,
+# caps de setmana. Sofi is a woman: "encantada", "contenta", "automàtica".
+# Catalan has no gender-neutral "tu": "el teu cognom" but "la teva edat". So the re-ask
+# messages name the detail in brackets ("la teva resposta (edat)") instead of "el teu {field}".
+# Recruiter summaries stay in Spanish or English, so this file has no `summary` section.
+version: "2026-10-19.1"
+register: ca-ES
+
+labels:
+  yes_no: {"yes": "Sí", "no": "No"}
+  vehicle_type: {motorbike: Moto, car: Cotxe, bicycle: Bici, e_bike: Bici elèctrica, none: Sense vehicle}
+  availability: {full_time: Jornada completa, part_time: Mitja jornada, weekends: Caps de setmana}
+  schedule: {morning: Matins, afternoon: Tardes, evening: Nits, flexible: Flexible}
+  fields:
+    consent: consentiment
+    full_name: nom complet
+    age: edat
+    vehicle_type: vehicle
+    has_license: carnet de conduir
+    location: ciutat i barri
+    zone: barri
+    availability: disponibilitat
+    schedule: horari
+    experience: experiència
+    start_date: data d'inici
+    slot: hora de l'entrevista
+  adult: {"yes": Major d'edat, "no": Menor d'edat}
+  birth_year: any de naixement
+  year: any
+  years: anys
+  less_than_a_year: menys d'1 any
+  no_experience: Sense experiència
+  weekdays: {mon: dilluns, tue: dimarts, wed: dimecres, thu: dijous, fri: divendres, sat: dissabte, sun: diumenge}
+  today: avui
+  tomorrow: demà
+  # Catalan elides "de" before a vowel ("d'octubre"), so each month carries its own
+  # preposition and from_month has none: "a partir de novembre", "a partir d'octubre".
+  months: {1: de gener, 2: de febrer, 3: de març, 4: d'abril, 5: de maig, 6: de juny, 7: de juliol, 8: d'agost, 9: de setembre, 10: d'octubre, 11: de novembre, 12: de desembre}
+  from_month: "a partir {month}"
+
+templates:
+  greeting: "Hola! Sóc la Sofi, l'assistent virtual (automàtica) de Grupo Sazón 👋 Et faré unes preguntes ràpides (3 min) sobre la feina de repartidor/a. Política de privacitat: {privacy_url} Acceptes que fem servir les teves dades per a aquest procés?"
+  ask_field:
+    consent: "Abans de continuar, acceptes que fem servir les teves dades per a aquest procés?"
+    full_name: "Com et dius? Nom i cognom, si us plau."
+    age: "Quants anys tens?"
+    vehicle_type: "Amb quin vehicle repartiries?"
+    has_license: "Tens el carnet de conduir en vigor?"
+    location: "A quina ciutat i barri t'agradaria repartir?"
+    zone: "I a quin barri o zona de la ciutat?"
+    availability: "Quina disponibilitat tens: jornada completa, mitja jornada o caps de setmana?"
+    schedule: "En quin horari prefereixes repartir: matins, tardes, nits o flexible?"
+    experience: "Quanta experiència tens com a repartidor/a? (per exemple: «2 anys a Glovo»)"
+    start_date: "Quan podries començar?"
+    slot: "Quina hora et va millor per a l'entrevista?"
+  reask_field:
+    unclear: "Perdona, no t'he entès bé. Em tornes a dir la teva resposta ({field})?{options}"
+    not_recognised: "No reconec aquest lloc. Me'l tornes a escriure ({field})?{options}"
+    surname_missing: "Gràcies! Em dius també el teu cognom?"
+    invalid_characters: "Només necessito lletres. M'escrius el teu nom i cognom?"
+    implausible_value: "Em sembla que s'ha colat un error. Em confirmes la teva resposta ({field})?{options}"
+    negative_value: "Aquest número no em quadra. Em tornes a dir la teva resposta ({field})?"
+    missing_years: "Quant de temps fa que reparteixes? (per exemple: «2 anys» o «6 mesos»)"
+    empty_selection: "Tria almenys una opció, si us plau. Quina et va bé ({field})?{options}"
+    consent_required: "Per continuar necessito un sí o un no. Acceptes que fem servir les teves dades per a aquest procés?"
+    slot_not_offered: "Aquesta hora no és entre les opcions. Quina et va bé?{options}"
+    extraction_failed: "Perdona, no ho he acabat d'entendre. Em repeteixes la teva resposta ({field})?{options}"
+    value_rejected: "D'acord, ho corregeixo. Llavors, quina és la resposta correcta ({field})?"
+  confirm_ambiguous: "Hi ha diversos llocs amb aquest nom. Quin és el teu?\n{options}"
+  confirm_value: "Només per confirmar: tens {years} anys d'experiència?"
+  ask_correction_field: "Cap problema. Quina dada vols canviar?"
+  show_recap: "Repassem les teves dades:\n{recap}\nÉs tot correcte?"
+  offer_slots: "Tot a punt! Aquestes són les hores disponibles per a la teva entrevista:\n{slots}\nQuina et va millor?"
+  offer_slots_taken: "Vaja, aquesta hora s'acaba d'ocupar. Aquestes són les hores que queden lliures:\n{slots}\nQuina et va millor?"
+  offer_slots_reschedule: "Cap problema, la canviem. Mentre tries, la teva entrevista actual es manté. Aquestes són les hores disponibles:\n{slots}\nQuina et va millor?"
+  confirm_interview: "Perfecte! La teva entrevista queda programada: {slot}, a {place}. Ens veiem!"
+  keep_interview: "D'acord, mantenim la teva entrevista de {slot}. Si més endavant la vols canviar, escriu-me."
+  close_interview_cancelled: "Fet, he cancel·lat la teva entrevista. Si més endavant vols una altra data, escriu-me i et busco un forat."
+  close_disqualified:
+    under_age: "Gràcies pel teu interès. Per a aquesta feina cal ser major d'edat, així que de moment no podem continuar amb la teva sol·licitud. Et desitgem molta sort."
+    no_license: "Gràcies pel teu interès. Per a aquesta feina cal tenir el carnet de conduir en vigor, així que de moment no podem continuar. Si te'l treus, escriu-nos i reprenem la teva sol·licitud."
+    out_of_area: "Gràcies pel teu interès. De moment no repartim a la teva zona, així que no podem continuar amb la teva sol·licitud. Si et mudes a una zona on siguem, ens pots tornar a escriure. Et desitgem molta sort."
+  close_needs_review: "Gràcies. Una persona de l'equip revisarà la teva sol·licitud i t'escriurà per aquí."
+  close_opted_out: "Entesos. He esborrat les teves dades i no t'escriurem més. Molta sort!"
+  close_qualified_unscheduled: "Gràcies! Has completat la sol·licitud. L'equip t'escriurà per programar l'entrevista."
+  close_waitlisted: "Ara mateix tenim l'equip complet a {zone}. Et deixem en llista d'espera i t'escriurem tan aviat com hi hagi lloc."
+  handoff_to_human: "És clar, una persona de l'equip t'escriurà per aquí."
+  closed_ack: "Gràcies pel teu missatge. L'equip ja té la teva sol·licitud."
+  prefaces:
+    redirect_off_topic: "Només et puc ajudar amb la teva sol·licitud de repartidor/a."
+    redirect_abuse: "Mantinguem el respecte, si us plau."
+    ack_correction: "Fet, he actualitzat: {fields}."
+    faq_holding: "Bona pregunta: ho consulto amb l'equip."
+  media_not_supported: "Encara no puc escoltar àudios ni veure arxius. M'ho escrius?"
+  follow_up:
+    nudge: "Continuem quan vulguis. {progress} {question}"
+    last_call: "Últim recordatori: si encara t'interessa la feina, respon quan puguis i continuem. {progress} {question}"
+    progress_many: "Només ens falten {remaining} preguntes."
+    progress_one: "Només ens falta una pregunta."
+    progress_done: "Ja gairebé hi som."
+    recap_question: "És tot correcte al resum de les teves dades?"
+  interview:
+    reminder: "Et recordo la teva entrevista demà a les {time} a {place}. Si no pots venir, digues-m'ho i la canviem."
+    calendar_link: "Afegeix-la al teu calendari: {url}"
+    calendar_summary: "Entrevista Grupo Sazón — repartidor/a"
+    calendar_description: "Entrevista per a la feina de repartidor/a a Grupo Sazón. Si no hi pots anar, escriu a la Sofi pel xat i la canviem."
+    place_to_confirm: "un lloc que et confirmarem per aquí"

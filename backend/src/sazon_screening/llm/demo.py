@@ -52,6 +52,7 @@ def demo_slots(today: date) -> list[SlotDisplay]:
             id=f"slot-{n}",
             labels={
                 Language.es: f"{_ES_DAYS[day.weekday()]} {day:%d/%m}, {hour}",
+                Language.ca: f"{_CA_DAYS[day.weekday()]} {day:%d/%m}, {hour}",
                 Language.en: f"{day:%a %d %b}, {hour}",
             },
         )
@@ -60,6 +61,7 @@ def demo_slots(today: date) -> list[SlotDisplay]:
 
 
 _ES_DAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_CA_DAYS = ("dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte", "diumenge")
 
 
 class Demo:
@@ -190,7 +192,9 @@ class Demo:
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Chat with Sofi in the terminal.")
     parser.add_argument("--mode", choices=["fake", "anthropic"], help="overrides LLM_MODE")
-    parser.add_argument("--lang", choices=["es", "en"], default="es", help="greeting language")
+    parser.add_argument(
+        "--lang", choices=["es", "en", "ca"], default="es", help="greeting language"
+    )
     parser.add_argument("--country", choices=["ES", "MX"], help="phone country (register)")
     parser.add_argument("--today", type=date.fromisoformat, default=date.today())
     parser.add_argument("--debug", action="store_true", help="show extraction and engine action")

@@ -111,7 +111,7 @@ Weekday = Annotated[
     *_choice("mon", "tue", "wed", "thu", "fri", "sat", "sun"),
 ]
 CorrectionTarget = Annotated[FieldKey | None, *_choice(*FieldKey.__args__)]
-Language = Annotated[Literal["es", "en"] | None, *_choice("es", "en")]
+Language = Annotated[Literal["es", "en", "ca"] | None, *_choice("es", "en", "ca")]
 
 _NS = ' Use "" if not stated.'
 _NN = " Use -1 if not stated."

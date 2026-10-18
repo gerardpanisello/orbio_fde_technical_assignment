@@ -15,6 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from sazon_screening.config import load_yaml_model
 from sazon_screening.vocab import Country, Language, Register
 
+# A Catalan candidate must never get a Spanish answer (spec 017), so ca-ES is required.
+REQUIRED_ANSWERS = (Register.es_ES, Register.en, Register.ca_ES)
+
 FAQ_DIR = "faq"
 FAQ_FILE = "faq.yaml"
 
@@ -53,7 +56,7 @@ class FaqEntry(_Frozen):
     @field_validator("answer")
     @classmethod
     def _required_registers(cls, answer: dict[Register, str]) -> dict[Register, str]:
-        missing = [r.value for r in (Register.es_ES, Register.en) if not answer.get(r, "").strip()]
+        missing = [r.value for r in REQUIRED_ANSWERS if not answer.get(r, "").strip()]
         if missing:
             raise ValueError(f"missing answer for {', '.join(missing)} (es-MX is optional)")
         asking = [r.value for r, text in answer.items() if "?" in text or "¿" in text]
@@ -62,7 +65,8 @@ class FaqEntry(_Frozen):
         return answer
 
     def answer_for(self, register: Register) -> str:
-        """es-MX falls back to es-ES: Mexico only overrides where the wording differs."""
+        """es-MX falls back to es-ES: Mexico only overrides where the wording differs.
+        ca-ES never falls back: it is required, so a Catalan answer is never Spanish."""
         return self.answer.get(register) or self.answer[Register.es_ES]
 
     def first_question(self, language: Language) -> str:

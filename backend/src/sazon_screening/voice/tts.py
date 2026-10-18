@@ -120,7 +120,8 @@ class TTSService:
         if self._client is None:
             raise TTSUnavailable("ELEVENLABS_API_KEY is not set")
         voice = self.voice_id(language, register)
-        key = (voice, self.config.model_id, text)
+        model = self.config.model_for(language)
+        key = (voice, model, text)
         cached = self._cache.get(key)
         if cached is not None:
             self._cache.move_to_end(key)
@@ -129,7 +130,7 @@ class TTSService:
         audio = await self._client.synthesize(
             text=text,
             voice_id=voice,
-            model_id=self.config.model_id,
+            model_id=model,
             output_format=self.config.output_format,
             voice_settings=self.config.voice_settings,
         )

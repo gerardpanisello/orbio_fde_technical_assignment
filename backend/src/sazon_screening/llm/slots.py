@@ -18,4 +18,5 @@ class SlotDisplay(BaseModel):
     place: str | None = None
 
     def label(self, language: Language) -> str:
-        return self.labels.get(language) or self.id
+        """Catalan without its own label reads the Spanish one ("dimarts" vs "martes")."""
+        return self.labels.get(language) or self.labels.get(language.fallback) or self.id

@@ -33,6 +33,7 @@ follow_up_template:
 list_button:
   es: "Ver opciones"
   en: "See options"
+  ca: "Veure opcions"
 
 country_prefixes:
   "34": ES

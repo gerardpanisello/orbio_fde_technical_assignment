@@ -11,10 +11,15 @@
 #   - model_id: an ElevenLabs text-to-speech model that speaks Spanish and English.
 #     eleven_multilingual_v2 (default: natural, reads numbers and dates well) or
 #     eleven_flash_v2_5 (lower latency, cheaper, weaker number reading).
+#   - models: a model per language, for a language model_id does not speak. Catalan:
+#     eleven_multilingual_v2 and eleven_flash_v2_5 do not list it; eleven_v4_turbo
+#     (real-time, recommended for agents) and eleven_v3 do (ElevenLabs models page,
+#     checked 2026-10-19, spec 017). Remove the line to read Catalan with model_id.
 #   - output_format: mp3 only (the endpoint answers audio/mpeg). mp3_44100_64 is plenty
 #     for a voice and halves the download of the 128 kbps default.
 #   - voices: voice id per language, and optionally per country register ("es-MX").
-#     The most specific key wins: "es-MX" -> "es". Copy an id from ElevenLabs
+#     The most specific key wins: "es-MX" -> "es". Catalan ("ca") is optional and
+#     uses the "es" voice when missing. Copy an id from ElevenLabs
 #     (My Voices -> ... -> Copy voice ID). ELEVENLABS_VOICE_ID overrides them all.
 #     NOTE: the default below is "Sarah" (warm, multilingual), an ElevenLabs Default
 #     voice. ElevenLabs only offers Default voices to accounts created before March 2026
@@ -26,9 +31,11 @@
 #   - cache_entries: identical (voice, model, text) audio is kept in memory, so repeated
 #     prompts ("¿Tienes carné?") cost credits once.
 #   - timeout_seconds: after this the page uses the browser voice instead.
-version: "2026-10-13.1"
+version: "2026-10-19.1"
 
 model_id: eleven_multilingual_v2
+models:
+  ca: eleven_v4_turbo
 output_format: mp3_44100_64
 
 voices:

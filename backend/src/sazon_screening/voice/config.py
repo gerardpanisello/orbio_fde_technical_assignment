@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from sazon_screening.config import load_yaml_model
-from sazon_screening.vocab import Country, Language
+from sazon_screening.vocab import CORE_LANGUAGES, Country, Language
 
 VOICE_FILE = "voice.yaml"
 
@@ -26,8 +26,11 @@ class VoiceSettings(_Frozen):
 class VoiceConfig(_Frozen):
     version: str
     model_id: str = Field(min_length=1)
+    # Per-language model, for a language `model_id` does not speak (spec 017: Catalan
+    # needs eleven_v4_turbo or eleven_v3; eleven_multilingual_v2 has no Catalan).
+    models: dict[Language, str] = {}
     output_format: str = "mp3_44100_64"
-    # "es", "en", and optionally "es-MX"-style keys for a country register.
+    # "es", "en", and optionally "ca" and "es-MX"-style keys for a country register.
     voices: dict[str, str]
     voice_settings: VoiceSettings = VoiceSettings()
     max_text_chars: int = Field(1200, gt=0)
@@ -45,18 +48,22 @@ class VoiceConfig(_Frozen):
     @field_validator("voices")
     @classmethod
     def _every_language(cls, voices: dict[str, str]) -> dict[str, str]:
-        missing = [lang.value for lang in Language if not voices.get(lang.value, "").strip()]
+        missing = [lang.value for lang in CORE_LANGUAGES if not voices.get(lang.value, "").strip()]
         if missing:
             raise ValueError(f"needs a voice id for {', '.join(missing)}")
         return voices
 
     def voice_for(self, language: Language, register: Country | None = None) -> str:
-        """The most specific voice: "es-MX" first, then "es"."""
+        """The most specific voice: "es-MX" first, then "es" (Catalan: "ca", then "es")."""
         if register is not None:
             specific = self.voices.get(f"{language.value}-{register.value}", "").strip()
             if specific:
                 return specific
-        return self.voices[language.value].strip()
+        own = self.voices.get(language.value, "").strip()
+        return own or self.voices[language.fallback.value].strip()
+
+    def model_for(self, language: Language) -> str:
+        return self.models.get(language, "").strip() or self.model_id
 
 
 def load_voice_config(config_dir: Path) -> VoiceConfig:

@@ -12,7 +12,7 @@
 #   - never mention pay, conditions or promises;
 #   - only the {placeholders} already used in each message.
 # Spain vocabulary: carné de conducir, coche, barrio.
-version: "2026-10-16.1"
+version: "2026-10-19.1"
 register: es-ES
 
 labels:
@@ -187,5 +187,5 @@ summary:
     start_date_proximity: Incorporación próxima
     zone_demand: Demanda en su zona
     unknown: Desconocido
-  languages: {es: Español, en: Inglés}
+  languages: {es: Español, en: Inglés, ca: Catalán}
   sentiments: {positive: Positivo, neutral: Neutro, negative: Negativo}

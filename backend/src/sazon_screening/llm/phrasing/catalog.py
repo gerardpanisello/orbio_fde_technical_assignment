@@ -4,7 +4,7 @@
 in fake mode), plus the labels for enum values and the recruiter-summary labels. Ops
 can fix a word without a deploy, so the loader is strict and fails at startup, naming
 the file and the key, rather than mid-conversation:
-- all three registers present;
+- every register present (es-ES, es-MX, en, ca-ES);
 - every engine action and preface has a template (checked against the engine's unions,
   so a new action type breaks the load, not a conversation);
 - every field ask, re-ask reason and disqualification reason is covered;
@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from sazon_screening.config import ConfigError, load_yaml_model
 from sazon_screening.engine import Preface, PrimaryAction
 from sazon_screening.vocab import (
+    RECRUITER_LANGUAGES,
     Availability,
     Bucket,
     DisqualificationReason,
@@ -289,13 +290,17 @@ class MessageCatalog(_Strict):
 
     def for_language(self, language: Language) -> RegisterCatalog:
         """Where only the language is known (extraction labels, summaries): es means es-ES."""
-        return self.registers[Register.en if language is Language.en else Register.es_ES]
+        by_language = {Language.en: Register.en, Language.ca: Register.ca_ES}
+        return self.registers[by_language.get(language, Register.es_ES)]
 
     def label(self, group: str, value: str, language: Language) -> str:
         """An `EnumLabel` for the extractor's pending view."""
         return self.for_language(language).labels.group(group).get(value, value)
 
     def summary_labels(self, language: Language) -> SummaryLabels:
+        """Recruiter labels: es or en only (spec 017 FR-6); callers never pass ca."""
+        if language not in RECRUITER_LANGUAGES:
+            raise ValueError(f"summaries are written in es or en, not {language.value}")
         labels = self.for_language(language).summary
         assert labels is not None, "checked by load_catalog"
         return labels

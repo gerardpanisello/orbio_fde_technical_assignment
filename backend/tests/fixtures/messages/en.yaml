@@ -211,6 +211,7 @@ summary:
   languages:
     es: Language es
     en: Language en
+    ca: Language ca
   sentiments:
     positive: positive
     neutral: neutral

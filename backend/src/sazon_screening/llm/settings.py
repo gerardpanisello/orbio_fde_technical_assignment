@@ -24,7 +24,7 @@ from pydantic import (
 from sazon_screening.config import load_yaml_model
 from sazon_screening.llm.client.base import Effort, Role
 from sazon_screening.llm.client.retry import RetryPolicy
-from sazon_screening.vocab import Language
+from sazon_screening.vocab import RECRUITER_LANGUAGES, Language
 
 LLM_CONFIG_FILE = "llm.yaml"
 # The client-editable config/ lives at the repo root, not inside the package: ops edit
@@ -112,6 +112,13 @@ class LLMConfig(_Frozen):
     summary_default_language: Language = Language.es
     summary_max_transcript_chars: int = Field(8000, gt=0)
     prices: dict[str, ModelPrice]
+
+    @field_validator("summary_default_language")
+    @classmethod
+    def _recruiter_language(cls, language: Language) -> Language:
+        if language not in RECRUITER_LANGUAGES:
+            raise ValueError("summaries are written in es or en (spec 017 FR-6)")
+        return language
 
     @field_validator("roles")
     @classmethod

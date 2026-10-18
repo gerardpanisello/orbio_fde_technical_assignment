@@ -25,6 +25,7 @@ from sazon_screening.scheduling.config import AvailabilitySettings
 from sazon_screening.vocab import Language, Weekday
 
 _ES_DAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_CA_DAYS = ("dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte", "diumenge")
 _SLOT_ID = re.compile(r"^(?P<city>[a-z0-9-]+):(?P<day>\d{4}-\d{2}-\d{2})T(?P<time>\d{2}:\d{2})$")
 _WEEKDAYS = list(Weekday)
 
@@ -120,6 +121,7 @@ def display(slot: SlotTime, place: str | None = None) -> SlotDisplay:
         id=slot.id,
         labels={
             Language.es: f"{_ES_DAYS[day.weekday()]} {day:%d/%m}, {slot.time}",
+            Language.ca: f"{_CA_DAYS[day.weekday()]} {day:%d/%m}, {slot.time}",
             Language.en: f"{day:%a %d %b}, {slot.time}",
         },
         place=place,

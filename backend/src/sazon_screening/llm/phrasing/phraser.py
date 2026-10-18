@@ -36,6 +36,7 @@ logger = logging.getLogger("sazon_screening.llm")
 LAST_RESORT = {
     Language.es: "Perdona, he tenido un problema técnico. Una persona del equipo te escribirá.",
     Language.en: "Sorry, I had a technical problem. Someone from the team will write to you.",
+    Language.ca: "Perdona, he tingut un problema tècnic. Una persona de l'equip t'escriurà.",
 }
 
 

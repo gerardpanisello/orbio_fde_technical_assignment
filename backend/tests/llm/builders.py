@@ -72,10 +72,20 @@ def asking(field: FieldName) -> PendingView:
 
 SLOTS = {
     "s1": SlotDisplay(
-        id="s1", labels={Language.es: "martes 14/10, 10:00", Language.en: "Tue 14 Oct, 10am"}
+        id="s1",
+        labels={
+            Language.es: "martes 14/10, 10:00",
+            Language.en: "Tue 14 Oct, 10am",
+            Language.ca: "dimarts 14/10, 10:00",
+        },
     ),
     "s2": SlotDisplay(
-        id="s2", labels={Language.es: "miércoles 15/10, 16:00", Language.en: "Wed 15 Oct, 4pm"}
+        id="s2",
+        labels={
+            Language.es: "miércoles 15/10, 16:00",
+            Language.en: "Wed 15 Oct, 4pm",
+            Language.ca: "dimecres 15/10, 16:00",
+        },
     ),
 }
 PRIVACY_URL = "https://example.com/privacy"
@@ -90,7 +100,7 @@ def ctx(**fields: Any) -> RenderContext:
 
 
 def language_of(register: Register) -> Language:
-    return Language.en if register is Register.en else Language.es
+    return register.language
 
 
 def action(

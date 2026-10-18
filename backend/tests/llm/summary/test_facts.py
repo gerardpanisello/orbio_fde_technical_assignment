@@ -6,7 +6,7 @@ from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord, Month, Offset
 from sazon_screening.llm.phrasing.catalog import MessageCatalog
 from sazon_screening.llm.summary.facts import SummaryFact, render_facts
-from sazon_screening.vocab import Flag, Language, Stage, Status
+from sazon_screening.vocab import RECRUITER_LANGUAGES, Flag, Language, Stage, Status
 from tests.engine.builders import Convo, name, start_date
 
 TERMINAL = [
@@ -27,7 +27,7 @@ def by_key(facts: list[SummaryFact]) -> dict[str, str]:
 
 
 @pytest.mark.ac("003:AC-17")
-@pytest.mark.parametrize("language", list(Language))
+@pytest.mark.parametrize("language", RECRUITER_LANGUAGES)
 @pytest.mark.parametrize("status", TERMINAL)
 def test_facts_equal_the_record(
     catalog: MessageCatalog, engine_config: EngineConfig, status: Status, language: Language
@@ -83,7 +83,7 @@ def test_field_values_use_the_recruiter_language(
 
 
 @pytest.mark.ac("003:AC-18")
-@pytest.mark.parametrize("language", list(Language))
+@pytest.mark.parametrize("language", RECRUITER_LANGUAGES)
 def test_opted_out_has_no_personal_data(
     catalog: MessageCatalog, engine_config: EngineConfig, language: Language
 ) -> None:

@@ -6,7 +6,8 @@
 # What you can change:
 #   - Add or remove a city or a zone. A city with no `zones` means the whole city is served.
 #     Any place NOT listed here is "out of area" (a real place we do not serve).
-#   - `names`: how the place is shown to candidates, in Spanish (es) and English (en).
+#   - `names`: how the place is shown to candidates, in Spanish (es) and English (en);
+#     Catalan (ca) is optional and only needed where it differs (else the es name is used).
 #   - `aliases`: other ways candidates write the place (abbreviations, neighbourhoods).
 #     Accents, upper/lower case and small typos are matched automatically.
 #   - `version`: bump it on every change. It is stamped on every candidate record.
@@ -18,13 +19,14 @@
 #   - Inside one city, two zones cannot share a name or alias. The same name in two
 #     cities is fine (e.g. "Centro"); the agent asks the candidate which one they mean.
 
-version: "2026-10-11.2"
+version: "2026-10-19.1"
 
 countries:
   - id: ES
     names:
       es: España
       en: Spain
+      ca: Espanya
     cities:
 
       - id: madrid
@@ -73,6 +75,7 @@ countries:
         names:
           es: Valencia
           en: Valencia
+          ca: València
         aliases: [València, VLC]
         timezone: Europe/Madrid
         zones:
@@ -114,6 +117,7 @@ countries:
         names:
           es: Málaga
           en: Malaga
+          ca: Màlaga
         aliases: [AGP]
         timezone: Europe/Madrid
         zones:
@@ -132,12 +136,14 @@ countries:
     names:
       es: México
       en: Mexico
+      ca: Mèxic
     cities:
 
       - id: cdmx
         names:
           es: Ciudad de México
           en: Mexico City
+          ca: Ciutat de Mèxic
         aliases: [CDMX, DF, D.F., Distrito Federal, Ciudad de Mexico]
         timezone: America/Mexico_City
         zones:

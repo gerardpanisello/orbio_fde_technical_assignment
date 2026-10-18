@@ -3,7 +3,7 @@
 Deterministic and offline: the same question always gets the same entries and scores,
 so tests need no model and a recruiter can see why an answer was chosen. Both sides
 are normalised the same way: no accents or case, a few stopwords out, and a light
-es/en stemmer that strips plural and verb endings ("pagan", "paga", "pago" -> "pag").
+es/en/ca stemmer that strips plural and verb endings ("pagan", "paga", "pago" -> "pag").
 """
 
 import math
@@ -21,7 +21,8 @@ _STOP_WORDS = (
     "a al como con de del el en es la las lo los me mi mis o para por que se si su te "
     "tu un una uno y yo hay hace cual cuales "
     "an and are as at be can do does for how i in is it my of on or the to what "
-    "when which who will with you your there like s t"
+    "when which who will with you your there like s t "
+    "els les amb i per pel dels l d em et hi ho quin quina quins quines"  # Catalan (017)
 )
 _STOP = frozenset(_STOP_WORDS.split())
 # Longer endings first, so "iendo" goes before "o". Only stripped if a 3-letter stem is left.

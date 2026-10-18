@@ -90,12 +90,34 @@ class Weekday(StrEnum):
 class Language(StrEnum):
     es = "es"
     en = "en"
+    ca = "ca"  # Catalan (spec 017): a candidate language, offered in Spain only
+
+    @property
+    def fallback(self) -> "Language":
+        """The language whose config text stands in when this one has none.
+
+        Catalan falls back to Spanish only for display data that reads the same in both
+        (place names, a slot label); never for a message Sofi says (spec 017 FR-3).
+        """
+        return Language.es if self is Language.ca else self
+
+
+# Languages every piece of client config must provide (place names, FAQ answers...).
+# Catalan is optional there: it falls back to Spanish for display data (`fallback`).
+CORE_LANGUAGES = (Language.es, Language.en)
+# Recruiters read the dashboard and the summaries in these (spec 017 FR-6).
+RECRUITER_LANGUAGES = CORE_LANGUAGES
 
 
 class Register(StrEnum):
     es_ES = "es-ES"  # noqa: N815 - mirrors the BCP 47 tag
     es_MX = "es-MX"  # noqa: N815 - mirrors the BCP 47 tag
     en = "en"
+    ca_ES = "ca-ES"  # noqa: N815 - mirrors the BCP 47 tag
+
+    @property
+    def language(self) -> Language:
+        return {Register.en: Language.en, Register.ca_ES: Language.ca}.get(self, Language.es)
 
 
 class Country(StrEnum):

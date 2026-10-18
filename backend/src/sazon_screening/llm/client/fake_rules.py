@@ -1,6 +1,7 @@
 """A keyword-and-regex "extractor" for the offline demo (FR-24a, plan §3.4).
 
-Good enough to run a whole screening in Spanish or English without an API key, and
+Good enough to run a whole screening in Spanish, English or (basic) Catalan without an
+API key, and
 deliberately simple: it reads the pending ask to know what a short answer means, and
 it knows the place and platform names from config. It is not a model and does not try
 to be one; the live evals (012) measure the real extractor.
@@ -33,19 +34,25 @@ def _has(text: str, *options: str) -> bool:
 
 YES = phrases(
     "si|vale|claro|acepto|ok|okay|de acuerdo|correcto|perfecto|dale|yes|yeah|sure|agree|correct"
+    "|d'acord|accepto|perfecte|entesos|es clar|correcte"  # Catalan (spec 017)
 )
-NO = phrases("no|nope|no acepto|incorrecto")
+NO = phrases("no|nope|no acepto|incorrecto|no ho accepto")
 THUMBS_UP = "\N{THUMBS UP SIGN}"
-OPT_OUT = phrases("no me interesa|no me escribas|dame de baja|baja|stop|unsubscribe|not interested")
-HUMAN = phrases("humano|una persona|hablar con alguien|human|a person|real person")
+OPT_OUT = phrases(
+    "no me interesa|no me escribas|dame de baja|baja|stop|unsubscribe|not interested"
+    "|no m'interessa|no m'escriguis|dona'm de baixa|baixa"
+)
+HUMAN = phrases("humano|una persona|hablar con alguien|human|a person|real person|parlar amb algu")
 # Spec 010: move or cancel the interview (or ask for one again).
 RESCHEDULE = phrases(
     "cambiar la entrevista|cambiar la cita|cambiarla|mover la entrevista|moverla|otro dia"
     "|otra hora|otras horas|reprogramar|nueva cita|quiero una cita|dame cita|agendar"
     "|reschedule|move my interview|another time|another day|new appointment"
+    "|canviar l'entrevista|canviar-la|una altra hora|un altre dia"
 )
 CANCEL = phrases(
     "cancela|cancelar|cancelame|anula|anular|cancel my interview|cancel the interview|cancel it"
+    "|cancel·la|cancel·lar|anul·la"
 )
 INJECTION = phrases(
     "ignore previous instructions|ignore your instructions|ignora las instrucciones"
@@ -59,53 +66,70 @@ JOB_WORDS = phrases(
     "sueldo|pago|paga|cobra|salario|uniforme|contrato|horario|turnos|propina|seguro|gasolina"
     "|moto propia|vehiculo propio|pay|salary|uniform|contract|schedule|shifts|tips|insurance"
     "|own bike|own vehicle|own motorbike"
+    "|sou|es paga|contracte|horari|torns|propines|asseguranca"  # Catalan (spec 017)
 )
 VEHICLES = [  # order matters: "bici electrica" before "bici"
     ("e_bike", phrases("bici electrica|bicicleta electrica|e-bike|ebike")),
-    ("none", phrases("sin vehiculo|no tengo vehiculo|a pie|no vehicle|on foot")),
+    ("none", phrases("sin vehiculo|no tengo vehiculo|a pie|no vehicle|on foot|no tinc vehicle")),
     ("motorbike", phrases("moto|motocicleta|scooter|motorbike|motorcycle")),
-    ("car", phrases("coche|carro|auto|car")),
+    ("car", phrases("coche|carro|auto|car|cotxe")),
     ("bicycle", phrases("bici|bicicleta|bike|bicycle")),
 ]
 AVAILABILITY = [
     ("full_time", phrases("jornada completa|tiempo completo|full time|full-time")),
-    ("part_time", phrases("media jornada|medio tiempo|part time|part-time")),
-    ("weekends", phrases("fines de semana|fin de semana|findes|weekends|weekend")),
+    ("part_time", phrases("media jornada|medio tiempo|part time|part-time|mitja jornada")),
+    ("weekends", phrases("fines de semana|fin de semana|findes|weekends|weekend|caps de setmana")),
 ]
 SCHEDULE = [
-    ("morning", phrases("mananas|manana|mornings|morning")),
-    ("afternoon", phrases("tardes|tarde|afternoons|afternoon")),
-    ("evening", phrases("noches|noche|evenings|evening|nights")),
-    ("flexible", phrases("flexible|cualquiera|me da igual|any time|anytime")),
+    ("morning", phrases("mananas|manana|mornings|morning|matins|al mati")),
+    ("afternoon", phrases("tardes|tarde|afternoons|afternoon|a la tarda")),
+    ("evening", phrases("noches|noche|evenings|evening|nights|nits|a la nit")),
+    ("flexible", phrases("flexible|cualquiera|me da igual|any time|anytime|m'es igual")),
 ]
 CORRECTIONS = [
-    ("location", phrases("zona|barrio|colonia|ciudad|ubicacion|area|location")),
-    ("availability", phrases("disponibilidad|availability")),
-    ("schedule", phrases("horario|schedule")),
+    ("location", phrases("zona|barrio|colonia|ciudad|ubicacion|area|location|barri|ciutat")),
+    ("availability", phrases("disponibilidad|availability|disponibilitat")),
+    ("schedule", phrases("horario|schedule|horari")),
     ("vehicle_type", phrases("vehiculo|vehicle")),
     ("experience", phrases("experiencia|experience")),
-    ("start_date", phrases("fecha|inicio|start")),
-    ("full_name", phrases("nombre|name")),
-    ("age", phrases("edad|age")),
+    ("start_date", phrases("fecha|inicio|start|data d'inici")),
+    ("full_name", phrases("nombre|name|nom")),
+    ("age", phrases("edad|age|edat")),
 ]
 _DAYS = "lunes martes miercoles jueves viernes sabado domingo"
 _EN_DAYS = "monday tuesday wednesday thursday friday saturday sunday"
+_CA_DAYS = "dilluns dimarts dimecres dijous divendres dissabte diumenge"
 _WEEKDAY_IDS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-WEEKDAYS = dict(zip(_DAYS.split() + _EN_DAYS.split(), _WEEKDAY_IDS * 2, strict=True))
+WEEKDAYS = dict(
+    zip(_DAYS.split() + _EN_DAYS.split() + _CA_DAYS.split(), _WEEKDAY_IDS * 3, strict=True)
+)
 _MONTHS = "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre"
+_CA_MONTHS = "gener febrer marc abril maig juny juliol agost setembre octubre novembre desembre"
 MONTHS = {name: number for number, name in enumerate(_MONTHS.split(), start=1)}
+MONTHS |= {name: number for number, name in enumerate(_CA_MONTHS.split(), start=1)}
 _EN_MONTHS = "january february march april may june july august september october november december"
 ALL_MONTHS = MONTHS | {name: number for number, name in enumerate(_EN_MONTHS.split(), start=1)}
-NEXT_MONTH = phrases("mes que viene|proximo mes|mes al que vamos a entrar|next month")
+ASAP = phrases("ya|cuanto antes|ahora mismo|asap|right away|now|hoy|com mes aviat|ja mateix|avui")
+NEXT_MONTH = phrases("mes que viene|proximo mes|mes al que vamos a entrar|next month|mes que ve")
 NUMBER_WORDS = {"un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5}
 NUMBER_WORDS |= {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
+NUMBER_WORDS |= {"dues": 2, "quatre": 4, "cinc": 5}
 ENGLISH = set(phrases("i|i'm|im|my|name|is|am|the|hi|hello|yes|have|years|old|want|can|start"))
 SPANISH = set(
     phrases("soy|me|llamo|tengo|anos|si|hola|quiero|de|en|el|la|con|y|puedo|empezar|vivo")
 )
+# Words only Catalan uses (folded). "i" and "les" are left out: English or Spanish use them.
+CATALAN = set(
+    phrases(
+        "soc|em|dic|tinc|anys|vull|visc|puc|comencar|amb|els|pero|tambe|molt|d'acord|accepto"
+        "|dema|setmana|cotxe|feina|matins|nits|tarda|meu|quan|quant|vaig|mai|perfecte|tot"
+        "|correcte"
+    )
+)
 _LETTERS = "A-Za-zÀ-ÿ'\N{RIGHT SINGLE QUOTATION MARK}" + r"\-"  # letters, apostrophes, hyphen
 NAME_INTRO = re.compile(
-    rf"(?:me llamo|mi nombre es|soy|my name is|i am|i'm)\s+([{_LETTERS}]+(?:\s+[{_LETTERS}]+)+)",
+    rf"(?:me llamo|mi nombre es|soy|my name is|i am|i'm|em dic|el meu nom és|sóc)"
+    rf"\s+([{_LETTERS}]+(?:\s+[{_LETTERS}]+)+)",
     re.IGNORECASE,
 )
 ONLY_A_NAME = re.compile(rf"[{_LETTERS} ]{{2,60}}")
@@ -166,7 +190,7 @@ class RuleExtractor:
             out["full_name"] = text.strip()
 
     def _pick_option(self, folded: str, pending: PendingView, out: dict[str, Any]) -> None:
-        if _has(folded, "ninguna", "ninguno", "no puedo", "none", "none of them"):
+        if _has(folded, "ninguna", "ninguno", "no puedo", "none", "none of them", "no puc"):
             out["no_option_fits"] = True
             return
         number = re.search(r"\b(\d)\b", folded)
@@ -186,23 +210,26 @@ class RuleExtractor:
         self._numbers(folded, pending, out)
         out["vehicle_type"] = next((v for v, words in VEHICLES if _has(folded, *words)), None)
         if _has(folded, "carne", "carnet", "licencia", "license", "licence"):
-            out["has_license"] = not _has(folded, "no", "sin", "don't", "dont")
+            out["has_license"] = not _has(folded, "no", "sin", "don't", "dont", "sense")
         out["availability"] = [v for v, words in AVAILABILITY if _has(folded, *words)] or None
-        if pending.field is FieldName.schedule or _has(folded, "mananas", "tardes", "noches"):
+        schedule_words = ("mananas", "tardes", "noches", "matins", "nits")
+        if pending.field is FieldName.schedule or _has(folded, *schedule_words):
             out["schedule"] = [v for v, words in SCHEDULE if _has(folded, *words)] or None
         self._location(text, folded, pending, out)
         if platforms := [p for p in self._platforms if _has(folded, p)]:
             out["platforms"] = platforms
-        no_experience = _has(folded, "ninguna", "no tengo experiencia", "nunca", "no experience")
+        no_experience = _has(
+            folded, "ninguna", "no tengo experiencia", "nunca", "no experience", "no tinc", "mai"
+        )
         if pending.field is FieldName.experience and no_experience:
             out["no_experience"] = True
         self._start_date(folded, pending, out)
 
     def _numbers(self, folded: str, pending: PendingView, out: dict[str, Any]) -> None:
-        if _has(folded, "mayor de edad", "over 18", "adult"):
+        if _has(folded, "mayor de edad", "over 18", "adult", "major d'edat"):
             out["is_adult"] = True
         year = re.search(r"\b(19\d\d|20[0-2]\d)\b", folded)
-        if year and (pending.field is FieldName.age or _has(folded, "naci", "born")):
+        if year and (pending.field is FieldName.age or _has(folded, "naci", "born", "neixer")):
             out["birth_year"] = int(year.group(1))
             return
         number = re.search(r"\b(\d{1,2})\b", folded)
@@ -214,7 +241,9 @@ class RuleExtractor:
         )
         if about_experience or pending.field is FieldName.experience:
             out["experience_years"] = value
-        elif pending.field is FieldName.age or _has(folded, "anos", "years old", "tengo"):
+        elif pending.field is FieldName.age or _has(
+            folded, "anos", "years old", "tengo", "anys", "tinc"
+        ):
             out["age"] = value
 
     def _location(self, text: str, folded: str, pending: PendingView, out: dict[str, Any]) -> None:
@@ -230,8 +259,9 @@ class RuleExtractor:
     def _start_date(self, folded: str, pending: PendingView, out: dict[str, Any]) -> None:
         months = "|".join(MONTHS)
         amounts = "|".join(NUMBER_WORDS)
-        day_month = re.search(rf"\b(\d{{1,2}}) de ({months})\b", folded)
-        offset = re.search(rf"\b(?:en|in) (\d+|{amounts}) (semanas?|weeks?|dias?|days?)\b", folded)
+        day_month = re.search(rf"\b(\d{{1,2}}) (?:de |d')({months})\b", folded)
+        units = "semanas?|weeks?|dias?|days?|setmanes|dies"
+        offset = re.search(rf"\b(?:en|in|d'aqui a) (\d+|{amounts}) ({units})\b", folded)
         weekday = next((v for k, v in WEEKDAYS.items() if _has(folded, k)), None)
         asked = pending.field is FieldName.start_date
         if day_month:
@@ -239,28 +269,29 @@ class RuleExtractor:
             out.update(start_kind="day_month", start_day=int(day_month.group(1)), start_month=month)
         elif offset:
             amount = offset.group(1)
-            unit = "weeks" if offset.group(2).startswith(("sem", "week")) else "days"
+            unit = "weeks" if offset.group(2).startswith(("sem", "week", "setm")) else "days"
             count = int(amount) if amount.isdigit() else NUMBER_WORDS[amount]
             out.update(start_kind="offset", start_offset_amount=count, start_offset_unit=unit)
         elif _has(folded, *NEXT_MONTH):
             out.update(start_kind="offset", start_offset_amount=1, start_offset_unit="months")
-        elif named := re.search(rf"\b(?:en|in) ({'|'.join(ALL_MONTHS)})\b", folded):
+        elif named := re.search(rf"\b(?:en|in|al|partir de) ({'|'.join(ALL_MONTHS)})\b", folded):
             out.update(start_kind="month", start_month=ALL_MONTHS[named.group(1)])
         elif weekday:
             out.update(start_kind="next_weekday", start_weekday=weekday)
-        elif asked and _has(folded, "manana", "tomorrow"):
+        elif asked and _has(folded, "manana", "tomorrow", "dema"):
             out.update(start_kind="offset", start_offset_amount=1, start_offset_unit="days")
-        elif (asked or _has(folded, "empezar", "start")) and _has(
-            folded, "ya", "cuanto antes", "ahora mismo", "asap", "right away", "now", "hoy"
-        ):
+        elif (asked or _has(folded, "empezar", "start", "comencar")) and _has(folded, *ASAP):
             out["start_kind"] = "asap"
 
 
 def guess_language(folded: str) -> str | None:
-    """English vs Spanish by marker words; None for emoji, digits or a lone name."""
+    """English vs Spanish (vs Catalan) by marker words; None for emoji, digits or a name."""
     words = re.findall(r"[a-z']+", folded)
     english = sum(word in ENGLISH for word in words)
     spanish = sum(word in SPANISH for word in words)
+    catalan = sum(word in CATALAN for word in words)
+    if catalan and catalan >= max(english, spanish):  # "sí, d'acord": the Catalan word decides
+        return Language.ca.value
     if english > spanish:
         return Language.en.value
     if spanish > english:

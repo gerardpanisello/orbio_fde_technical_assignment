@@ -198,8 +198,11 @@ def register_for(
 
     The stored location beats the phone prefix: a Mexican number applying in Madrid is
     talked to in es-ES, because that is where the job (and the recruiter) is.
+    Catalan has one register, ca-ES, wherever the candidate is (spec 017 FR-1).
     """
     if language is Language.en:
         return Register.en
+    if language is Language.ca:
+        return Register.ca_ES
     country = country or country_hint or default_country
     return Register.es_MX if country is Country.MX else Register.es_ES

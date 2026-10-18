@@ -19,7 +19,7 @@ from pydantic import (
 )
 
 from sazon_screening.config.areas import AreaRef, IndexEntry, LocationIndex, normalise
-from sazon_screening.vocab import Availability, Country, Language, VehicleType
+from sazon_screening.vocab import CORE_LANGUAGES, Availability, Country, Language, VehicleType
 
 # Lowercase slug: stable, URL-safe IDs that the record and the dashboard can rely on.
 Slug = Annotated[str, StringConstraints(pattern=r"^[a-z0-9-]+$")]
@@ -30,7 +30,11 @@ class _Strict(BaseModel):
 
 
 class Area(_Strict):
-    """Anything a candidate can name: display names per language plus aliases."""
+    """Anything a candidate can name: display names per language plus aliases.
+
+    es and en are required. Catalan (spec 017) is optional: a place without a `ca` name
+    is shown with its Spanish one, so `names[language]` works for every language.
+    """
 
     names: dict[Language, str]
     aliases: list[str] = []
@@ -38,10 +42,10 @@ class Area(_Strict):
     @field_validator("names")
     @classmethod
     def _names_cover_every_language(cls, names: dict[Language, str]) -> dict[Language, str]:
-        missing = [lang.value for lang in Language if not names.get(lang)]
+        missing = [lang.value for lang in CORE_LANGUAGES if not names.get(lang)]
         if missing:
             raise ValueError(f"missing display name for language(s): {', '.join(missing)}")
-        return names
+        return {lang: names.get(lang) or names[lang.fallback] for lang in Language}
 
     def match_keys(self) -> set[str]:
         """Normalised names and aliases, i.e. what a candidate's text is compared to."""

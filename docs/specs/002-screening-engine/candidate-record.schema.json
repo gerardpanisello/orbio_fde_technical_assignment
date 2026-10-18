@@ -395,7 +395,8 @@
     "Language": {
       "enum": [
         "es",
-        "en"
+        "en",
+        "ca"
       ],
       "title": "Language",
       "type": "string"

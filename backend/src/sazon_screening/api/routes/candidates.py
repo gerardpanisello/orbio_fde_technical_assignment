@@ -9,7 +9,7 @@ import io
 from dataclasses import replace
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api import repo
@@ -32,7 +32,7 @@ from sazon_screening.api.service import Channel, ConversationNotFound
 from sazon_screening.api.staffing import load_staffing
 from sazon_screening.config import EngineConfig
 from sazon_screening.engine import CandidateRecord
-from sazon_screening.vocab import Bucket, Country, Language, Status
+from sazon_screening.vocab import RECRUITER_LANGUAGES, Bucket, Country, Language, Status
 
 router = APIRouter(prefix="/api/candidates", tags=["recruiter dashboard"])
 
@@ -152,7 +152,12 @@ async def get_candidate(
 async def get_summary(
     conversation_id: str, service: ServiceDep, lang: Language | None = None
 ) -> SummaryOut:
-    """FR-8: stored, or generated once and stored. 409 while the conversation is running."""
+    """FR-8: stored, or generated once and stored. 409 while the conversation is running.
+
+    Recruiters read summaries in es or en (spec 017 FR-6): `lang=ca` is a 422.
+    """
+    if lang is not None and lang not in RECRUITER_LANGUAGES:
+        raise HTTPException(status_code=422, detail="summaries are written in es or en")
     row = await service.summary(conversation_id, lang or service.default_summary_language)
     return SummaryOut.of(row)
 

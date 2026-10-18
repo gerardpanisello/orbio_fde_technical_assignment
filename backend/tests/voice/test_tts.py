@@ -212,3 +212,19 @@ def test_settings_read_elevenlabs_env() -> None:
     empty = load_app_settings({"ELEVENLABS_API_KEY": "  "})
     assert empty.elevenlabs_api_key is None
     assert empty.elevenlabs_voice_id is None
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("017:AC-1")
+async def test_catalan_uses_its_own_model_and_falls_back_to_the_spanish_voice() -> None:
+    """FR-7: eleven_multilingual_v2 has no Catalan, so `models.ca` picks one that has it."""
+    client = FakeTTSClient()
+    tts = TTSService(config(models={"ca": "eleven_v4_turbo"}), client)
+    await tts.speak("Quants anys tens?", Language.ca)
+    await tts.speak("¿Cuántos años tienes?", Language.es)
+    assert client.calls[0]["model_id"] == "eleven_v4_turbo"
+    assert client.calls[0]["voice_id"] == "voice-es"  # no "ca" voice: the Spanish one
+    assert client.calls[1]["model_id"] == "eleven_multilingual_v2"
+    shipped = load_voice_config(SHIPPED_CONFIG_DIR)
+    assert shipped.model_for(Language.ca) in {"eleven_v4_turbo", "eleven_v3"}
+    assert shipped.model_for(Language.es) == shipped.model_id

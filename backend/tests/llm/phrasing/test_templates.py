@@ -62,7 +62,7 @@ def test_no_license_close_leaves_the_door_open(catalog: MessageCatalog, register
     text = catalog.for_register(register).templates.close_disqualified[
         DisqualificationReason.no_license
     ]
-    assert any(word in text for word in ("escríbenos", "write to us"))
+    assert any(word in text for word in ("escríbenos", "write to us", "escriu-nos"))
 
 
 @pytest.mark.ac("003:AC-11")
@@ -128,7 +128,7 @@ def test_greeting(catalog: MessageCatalog, engine_config: EngineConfig, register
     act = action(AskField(field=FieldName.consent), register=register)
     text = render_template(act, ctx(is_greeting=True), catalog, engine_config)
     assert "Sofi" in text
-    assert any(word in text for word in ("automático", "automática", "automated"))
+    assert any(word in text for word in ("automático", "automática", "automated", "automàtica"))
     assert PRIVACY_URL in text
     assert text.count("?") == 1
     assert len(text) <= CAPS.default
@@ -227,7 +227,8 @@ def test_opt_out_close_confirms_the_data_is_deleted(
 ) -> None:
     """The engine purges the profile on opt-out, so the close says so (eval: laura-opt-out)."""
     text = catalog.for_register(register).templates.close_opted_out
-    assert re.search(r"(?:borrado|borré) tus datos|deleted your (?:details|data)", text), text
+    deleted = r"(?:borrado|borré) tus datos|deleted your (?:details|data)|esborrat les teves dades"
+    assert re.search(deleted, text), text
 
 
 @pytest.mark.parametrize("register", list(Register))
@@ -237,7 +238,14 @@ def test_out_of_area_close_makes_no_promise(catalog: MessageCatalog, register: R
         .templates.close_disqualified[DisqualificationReason.out_of_area]
         .lower()
     )
-    for promise in ("te avisaremos", "te escribiremos", "we'll let you know", "we will contact"):
+    for promise in (
+        "te avisaremos",
+        "te escribiremos",
+        "we'll let you know",
+        "we will contact",
+        "t'avisarem",
+        "t'escriurem",
+    ):
         assert promise not in text
 
 
