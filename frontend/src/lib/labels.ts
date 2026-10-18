@@ -128,7 +128,7 @@ export const ACTION: Record<ActionName, string> = {
   note: 'Nota',
 }
 
-export const LANGUAGE: Record<S['Language'], string> = { es: 'Español', en: 'Inglés' }
+export const LANGUAGE: Record<S['Language'], string> = { es: 'Español', en: 'Inglés', ca: 'Catalán' }
 export const COUNTRY: Record<S['Country'], string> = { ES: 'España', MX: 'México' }
 
 /** Platform ids from config/screening.yaml ("just_eat" -> "Just Eat"). */

@@ -116,3 +116,11 @@ describe('pickVoice', () => {
     expect(pickVoice([{ name: 'Anna', lang: 'de-DE' }], 'es-ES')).toBeNull()
   })
 })
+
+describe('speechLang in Catalan (spec 017)', () => {
+  it('recognises and speaks Catalan as ca-ES, whatever the country', () => {
+    expect(speechLang('ca', 'ES')).toBe('ca-ES')
+    expect(speechLang('ca', 'MX')).toBe('ca-ES')
+    expect(speechLang('ca', null)).toBe('ca-ES')
+  })
+})

@@ -24,6 +24,15 @@ const COPY = {
     error: 'We could not connect. Please try again.',
     demo: "Demo: the country simulates the candidate's phone prefix.",
   },
+  ca: {
+    title: 'Treballa de repartidor/a',
+    text: "Respon unes preguntes ràpides de la Sofi pel xat i programa l'entrevista en uns 3 minuts.",
+    language: 'Idioma',
+    phone: 'El teu telèfon',
+    start: 'Comença a xatejar amb la Sofi',
+    error: "No hem pogut connectar. Torna-ho a provar.",
+    demo: 'Demo: el país simula el prefix del número des del qual escriu el candidat. El català és per a Espanya.',
+  },
 }
 
 /** Spec 013: the same screen starts a voice conversation on /voz. */
@@ -37,6 +46,11 @@ const VOICE_COPY = {
     text: 'Talk to Sofi: she will ask a few quick questions and book your interview in about 3 minutes.',
     start: 'Start talking to Sofi',
     demo: 'You need a microphone and Chrome or Edge. The country simulates the phone prefix.',
+  },
+  ca: {
+    text: "Parla amb la Sofi: et farà unes preguntes ràpides i podràs programar l'entrevista en uns 3 minuts.",
+    start: 'Comença a parlar amb la Sofi',
+    demo: 'Necessites micròfon i Chrome o Edge. El català és per a Espanya.',
   },
 }
 
@@ -55,6 +69,11 @@ export function StartScreen({
   const [language, setLanguage] = useState<Language>('es')
   const [country, setCountry] = useState<Country>('ES')
   const t = mode === 'voice' ? { ...COPY[language], ...VOICE_COPY[language] } : COPY[language]
+  // Spec 017: Catalan is offered for Spain only, so it pins the phone prefix to +34.
+  const chooseLanguage = (value: Language) => {
+    setLanguage(value)
+    if (value === 'ca') setCountry('ES')
+  }
 
   return (
     <div className="flex h-full flex-col bg-white">
@@ -78,10 +97,11 @@ export function StartScreen({
           </legend>
           <Segmented
             value={language}
-            onChange={setLanguage}
+            onChange={chooseLanguage}
             options={[
               { value: 'es', label: 'Español' },
               { value: 'en', label: 'English' },
+              { value: 'ca', label: 'Català' },
             ]}
           />
         </fieldset>
@@ -95,7 +115,7 @@ export function StartScreen({
             onChange={setCountry}
             options={[
               { value: 'ES', label: '+34 España' },
-              { value: 'MX', label: '+52 México' },
+              { value: 'MX', label: '+52 México', disabled: language === 'ca' },
             ]}
           />
         </fieldset>
@@ -129,17 +149,21 @@ function Segmented<T extends string>({
 }: {
   value: T
   onChange: (value: T) => void
-  options: { value: T; label: string }[]
+  options: { value: T; label: string; disabled?: boolean }[]
 }) {
   return (
-    <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1">
+    <div
+      className="mt-2 grid gap-1 rounded-xl bg-stone-100 p-1"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           aria-pressed={value === option.value}
+          disabled={option.disabled}
           onClick={() => onChange(option.value)}
-          className={`rounded-lg py-2 text-sm font-medium transition ${
+          className={`rounded-lg py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
             value === option.value
               ? 'bg-white text-wa-ink shadow-sm'
               : 'text-wa-meta hover:text-wa-ink'

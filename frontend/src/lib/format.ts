@@ -1,7 +1,8 @@
-/** Date, number and duration formatting (es-ES for recruiters, es/en for the chat). */
+/** Date, number and duration formatting (es-ES for recruiters, es/en/ca for the chat). */
+import type { Language } from '../api/client'
 
-type Lang = 'es' | 'en'
-const LOCALE: Record<Lang, string> = { es: 'es-ES', en: 'en-GB' }
+type Lang = Language
+const LOCALE: Record<Lang, string> = { es: 'es-ES', en: 'en-GB', ca: 'ca-ES' }
 
 /**
  * Interview slots are ISO *local* date-times without a timezone ("2026-10-13T10:00"):
@@ -14,7 +15,7 @@ export function parseSlot(slot: string): Date | null {
   return new Date(y, mo - 1, d, h, mi)
 }
 
-/** "martes 13/10, 10:00" (es) or "Tuesday 13/10, 10:00" (en). */
+/** "martes 13/10, 10:00" (es), "Tuesday 13/10, 10:00" (en) or "dimarts 13/10, 10:00" (ca). */
 export function formatSlot(slot: string | null | undefined, lang: Lang = 'es'): string {
   if (!slot) return '—'
   const date = parseSlot(slot)

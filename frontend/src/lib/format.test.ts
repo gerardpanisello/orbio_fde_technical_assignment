@@ -4,6 +4,7 @@ describe('format', () => {
   it('formats an interview slot as weekday dd/mm, hh:mm without timezone shifts', () => {
     expect(formatSlot('2026-10-13T10:00')).toBe('martes 13/10, 10:00')
     expect(formatSlot('2026-10-13T17:00', 'en')).toBe('Tuesday 13/10, 17:00')
+    expect(formatSlot('2026-10-13T17:00', 'ca')).toBe('dimarts 13/10, 17:00')
     expect(formatSlot(null)).toBe('—')
   })
 

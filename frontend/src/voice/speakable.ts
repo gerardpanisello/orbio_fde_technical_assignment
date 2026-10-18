@@ -23,12 +23,17 @@ const MONTHS: Record<Language, string[]> = {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December',
   ],
+  ca: [
+    'gener', 'febrer', 'març', 'abril', 'maig', 'juny',
+    'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre',
+  ],
 }
 const WEEKDAYS: Record<Language, string[]> = {
   es: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
   en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  ca: ['diumenge', 'dilluns', 'dimarts', 'dimecres', 'dijous', 'divendres', 'dissabte'],
 }
-const WEEKDAY_WORDS = [...WEEKDAYS.es, ...WEEKDAYS.en, 'miercoles', 'sabado'].join('|')
+const WEEKDAY_WORDS = [...WEEKDAYS.es, ...WEEKDAYS.en, ...WEEKDAYS.ca, 'miercoles', 'sabado'].join('|')
 
 // Emojis, skin tones, flags, and the invisible joiners/selectors that glue them together.
 const EMOJI_RE =
@@ -39,12 +44,13 @@ const EMOJI_BEFORE_SENTENCE_RE = new RegExp(
 )
 const URL_RE = /\bhttps?:\/\/[^\s)]+/gi
 const PRIVACY_RE =
-  /(pol[ií]tica de privacidad|aviso de privacidad|privacy notice|privacy policy)\s*:?\s*https?:\/\/[^\s)]+/gi
+  /(pol[ií]tica de privacidad|aviso de privacidad|privacy notice|privacy policy|pol[ií]tica de privacitat)\s*:?\s*https?:\/\/[^\s)]+/gi
 
 /** The privacy link can't be read aloud: point to the screen instead. */
 function privacySentence(label: string, language: Language): string {
   const lower = label.toLowerCase()
   if (language === 'en') return `You'll find the ${lower} on your screen.`
+  if (language === 'ca') return `Pots llegir la ${lower} que veuràs a la pantalla.`
   const article = lower.startsWith('aviso') ? 'el' : 'la'
   return `Puedes leer ${article} ${lower} que verás en pantalla.`
 }
@@ -64,6 +70,7 @@ function spokenTime(hour: number, minute: number, language: Language): string {
   const mm = String(minute).padStart(2, '0')
   if (language === 'en') return `at ${hh}:${mm}`
   const clock = minute === 0 ? hh : `${hh}:${mm}`
+  if (language === 'ca') return `${hour === 1 ? 'a la' : 'a les'} ${clock}`
   return `${hour === 1 ? 'a la' : 'a las'} ${clock}`
 }
 
@@ -72,14 +79,20 @@ function validDate(year: number, month: number, day: number): Date | null {
   return date.getMonth() === month - 1 && date.getDate() === day ? date : null
 }
 
+/** Catalan elides "de" before a vowel: "19 d'octubre", "3 de novembre" (spec 017). */
+function ofMonth(monthName: string, language: Language): string {
+  return language === 'ca' && /^[aeiou]/i.test(monthName) ? `d'${monthName}` : `de ${monthName}`
+}
+
 /**
  * "lunes 19/10/2026" -> "lunes 19 de octubre"; "martes 13/10, 10:00" -> "martes 13 de
- * octubre, a las 10". The weekday is added when missing (only if the year is known) and
- * the year is spoken only when it isn't the current one.
+ * octubre, a las 10"; Catalan "dilluns 19/10" -> "dilluns 19 d'octubre". The weekday is
+ * added when missing (only if the year is known) and the year is spoken only when it
+ * isn't the current one.
  */
 function spellDates(text: string, language: Language, now: Date): string {
   const re = new RegExp(
-    `(?:\\b(${WEEKDAY_WORDS})\\s+)?\\b(\\d{1,2})/(\\d{1,2})(?:/(\\d{4}|\\d{2}))?\\b(?:,?\\s*(?:a las\\s+|at\\s+)?(\\d{1,2}):(\\d{2})\\b)?`,
+    `(?:\\b(${WEEKDAY_WORDS})\\s+)?\\b(\\d{1,2})/(\\d{1,2})(?:/(\\d{4}|\\d{2}))?\\b(?:,?\\s*(?:a las\\s+|a les\\s+|at\\s+)?(\\d{1,2}):(\\d{2})\\b)?`,
     'giu',
   )
   return text.replace(re, (match, weekday: string | undefined, d, m, y, hh, mi) => {
@@ -92,7 +105,7 @@ function spellDates(text: string, language: Language, now: Date): string {
     const name = weekday ?? (date ? WEEKDAYS[language][date.getDay()] : undefined)
     const monthName = MONTHS[language][month - 1]
     let spoken =
-      language === 'en' ? `${day} ${monthName}` : `${day} de ${monthName}`
+      language === 'en' ? `${day} ${monthName}` : `${day} ${ofMonth(monthName, language)}`
     if (year !== null && year !== now.getFullYear()) {
       spoken += language === 'en' ? ` ${year}` : ` de ${year}`
     }
@@ -115,7 +128,8 @@ function linesToSentences(text: string, language: Language): { text: string; num
       const option = /^(\d{1,2})[.)]\s+(.*)$/.exec(line)
       if (option) {
         numbered = true
-        return `${language === 'en' ? 'Option' : 'Opción'} ${option[1]}: ${option[2]}`
+        const word = { es: 'Opción', en: 'Option', ca: 'Opció' }[language]
+        return `${word} ${option[1]}: ${option[2]}`
       }
       return line.replace(/^[•·\-*–]\s+/, '')
     })
@@ -126,8 +140,8 @@ function linesToSentences(text: string, language: Language): { text: string; num
 function smallWords(text: string, language: Language): string {
   let out = text
     .replace(/[«»"“”]/g, '')
-    .replace(/\b(\d+)\s?min\b\.?/g, language === 'en' ? '$1 minutes' : '$1 minutos')
-  if (language === 'es') {
+    .replace(/\b(\d+)\s?min\b\.?/g, { es: '$1 minutos', en: '$1 minutes', ca: '$1 minuts' }[language])
+  if (language === 'es' || language === 'ca') {
     out = out
       .replace(/\b(\w+)or\/a\b/g, '$1or o $1ora') // repartidor/a -> repartidor o repartidora
       .replace(/\b(\w+)o\/a\b/g, '$1o o $1a') // interesado/a
@@ -162,19 +176,24 @@ export function spokenQuickReplies(
   if (labels.every((label) => text.includes(normalise(label)))) {
     // The options are already in the message (e.g. the interview slots): don't repeat them.
     if (!numbered) return ''
-    return language === 'en'
-      ? 'You can say the option number.'
-      : 'Puedes decir el número de la opción.'
+    return {
+      es: 'Puedes decir el número de la opción.',
+      en: 'You can say the option number.',
+      ca: "Pots dir el número de l'opció.",
+    }[language]
   }
   if (labels.length <= 3) {
-    return language === 'en'
-      ? `You can say: ${joinOr(labels, language)}.`
-      : `Puedes decir: ${joinOr(labels, language)}.`
+    const options = joinOr(labels, language)
+    return { es: `Puedes decir: ${options}.`, en: `You can say: ${options}.`, ca: `Pots dir: ${options}.` }[
+      language
+    ]
   }
   const sample = joinOr(labels.slice(0, 3), language)
-  return language === 'en'
-    ? `You can say, for example: ${sample}.`
-    : `Puedes decir, por ejemplo: ${sample}.`
+  return {
+    es: `Puedes decir, por ejemplo: ${sample}.`,
+    en: `You can say, for example: ${sample}.`,
+    ca: `Pots dir, per exemple: ${sample}.`,
+  }[language]
 }
 
 /** The text-to-speech version of one of Sofi's messages. */

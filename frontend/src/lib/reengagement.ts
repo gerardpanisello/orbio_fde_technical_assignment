@@ -1,5 +1,5 @@
 /** Re-engagement (spec 008): reminder labels, the next step and when the chat polls. */
-import type { CandidateDetail, Status } from '../api/client'
+import type { CandidateDetail, Language, Status } from '../api/client'
 
 type Reengagement = CandidateDetail['reengagement']
 type Next = NonNullable<Reengagement['next']>
@@ -7,8 +7,8 @@ type Next = NonNullable<Reengagement['next']>
 /**
  * "Recordatorio 1/3", or "Recordatorio 1" while the total is unknown (see `followUpTotal`).
  */
-export function followUpLabel(step: number, total: number | null = null, lang: 'es' | 'en' = 'es'): string {
-  const word = lang === 'en' ? 'Reminder' : 'Recordatorio'
+export function followUpLabel(step: number, total: number | null = null, lang: Language = 'es'): string {
+  const word = { es: 'Recordatorio', en: 'Reminder', ca: 'Recordatori' }[lang]
   return total && total >= step ? `${word} ${step}/${total}` : `${word} ${step}`
 }
 

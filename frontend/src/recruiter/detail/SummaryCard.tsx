@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
-import { ApiError, api, type CandidateDetail, type Language } from '../../api/client'
+import { ApiError, api, type CandidateDetail } from '../../api/client'
 import { keys } from '../../api/queries'
 import { Spinner } from '../../components/States'
 import { errorMessage } from '../../lib/errors'
@@ -17,7 +17,8 @@ const SENTIMENT = {
  * narrative by the model. ES/EN toggle loads (and the API stores) the other language.
  */
 export function SummaryCard({ detail }: { detail: CandidateDetail }) {
-  const [lang, setLang] = useState<Language>(detail.summary?.language ?? 'es')
+  // Spec 017 FR-6: recruiters read summaries in es or en, whatever the candidate spoke.
+  const [lang, setLang] = useState<'es' | 'en'>(detail.summary?.language === 'en' ? 'en' : 'es')
   const id = detail.candidate.id
   const finished = detail.candidate.status !== 'in_progress'
   const initial = detail.summary?.language === lang ? detail.summary : undefined

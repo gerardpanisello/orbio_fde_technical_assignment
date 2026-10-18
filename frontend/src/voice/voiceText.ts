@@ -98,4 +98,41 @@ export const VOICE_TEXT: Record<Language, VoiceText> = {
     openChat: 'Open the chat',
     back: 'Back to home',
   },
+  ca: {
+    phase: {
+      idle: 'El teu torn',
+      listening: "T'escolto…",
+      thinking: 'La Sofi està pensant…',
+      speaking: 'La Sofi està parlant…',
+      ended: 'Trucada acabada',
+    },
+    button: {
+      idle: 'Parla',
+      listening: 'Acaba de parlar',
+      thinking: 'Esperant la Sofi',
+      speaking: 'La Sofi està parlant',
+      ended: 'Trucada acabada',
+    },
+    hint: 'Toca i parla, o mantén premut mentre parles',
+    notHeard: "No t'he sentit, m'ho pots repetir?",
+    autoListen: 'Escolta quan la Sofi acabi',
+    engine: { checking: 'veu: …', elevenlabs: 'veu: ElevenLabs', browser: 'veu: navegador' },
+    transcript: 'Transcripció',
+    empty: 'La conversa apareixerà aquí.',
+    you: 'Tu',
+    typeInstead: 'Prefereixo escriure',
+    newCall: 'Nova conversa',
+    problem: {
+      denied:
+        "No tenim permís per fer servir el micròfon. Activa'l al cadenat de la barra d'adreces, o continua pel xat.",
+      'no-mic': 'No trobem cap micròfon. Connecta’n un o continua pel xat.',
+      network: 'El reconeixement de veu necessita connexió a internet. Torna-ho a provar o continua pel xat.',
+      language: 'El teu navegador no reconeix aquest idioma per veu. Continua pel xat.',
+    },
+    unsupportedTitle: 'El teu navegador no permet parlar amb la Sofi',
+    unsupportedText:
+      "El reconeixement de veu funciona a Chrome i Edge (ordinador o Android). Pots fer la mateixa entrevista pel xat.",
+    openChat: 'Obre el xat',
+    back: "Torna a l'inici",
+  },
 }

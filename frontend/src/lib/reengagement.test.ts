@@ -4,6 +4,7 @@ describe('followUpLabel', () => {
   it('shows n/N when the total is known, n alone otherwise', () => {
     expect(followUpLabel(1, 3)).toBe('Recordatorio 1/3')
     expect(followUpLabel(2)).toBe('Recordatorio 2')
+    expect(followUpLabel(1, 3, 'ca')).toBe('Recordatori 1/3')
     expect(followUpLabel(4, 3)).toBe('Recordatorio 4') // a stale total never reads "4/3"
     expect(followUpLabel(1, 3, 'en')).toBe('Reminder 1/3')
   })

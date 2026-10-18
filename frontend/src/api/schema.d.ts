@@ -133,6 +133,8 @@ export interface paths {
         /**
          * Get Summary
          * @description FR-8: stored, or generated once and stored. 409 while the conversation is running.
+         *
+         *     Recruiters read summaries in es or en (spec 017 FR-6): `lang=ca` is a 422.
          */
         get: operations["get_summary_api_candidates__conversation_id__summary_get"];
         put?: never;
@@ -967,7 +969,7 @@ export interface components {
          * Language
          * @enum {string}
          */
-        Language: "es" | "en";
+        Language: "es" | "en" | "ca";
         /** LocationValue */
         LocationValue: {
             /** Raw Text */

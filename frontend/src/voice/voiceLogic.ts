@@ -44,9 +44,10 @@ export function getRecognitionCtor(scope: object | undefined = globalThis): Reco
   return s.SpeechRecognition ?? s.webkitSpeechRecognition ?? null
 }
 
-/** BCP-47 tag for recognition and for the browser voice: es-ES, es-MX or en-US. */
+/** BCP-47 tag for recognition and for the browser voice: es-ES, es-MX, en-US or ca-ES. */
 export function speechLang(language: Language, country: Country | null | undefined): string {
   if (language === 'en') return 'en-US'
+  if (language === 'ca') return 'ca-ES' // spec 017: Catalan is Spain only
   return country === 'MX' ? 'es-MX' : 'es-ES'
 }
 

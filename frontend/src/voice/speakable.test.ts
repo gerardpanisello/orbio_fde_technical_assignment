@@ -107,3 +107,37 @@ describe('splitSentences', () => {
     expect(chunks.join(' ')).toBe(long)
   })
 })
+
+// Spec 017: Catalan (config/messages/ca-ES.yaml).
+const ca = { language: 'ca' as const, now: NOW }
+const GREETING_CA =
+  "Hola! Sóc la Sofi, l'assistent virtual (automàtica) de Grupo Sazón 👋 Et faré unes preguntes ràpides (3 min) sobre la feina de repartidor/a. Política de privacitat: https://gruposazon.example/privacidad Acceptes que fem servir les teves dades per a aquest procés?"
+
+describe('toSpeakable in Catalan', () => {
+  it('reads the Catalan greeting with Catalan helper sentences', () => {
+    expect(toSpeakable(GREETING_CA, { ...ca, quickReplies: ['Sí', 'No'] })).toBe(
+      "Hola! Sóc la Sofi, l'assistent virtual (automàtica) de Grupo Sazón. Et faré unes preguntes ràpides (3 minuts) sobre la feina de repartidor o repartidora. Pots llegir la política de privacitat que veuràs a la pantalla. Acceptes que fem servir les teves dades per a aquest procés? Pots dir: Sí o No.",
+    )
+  })
+
+  it('spells dates with the Catalan elision and "a les"', () => {
+    expect(toSpeakable("• Data d'inici: dilluns 19/10/2026", ca)).toBe("Data d'inici: dilluns 19 d'octubre.")
+    expect(toSpeakable('dimarts 3/11, 10:00', ca)).toBe('dimarts 3 de novembre, a les 10.')
+    expect(toSpeakable('dijous 1/4/2027 a les 13:30', ca)).toBe("dijous 1 d'abril de 2027, a les 13:30.")
+    expect(toSpeakable('19/8', ca)).toBe("19 d'agost.")
+  })
+
+  it('reads numbered slots as Catalan options', () => {
+    const text =
+      'Aquestes són les hores disponibles:\n1. dimarts 20/10, 10:00\n2. dimecres 21/10, 17:00\nQuina et va millor?'
+    expect(toSpeakable(text, { ...ca, quickReplies: ['dimarts 20/10, 10:00', 'dimecres 21/10, 17:00'] })).toBe(
+      "Aquestes són les hores disponibles: Opció 1: dimarts 20 d'octubre, a les 10. Opció 2: dimecres 21 d'octubre, a les 17. Quina et va millor? Pots dir el número de l'opció.",
+    )
+  })
+
+  it('offers Catalan quick replies', () => {
+    expect(spokenQuickReplies(['Moto', 'Cotxe', 'Bici', 'Bici elèctrica'], 'Amb quin vehicle?', 'ca', false)).toBe(
+      'Pots dir, per exemple: Moto, Cotxe o Bici.',
+    )
+  })
+})
