@@ -363,6 +363,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dev/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset
+         * @description FR-13b: a fresh start. Deletes every candidate (conversations, messages,
+         *     summaries, actions, bookings, do-not-contact, WhatsApp dedupe) and puts zone staffing
+         *     and interview availability back to their config seeds.
+         */
+        post: operations["reset_api_dev_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/dev/conversations/{conversation_id}/advance": {
         parameters: {
             query?: never;
@@ -1138,6 +1160,11 @@ export interface components {
             text: string;
             /** Quick Replies */
             quick_replies: components["schemas"]["QuickReplyOut"][];
+        };
+        /** ResetOut */
+        ResetOut: {
+            /** Deleted */
+            deleted: number;
         };
         /**
          * ReviewReason
@@ -2059,6 +2086,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_api_dev_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResetOut"];
                 };
             };
         };

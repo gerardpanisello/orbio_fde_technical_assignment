@@ -202,6 +202,18 @@ class ScreeningService:
         async with self._sessions.begin() as session:
             return await insert_seed(session, self._staffing_seed, self._clock())
 
+    async def reset_all(self) -> int:
+        """Dev-only fresh start (004 FR-13b): delete every candidate and everything
+        attached to them, and put zone staffing and interview availability back to their
+        config seeds, in one transaction. Returns how many conversations were removed."""
+        now = self._clock()
+        async with self._sessions.begin() as session:
+            removed = await repo.delete_everything(session)
+            if self._staffing_seed is not None:
+                await insert_seed(session, self._staffing_seed, now)
+            await self._slots.init_availability(session, now)
+        return removed
+
     async def init_interview_availability(self) -> list[str]:
         """Spec 010 FR-1: seed availability for configured cities without a row yet."""
         async with self._sessions.begin() as session:

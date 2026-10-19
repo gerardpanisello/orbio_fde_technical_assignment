@@ -16,6 +16,6 @@ def test_every_acceptance_criterion_has_a_test() -> None:
         for path in (BACKEND_DIR / "tests").rglob("test_*.py")
         for ac in AC_MARKER.findall(path.read_text(encoding="utf-8"))
     }
-    assert in_spec == {f"AC-{n}" for n in range(1, 11)}
+    assert in_spec == {f"AC-{n}" for n in range(1, 12)}
     assert not in_spec - marked, f"no test for {sorted(in_spec - marked)}"
     assert not marked - in_spec, f"markers for unknown ACs {sorted(marked - in_spec)}"

@@ -6,11 +6,19 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete, select
 
 from sazon_screening.api import repo
 from sazon_screening.api.app import create_app
 from sazon_screening.api.db import create_tables, make_engine, make_sessions
+from sazon_screening.api.models import (
+    InterviewAvailability,
+    InterviewBooking,
+    Message,
+    RecruiterAction,
+)
 from sazon_screening.api.seed import PERSONAS, seed
 from sazon_screening.api.service import ScreeningService
 from sazon_screening.api.settings import AppSettings
@@ -254,3 +262,46 @@ async def test_the_seed_books_interviews_ahead_and_marks_past_ones(client: Async
             for b in slot["bookings"]
         )
     assert upcoming >= 3
+
+
+def _without_timestamps(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [{k: v for k, v in row.items() if k != "updated_at"} for row in rows]
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-11")
+async def test_reset_is_a_fresh_start(app: FastAPI, client: AsyncClient) -> None:
+    zones = _without_timestamps((await client.get("/api/zones")).json())
+    availability = _without_timestamps((await client.get("/api/interviews/availability")).json())
+    assert (await client.post("/api/dev/seed", params={"n": 30, "seed": 3})).status_code == 201
+    first = (await client.get("/api/candidates")).json()[0]["id"]
+    note = {"action": "note", "note": "llamar mañana"}
+    assert (await client.post(f"/api/candidates/{first}/actions", json=note)).status_code == 201
+    salamanca = await client.patch("/api/zones/mad-salamanca", json={"target_drivers": 99})
+    assert salamanca.status_code == 200
+    async with app.state.sessions.begin() as session:  # a city whose agenda was removed
+        madrid = InterviewAvailability.city == "madrid"
+        await session.execute(delete(InterviewAvailability).where(madrid))
+        assert (await session.scalars(select(InterviewBooking))).first() is not None
+
+    response = await client.post("/api/dev/reset")
+
+    assert response.status_code == 200
+    assert response.json() == {"deleted": 30}
+    assert (await client.get("/api/candidates")).json() == []
+    async with app.state.sessions() as session:
+        for table in (InterviewBooking, RecruiterAction, Message):
+            assert (await session.scalars(select(table))).first() is None
+    assert _without_timestamps((await client.get("/api/zones")).json()) == zones
+    after = _without_timestamps((await client.get("/api/interviews/availability")).json())
+    assert after == availability
+
+
+@pytest.mark.anyio
+@pytest.mark.ac("004:AC-11")
+async def test_reset_refuses_outside_dev(settings: AppSettings, agent: ScreeningAgent) -> None:
+    app = create_app(settings.model_copy(update={"app_env": "prod"}), agent=agent)
+    async with app.router.lifespan_context(app):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            assert (await client.post("/api/dev/reset")).status_code == 403

@@ -1,4 +1,4 @@
-"""Dev-only routes (FR-12, FR-13): demo data and demo controls for re-engagement (008).
+"""Dev-only routes (FR-12, FR-13, FR-13b): demo data and demo controls for re-engagement (008).
 
 They answer 403 unless APP_ENV=dev, so a deployed API never exposes them.
 """
@@ -9,7 +9,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, R
 
 from sazon_screening.api import seed as demo
 from sazon_screening.api.deps import ServiceDep
-from sazon_screening.api.schemas import AdvanceOut, SeedOut, TurnOut
+from sazon_screening.api.schemas import AdvanceOut, ResetOut, SeedOut, TurnOut
 from sazon_screening.api.service import NotAllowed, ScreeningService
 from sazon_screening.engine import SilenceExpired
 from sazon_screening.llm.pipeline import build_agent
@@ -38,6 +38,14 @@ async def seed(
         service = _offline(request, service)
     ids = await demo.seed(service, n, seed=seed, now=service.now())
     return SeedOut(created=len(ids), ids=ids)
+
+
+@router.post("/reset")
+async def reset(service: ServiceDep) -> ResetOut:
+    """FR-13b: a fresh start. Deletes every candidate (conversations, messages,
+    summaries, actions, bookings, do-not-contact, WhatsApp dedupe) and puts zone staffing
+    and interview availability back to their config seeds."""
+    return ResetOut(deleted=await service.reset_all())
 
 
 def _offline(request: Request, service: ScreeningService) -> ScreeningService:

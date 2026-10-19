@@ -157,6 +157,8 @@ export const api = {
 
   // dev helpers (APP_ENV=dev only)
   seed: (n = 40) => post<{ created: number; ids: string[] }>(`/api/dev/seed?n=${n}`),
+  /** Spec 004 FR-13b: delete every candidate and restore zones and agendas from config. */
+  reset: () => post<{ deleted: number }>('/api/dev/reset'),
   silence: (id: string) => post<Turn>(`/api/dev/conversations/${id}/silence`),
   /** Spec 008 FR-8: run the next re-engagement step now (reminder, or abandon after the last). */
   advance: (id: string) => post<AdvanceResult>(`/api/dev/conversations/${id}/advance`),

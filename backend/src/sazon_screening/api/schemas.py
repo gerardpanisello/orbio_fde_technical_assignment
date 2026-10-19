@@ -479,6 +479,10 @@ class SeedOut(BaseModel):
     ids: list[str]
 
 
+class ResetOut(BaseModel):
+    deleted: int  # conversations removed
+
+
 # --- zones (spec 015) --------------------------------------------------------------------
 
 

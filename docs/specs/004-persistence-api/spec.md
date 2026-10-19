@@ -25,6 +25,7 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 **Demo / dev**
 - FR-12 `POST /api/dev/seed?n=40` (only when `APP_ENV=dev`) → creates N simulated conversations through the server's own agent (the real model when the API runs with `LLM_MODE=anthropic`; `?mode=fake` forces the offline rules agent) (varied personas: qualified, each disqualifier, abandoned at different stages, needs_review, EN speakers), spread over the last 14 days, so the dashboard has data. Deterministic with a seed.
 - FR-13 `POST /api/dev/conversations/{id}/silence` (dev) → sends `silence_expired` (until 008 adds timers).
+- FR-13b `POST /api/dev/reset` (dev) → a fresh start for demos: deletes every conversation, message, summary, recruiter action, interview booking, do-not-contact entry and WhatsApp dedupe row, and puts zone staffing and interview availability back to their `config/` seeds (as on a first start). Returns how many conversations were removed. The dashboard's dev tools offer it behind a confirmation.
 
 **Cross-cutting**
 - FR-14 The summary is generated **after** replying when `summary_due` (FastAPI BackgroundTasks), so the candidate is never slowed down.
@@ -59,6 +60,7 @@ The engine and LLM layer only run in a terminal. The candidate chat (005) and th
 - AC-8 Analytics on seeded data: counts add up to the total; drop-off stages only for abandoned; completion rate = finished / total.
 - AC-9 Seed is deterministic for a given seed and refuses to run unless `APP_ENV=dev`.
 - AC-10 Opted-out conversations expose no PII in list/detail/export (002 FR-11).
+- AC-11 After seeding, booking an interview and editing a zone, `POST /api/dev/reset` leaves no candidates, bookings or actions, zone staffing equal to the config seed and availability equal to the config; it refuses to run unless `APP_ENV=dev`.
 
 ## 5. Tasks
 - [x] T1 deps (`fastapi`, `uvicorn`, `sqlalchemy[asyncio]`, `aiosqlite`, `httpx` for tests), settings (`DATABASE_URL`, `APP_ENV`, CORS origins), app factory + health. 

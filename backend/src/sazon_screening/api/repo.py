@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sazon_screening.api.models import (
     SEAT_HOLDING,
+    Base,
     Conversation,
     DoNotContact,
     InboundSeen,
@@ -26,6 +27,18 @@ from sazon_screening.api.models import (
 )
 
 REDACTED = "[deleted: the candidate opted out]"
+
+
+async def delete_everything(session: AsyncSession) -> int:
+    """Dev reset (FR-13b): every row of every table, children first. Returns how many
+    conversations it removed."""
+    removed = 0
+    for table in reversed(Base.metadata.sorted_tables):
+        result = cast(CursorResult[Any], await session.execute(delete(table)))
+        if table.name == Conversation.__tablename__:
+            removed = result.rowcount
+    return removed
+
 
 # --- conversations ---------------------------------------------------------------------
 

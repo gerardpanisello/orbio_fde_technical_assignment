@@ -71,6 +71,20 @@ function DevTools() {
     mutationFn: () => api.seed(40),
     onSuccess: () => queryClient.invalidateQueries(),
   })
+  const reset = useMutation({
+    mutationFn: api.reset,
+    onSuccess: () => {
+      seed.reset()
+      return queryClient.invalidateQueries()
+    },
+  })
+  const confirmReset = () => {
+    const ok = window.confirm(
+      'Se borrarán todos los candidatos, conversaciones, entrevistas y notas, y las zonas y ' +
+        'la disponibilidad volverán a los valores de config/. No se puede deshacer. ¿Continuar?',
+    )
+    if (ok) reset.mutate()
+  }
 
   if (health.isError) {
     return (
@@ -99,6 +113,26 @@ function DevTools() {
       )}
       {seed.isError && (
         <p className="hidden text-center text-xs text-red-700 lg:block">No se pudieron generar</p>
+      )}
+      <button
+        type="button"
+        className="btn-ghost w-full text-red-700 hover:bg-red-50 lg:justify-start"
+        onClick={confirmReset}
+        disabled={reset.isPending || seed.isPending}
+        title="Borra todos los candidatos y vuelve a empezar"
+      >
+        {reset.isPending ? <Spinner className="size-3.5" /> : <Icon name="trash" />}
+        <span className="hidden lg:inline">Borrar todos los datos</span>
+      </button>
+      {reset.isSuccess && (
+        <p className="hidden text-center text-xs text-emerald-700 lg:block" role="status">
+          Datos borrados ({reset.data.deleted} conversaciones)
+        </p>
+      )}
+      {reset.isError && (
+        <p className="hidden text-center text-xs text-red-700 lg:block" role="alert">
+          No se pudieron borrar
+        </p>
       )}
       <p className="hidden items-center justify-center gap-1.5 text-[11px] text-stone-400 lg:flex">
         <span className="size-1.5 rounded-full bg-emerald-500" />
