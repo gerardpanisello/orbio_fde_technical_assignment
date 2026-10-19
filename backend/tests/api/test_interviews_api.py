@@ -46,7 +46,7 @@ async def test_lists_every_city_agenda(client: AsyncClient) -> None:
     assert madrid["times"] == ["10:00", "12:00", "17:00"]
     assert madrid["weekdays"] == ["mon", "tue", "wed", "thu", "fri"]
     assert (madrid["capacity"], madrid["duration_min"], madrid["days_ahead"]) == (3, 30, 3)
-    assert "ficticia" in madrid["place"]
+    assert "Calle del Ejemplo" in madrid["place"]
 
 
 @pytest.mark.ac("010:AC-7")

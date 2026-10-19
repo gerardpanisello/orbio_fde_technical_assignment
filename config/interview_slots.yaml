@@ -40,26 +40,26 @@ defaults:
 
 cities:
   madrid:
-    place: "Oficina Grupo Sazón Madrid, Calle del Ejemplo 12, 2.º (dirección ficticia)"
+    place: "Oficina Grupo Sazón Madrid, Calle del Ejemplo 12, 2.º"
     times: ["10:00", "12:00", "17:00"]
     capacity: 3
   barcelona:
-    place: "Oficina Grupo Sazón Barcelona, Carrer de la Prova 45 (dirección ficticia)"
+    place: "Oficina Grupo Sazón Barcelona, Carrer de la Prova 45"
   valencia:
-    place: "Restaurante Sazón Ruzafa, Calle Imaginaria 8 (dirección ficticia)"
+    place: "Restaurante Sazón Ruzafa, Calle Imaginaria 8"
   sevilla:
-    place: "Restaurante Sazón Triana, Calle Inventada 3 (dirección ficticia)"
+    place: "Restaurante Sazón Triana, Calle Inventada 3"
   malaga:
     place: "Videollamada (enlace de ejemplo: https://meet.gruposazon.example/malaga)"
     capacity: 1
   cdmx:
-    place: "Oficina Grupo Sazón CDMX, Av. Ficticia 100, Col. Roma Norte (dirección ficticia)"
+    place: "Oficina Grupo Sazón CDMX, Av. Ficticia 100, Col. Roma Norte"
     times: ["10:00", "13:00", "17:00"]
     capacity: 3
   guadalajara:
-    place: "Restaurante Sazón Providencia, Calle Ejemplo 250 (dirección ficticia)"
+    place: "Restaurante Sazón Providencia, Calle Ejemplo 250"
   monterrey:
-    place: "Restaurante Sazón San Pedro, Av. Inventada 77 (dirección ficticia)"
+    place: "Restaurante Sazón San Pedro, Av. Inventada 77"
   puebla:
     place: "Videollamada (enlace de ejemplo: https://meet.gruposazon.example/puebla)"
     capacity: 1

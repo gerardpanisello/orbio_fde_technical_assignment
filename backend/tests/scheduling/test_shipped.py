@@ -14,10 +14,12 @@ def test_shipped_config_covers_every_served_city(shipped_config: EngineConfig) -
     served = {c.id for country in shipped_config.service_areas.countries for c in country.cities}
     assert set(config.cities) == served
     assert config.max_slots == 3
+    # Demo data: the file must say its addresses are fictional (once, in the header), so the
+    # candidate-facing text stays clean in every language.
+    header = (SHIPPED_CONFIG_DIR / "interview_slots.yaml").read_text(encoding="utf-8")
+    assert "ALL ADDRESSES BELOW ARE FICTIONAL" in header
     for city in served:
-        assert "ficticia" in config.availability(city).place or "ejemplo" in (
-            config.availability(city).place
-        )
+        assert config.availability(city).place  # every served city has a place
 
 
 def test_unknown_city_fails_at_load(tmp_path: Path, shipped_config: EngineConfig) -> None:
