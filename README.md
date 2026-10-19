@@ -30,7 +30,7 @@ npm run dev            # http://localhost:5173
 
 Open http://localhost:5173:
 - **"Soy candidato"**: chat with Sofi. The side panel shows, live, what the engine extracted and validated.
-- **"Soy recruiter"**: dashboard. Click **"Generar datos demo"** to seed ~40 conversations.
+- **"Soy recruiter"**: dashboard. Click **"Generar datos demo"** to seed ~40 conversations; **"Borrar todos los datos"** gives a fresh start (dev only).
 
 **Fake vs real LLM.** By default everything runs **offline** (`LLM_MODE=fake`): rule-based extraction and template replies, no API key needed. To use Claude, copy `.env.example` to `.env`, set `LLM_MODE=anthropic` and `ANTHROPIC_API_KEY`, then start the API with `uv run --env-file ../.env uvicorn sazon_screening.api.app:create_app --factory --port 8000`.
 

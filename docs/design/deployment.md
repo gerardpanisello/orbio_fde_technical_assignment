@@ -39,8 +39,8 @@ flowchart LR
 | Database | SQLite (WAL), `create_all` at startup | Managed Postgres, **Alembic** migrations, JSON → JSONB, same SQLAlchemy models | Concurrency, backups/PITR, safe schema changes |
 | Ordering | In-process `asyncio.Lock` per conversation (dict never pruned) | FIFO lane per conversation + row lock / advisory lock | Works across many instances |
 | Background work | FastAPI `BackgroundTasks` for summaries | Worker queue with retries (summaries, outbox delivery, exports) | Survives restarts; retries are visible |
-| Channel | Simulated web chat (`POST /api/conversations/{id}/messages`) | WhatsApp webhook adapter; templates for business-initiated and >24 h messages | Real channel |
-| Re-engagement | Engine handles `silence_expired`; only a dev route sends it | Scheduler with a `timers` table, quiet hours per city timezone (spec 008) | Brief: candidates stop replying |
+| Channel | Web chat, plus a WhatsApp webhook adapter (spec 016: signed webhook, dedupe, buttons, template after 24 h) tested on Meta's test number | Verified business number, approved templates per language, a queue in front of the webhook | Real channel at volume |
+| Re-engagement | Scheduler loop inside the API process (spec 008): follow-ups with quiet hours per city timezone, claimed with a conditional UPDATE | Separate scheduler service or delayed queue with a DB lock | Works across many instances |
 | Secrets | `.env` file | Secrets manager (Anthropic key, WhatsApp token, ATS creds, HMAC secrets), rotated | No secrets on disk |
 | Recruiter auth | None | SSO (OIDC via the client's IdP), roles per country/location | PII behind login |
 | Dev routes | Gated by `APP_ENV=dev` | Not deployed in prod at all | Smaller attack surface |

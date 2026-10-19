@@ -9,7 +9,7 @@ Python is mandatory. The product must be usable by recruiters, and the evaluator
 - **Backend:** FastAPI + Pydantic v2 (typed contracts shared with LLM I/O), SQLAlchemy 2.
 - **DB:** SQLite for zero-setup; schema written to be Postgres-compatible (switch via `DATABASE_URL`).
 - **Frontend:** React + Vite + TypeScript, two apps in one: WhatsApp-style candidate chat and recruiter dashboard.
-- **Channel:** web chat simulating WhatsApp; real WhatsApp integration documented, not built.
+- **Channel:** web chat simulating WhatsApp; real WhatsApp integration documented, not built. *(Superseded 2026-10-13: a real WhatsApp channel on the Meta Cloud API was built in [spec 016](../specs/016-whatsapp/spec.md); the web chat stays the default for demos.)*
 - **Tooling:** uv, ruff, pytest, mypy.
 
 ## Alternatives considered
