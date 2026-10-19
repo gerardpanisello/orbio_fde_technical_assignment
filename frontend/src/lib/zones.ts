@@ -85,21 +85,27 @@ export type CityGroup = {
   totals: ZoneTotals
 }
 
-/** Cities by country (ES first) then name; zones by occupancy, the neediest first, no data last. */
-export function groupByCity(zones: Zone[]): CityGroup[] {
+/**
+ * Cities by country (ES first) then name; zones by occupancy, the neediest first, no data
+ * last. With `order` (zone ids), zones keep that order instead, so a row does not jump
+ * away while the recruiter is editing it.
+ */
+export function groupByCity(zones: Zone[], order?: readonly string[]): CityGroup[] {
   const byCity = new Map<string, Zone[]>()
   for (const zone of zones) byCity.set(zone.city, [...(byCity.get(zone.city) ?? []), zone])
   const countries = Object.keys(COUNTRY)
+  const rank = order ? new Map(order.map((id, i) => [id, i])) : null
+  const byOccupancy = (a: Zone, b: Zone) =>
+    (a.occupancy_pct ?? Infinity) - (b.occupancy_pct ?? Infinity) ||
+    a.name.localeCompare(b.name, 'es')
+  const byRank = (a: Zone, b: Zone) =>
+    (rank?.get(a.id) ?? Infinity) - (rank?.get(b.id) ?? Infinity) || byOccupancy(a, b)
   return [...byCity.values()]
     .map((list) => ({
       city: list[0].city,
       cityName: list[0].city_name,
       country: list[0].country,
-      zones: [...list].sort(
-        (a, b) =>
-          (a.occupancy_pct ?? Infinity) - (b.occupancy_pct ?? Infinity) ||
-          a.name.localeCompare(b.name, 'es'),
-      ),
+      zones: [...list].sort(rank ? byRank : byOccupancy),
       totals: zoneTotals(list),
     }))
     .sort(

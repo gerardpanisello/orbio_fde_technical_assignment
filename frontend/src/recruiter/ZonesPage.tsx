@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ApiError, api, type Zone, type ZonePatch } from '../api/client'
 import { keys, useZones } from '../api/queries'
@@ -32,9 +32,15 @@ export function ZonesPage() {
   const [onlyDeficit, setOnlyDeficit] = useState(false)
 
   const all = zones.data ?? []
+  // Sorted by occupancy once, when the page loads: saving a number changes the occupancy,
+  // and re-sorting then would move the row away from under the cursor.
+  const [order, setOrder] = useState<string[] | null>(null)
+  if (order === null && zones.data) {
+    setOrder(groupByCity(zones.data).flatMap((group) => group.zones.map((zone) => zone.id)))
+  }
   const totals = zoneTotals(all)
   const shown = onlyDeficit ? all.filter(hasDeficit) : all
-  const groups = groupByCity(shown)
+  const groups = groupByCity(shown, order ?? undefined)
   const coverage = totals.target > 0 ? Math.floor((totals.current / totals.target) * 100) : null
 
   return (
@@ -78,7 +84,14 @@ export function ZonesPage() {
       </section>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        <Legend />
+        <div className="space-y-1">
+          <Legend />
+          <p className="text-xs text-stone-500">
+            Edita <strong className="font-medium text-stone-700">Objetivo</strong> o{' '}
+            <strong className="font-medium text-stone-700">Actuales</strong>: se guarda al pulsar
+            Enter o al salir del campo (Esc lo deshace).
+          </p>
+        </div>
         <label className="flex items-center gap-2 text-sm text-stone-600">
           <input
             type="checkbox"
@@ -174,10 +187,17 @@ function ZoneTable({ groups }: { groups: CityGroup[] }) {
 function ZoneRow({ zone }: { zone: Zone }) {
   const queryClient = useQueryClient()
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => {
+    if (!saved) return
+    const timer = setTimeout(() => setSaved(false), 2500)
+    return () => clearTimeout(timer)
+  }, [saved])
   const update = useMutation({
     mutationFn: (patch: ZonePatch) => api.updateZone(zone.id, patch),
     onMutate: async (patch) => {
       setError(null)
+      setSaved(false)
       await queryClient.cancelQueries({ queryKey: keys.zones })
       const previous = queryClient.getQueryData<Zone[]>(keys.zones)
       queryClient.setQueryData<Zone[]>(keys.zones, (list) =>
@@ -193,9 +213,10 @@ function ZoneRow({ zone }: { zone: Zone }) {
           : errorMessage(err),
       )
     },
-    onSuccess: (saved) => {
+    onSuccess: (row) => {
+      setSaved(true)
       queryClient.setQueryData<Zone[]>(keys.zones, (list) =>
-        list?.map((z) => (z.id === saved.id ? saved : z)),
+        list?.map((z) => (z.id === row.id ? row : z)),
       )
       // Live priority (FR-6): every candidate of this zone may have a new score/bucket.
       void queryClient.invalidateQueries({ queryKey: keys.allCandidates })
@@ -226,12 +247,14 @@ function ZoneRow({ zone }: { zone: Zone }) {
           value={zone.current_drivers}
           onSave={(n) => update.mutate({ current_drivers: n })}
         />
-        {(error || update.isPending) && (
+        {(error || update.isPending || saved) && (
           <div className="mt-0.5 text-right text-[11px]" role={error ? 'alert' : 'status'}>
             {error ? (
               <span className="text-red-700">{error}</span>
-            ) : (
+            ) : update.isPending ? (
               <Spinner className="inline size-3 text-stone-400" />
+            ) : (
+              <span className="text-emerald-700">Guardado ✓</span>
             )}
           </div>
         )}

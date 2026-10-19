@@ -90,6 +90,12 @@ describe('zone totals and grouping', () => {
     expect(groups.map((g) => g.city)).toEqual(['madrid', 'cdmx'])
     expect(groups[0].zones.map((z) => z.id)).toEqual(['a', 'b', 'c'])
   })
+
+  it('keeps a given order, so an edited row does not move away from the cursor', () => {
+    const edited = zones.map((z) => (z.id === 'a' ? applyZonePatch(z, { target_drivers: 1 }) : z))
+    expect(groupByCity(edited)[0].zones.map((z) => z.id)).not.toEqual(['a', 'b', 'c'])
+    expect(groupByCity(edited, ['a', 'b', 'c', 'cdmx'])[0].zones.map((z) => z.id)).toEqual(['a', 'b', 'c'])
+  })
 })
 
 describe('zone-demand factor text', () => {
